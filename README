@@ -1,0 +1,15 @@
+Luv 0.1dev
+==========
+
+Luv is Lua (lua.org) MVC web-framework. Luv is open-source and 
+completely free for both commercial and non-commercial use.
+
+Luv includes:
+- Prototype-based OOP;
+- Exceptions;
+- CGI lib;
+- Unit-testing libs;
+- "Tamplier" template engine written in pure Lua;
+- ... will be much more soon ...
+
+Artyom Shein <temiy@aisys.ru>, 2008
