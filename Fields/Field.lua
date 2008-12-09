@@ -1,4 +1,5 @@
-local Object = require"ProtOo"
+local Object, Exception = require"ProtOo", require"Exception"
+local type = type
 
 module(...)
 
@@ -9,6 +10,10 @@ local Field = Object:extend{
 	
 	init = abstractMethod,
 	setParams = function (self, params)
+		if (not params.name) or type(params.name) ~= "string" then
+			Exception:new"name required!":throw()
+		end
+		self.name = params.name
 		if params.pk then
 			self.pk = params.pk
 		end
@@ -18,6 +23,14 @@ local Field = Object:extend{
 		if params.required then
 			self.required = params.required
 		end
+		return self
+	end,
+	getValue = function (self)
+		return self.value
+	end,
+	setValue = function (self, value)
+		self.value = value
+		return self
 	end
 }
 

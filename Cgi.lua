@@ -25,6 +25,7 @@ local Cgi = Object:extend{
 	CONTENT_LENGTH = os.getenv"CONTENT_LENGTH",
 	HTTP_ACCEPT = os.getenv"HTTP_ACCEPT",
 	HTTP_USER_AGENT = os.getenv"HTTP_USER_AGENT",
+	REQUEST_URI = os.getenv"REQUEST_URI",
 	
 	Exception = Exception:extend{},
 	
