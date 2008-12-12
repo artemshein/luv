@@ -1,5 +1,5 @@
 local Object, Exception = require"ProtOo", require"Exception"
-local type = type
+local type, pairs = type, pairs
 
 module(...)
 
@@ -7,13 +7,10 @@ local Field = Object:extend{
 	pk = false,
 	unique = false,
 	required = false,
+	validators = {},
 	
-	init = abstractMethod,
 	setParams = function (self, params)
-		if (not params.name) or type(params.name) ~= "string" then
-			Exception:new"name required!":throw()
-		end
-		self.name = params.name
+		params = params or {}
 		if params.pk then
 			self.pk = params.pk
 		end
@@ -25,12 +22,21 @@ local Field = Object:extend{
 		end
 		return self
 	end,
-	getValue = function (self)
-		return self.value
-	end,
+	isRequired = function (self) return self.required end,
+	isUnique = function (self) return self.unique end,
+	isPk = function (self) return self.pk end,
+	getValue = function (self) return self.value end,
 	setValue = function (self, value)
 		self.value = value
 		return self
+	end,
+	validate = function (self)
+		for i, val in pairs(self.validators) do
+			if not val:validate(self.value) then
+				return false
+			end
+		end
+		return true
 	end
 }
 
