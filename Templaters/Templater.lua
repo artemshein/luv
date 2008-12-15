@@ -3,6 +3,8 @@ local Object = require"ProtOo"
 module(...)
 
 local Templater = Object:extend{
+	__tag = "Templaters.Templater",
+	
 	init = function (self, templatesDir)
 		self.templatesDir = templatesDir
 	end,

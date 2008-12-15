@@ -3,6 +3,8 @@ local Object = require"ProtOo"
 module(..., package.seeall)
 
 local ExceptionResult = Object:extend{
+	__tag = "ExceptionResult",
+	
 	raised = false,
 	
 	init = function (self, res, exc)
@@ -44,6 +46,8 @@ local ExceptionResult = Object:extend{
 }
 
 local Exception = Object:extend{
+	__tag = "Exception",
+	
 	init = function (self, message)
 		self.message = message
 		self.trace = debug.traceback("", 3)
@@ -58,10 +62,6 @@ _G.try = function (...)
 	return ExceptionResult:new(pcall(...))
 end
 
-local tbl = getmetatable(Exception)
-tbl.__tostring = function (self)
-	return self.message
-end
-setmetatable(Exception, tbl)
+getmetatable(Exception).__tostring = function (self) return self.message end
 
 return Exception

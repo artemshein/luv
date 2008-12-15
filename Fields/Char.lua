@@ -3,6 +3,8 @@ local Field, Length = require"Fields.Field", require"Validators.Length"
 module(...)
 
 local Char = Field:extend{
+	__tag = "Fields.Char",
+	
 	init = function (self, params)
 		params = params or {}
 		self:setParams(params)

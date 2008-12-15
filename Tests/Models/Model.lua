@@ -8,20 +8,20 @@ local ModelTest = UnitTest:extend{
 		self.assertThrows(function () Model:new() end)
 	end,
 	testModel = function (self)
-		local TestModel = Model:extend{
-			__class = "TestModel",
+		local Test = Model:extend{
+			__tag = "Models.Test",
 			init = function (self)
 				self.fields = {test = Char:new{minLength = 4, maxLength = 6}}
 			end
 		}
-		local t = TestModel:new()
+		local t = Test:new()
 		t.test = "123"
-		Debug.dump(t, 3)
 		self.assertEquals(t.test, "123")
 		self.assertEquals(t.test, t:getField("test"):getValue())
 		self.assertFalse(t:validate())
 		t.test = "1234"
 		self.assertTrue(t:validate())
+		--Debug.dump(t)
 	end
 }
 

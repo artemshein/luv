@@ -4,7 +4,7 @@ local rawget, rawset, getmetatable = rawget, rawset, getmetatable
 module(...)
 
 local Model = Struct:extend{
-	__class = "Model"
+	__tag = "Models.Model"
 }
 
 return Model

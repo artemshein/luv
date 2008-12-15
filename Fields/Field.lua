@@ -4,6 +4,8 @@ local type, pairs = type, pairs
 module(...)
 
 local Field = Object:extend{
+	__tag = "Fields.Field",
+	
 	pk = false,
 	unique = false,
 	required = false,

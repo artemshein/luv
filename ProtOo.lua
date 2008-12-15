@@ -1,4 +1,4 @@
-local CheckTypes = require"CheckTypes"
+local CheckTypes, Debug = require"CheckTypes", require"Debug"
 local tostring, setmetatable, error, io, debug, type = tostring, setmetatable, error, io, debug, type
 
 module(...)
@@ -19,19 +19,17 @@ local abstractMethod = function ()
 end
 
 local Object = {
-	__class = "Object",
+	__tag = "Object",
 	init = abstractMethod,
 	extend = function (self, tbl)
 		local newObj = tbl or {}
 		newObj.parent = self
-		--newObj.__id = tostring(newObj)
 		setmetatable(newObj, { __index = self })
 		return newObj
 	end,
 	new = function (self, ...)
 		local newObj = {}
 		newObj.parent = self
-		--newObj.__id = tostring(newObj)
 		setmetatable(newObj, { __index = self })
 		newObj:init(...)
 		return newObj
@@ -45,7 +43,5 @@ local Object = {
 	abstractMethod = abstractMethod,
 	checkTypes = CheckTypes.checkTypes
 }
-
---Object.__id = tostring(Object)
 
 return Object

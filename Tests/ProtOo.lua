@@ -63,6 +63,20 @@ local ProtOo = UnitTest:extend{
 		self.assertEquals(b.parent.parent.parent, Object)
 		self.assertNil(b.parent.parent.parent.parent)
 	end,
+	testMethodCall = function (self)
+		local A = Object:extend{init = function () end, test = function () return "123" end}
+		local A2 = A:extend{test = function () return "234" end}
+		local A3 = A2:extend{}
+		local A4 = A3:extend{}
+		local a, a2, a3, a4 = A:new(), A2:new(), A3:new(), A4:new()
+		self.assertEquals(a:test(), "123")
+		self.assertEquals(a2:test(), "234")
+		self.assertEquals(a3:test(), "234")
+		self.assertEquals(a4:test(), "234")
+		A3.test = function () return "345" end
+		self.assertEquals(a3:test(), "345")
+		self.assertEquals(a4:test(), "345")
+	end,
 	testCheckTypes = function (self)
 		local A = Object:extend{init = function () end}
 		local A2 = A:extend{}

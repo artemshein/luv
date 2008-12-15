@@ -112,7 +112,12 @@ function Debug.dump (obj, depth, tab, seen)
 	elseif type(obj) == "string" then
 		io.write("\"", obj, "\"")
 	elseif type(obj) == "table" then
-		io.write(tostring(obj))	
+		local tag = rawget(obj, "__tag")
+		if tag then
+			io.write(tag)
+		else
+			io.write(tostring(obj))
+		end
 		if table.find(seen, obj) then
 			io.write" RECURSION"
 		elseif 0 ~= depth then
@@ -120,9 +125,11 @@ function Debug.dump (obj, depth, tab, seen)
 			io.write"{\n"
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do
-				io.write(ntab, key, " = ")
-				Debug.dump(val, depth-1, ntab, seen)
-				io.write",\n"
+				if key ~= "__tag" then
+					io.write(ntab, key, " = ")
+					Debug.dump(val, depth-1, ntab, seen)
+					io.write",\n"
+				end
 			end
 			io.write(ntab, "__metatable = ")
 			Debug.dump(getmetatable(obj), depth-1, ntab, seen)

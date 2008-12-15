@@ -10,7 +10,7 @@ local get = function (self, field)
 	if not res or not res[field] then
 		return nil
 	end
-	return res:getValue()
+	return res[field]:getValue()
 end
 
 local set = function (self, field, value)
@@ -24,7 +24,7 @@ local set = function (self, field, value)
 end
 
 local Struct = Object:extend{
-	__class = "Struct",
+	__tag = "Struct",
 	init = Object.abstractMethod,
 	--[[extend = function (self, tbl)
 		local newObj = Object.extend(self, tbl)
@@ -32,7 +32,7 @@ local Struct = Object:extend{
 		return newObj
 	end,]]
 	new = function (self)
-		local obj = Object.new()
+		local obj = Object.new(self)
 		setmetatable(obj, { __index = get, __newindex = set })
 		return obj
 	end,

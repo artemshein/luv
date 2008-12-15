@@ -4,6 +4,8 @@ local type, tostring, dump = type, tostring, dump
 module(...)
 
 local Length = Validator:extend{
+	__tag = "Validators.Length",
+	
 	init = function (self, minOrMaxLength, maxLength)
 		if not minOrMaxLength or type(minOrMaxLength) ~= "number" then
 			Exception:new"maxLength required!":throw()

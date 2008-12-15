@@ -4,6 +4,8 @@ local type, tonumber = type, tonumber
 module(...)
 
 local Int = Validator:extend{
+	__tag = "Validators.Int",
+	
 	init = function (self) return self end,
 	validate = function (self, value)
 		if type(value) == "number" then

@@ -4,6 +4,8 @@ local io, string, loadstring, dump, setfenv, type, pairs = io, string, loadstrin
 module(...)
 
 local Tamplier = Templater:extend{
+	__tag = "Templaters.Tamplier",
+	
 	init = function (self, ...)
 		self.parent:init(...)
 		self.internal = {

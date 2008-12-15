@@ -4,6 +4,8 @@ local type, tostring, tonumber = type, tostring, tonumber
 module(...)
 
 local Value = Validator:extend{
+	__tag = "Validators.Value",
+	
 	init = function (self, value)
 		self.value = value
 	end,
