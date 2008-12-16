@@ -10,7 +10,7 @@ Luv:
 - is complete solution for any web-service.
 
 Luv includes:
-- Some usefull table and debug extensions;
+- Some usefull table, string and debug extensions;
 - Prototype-based OOP;
 - Exceptions;
 - CGI lib;
@@ -19,6 +19,7 @@ Luv includes:
 - MVC (Validators, Fields, Models, Forms);
 - URL conf;
 - Widgets;
+- Databases;
 - ... will be much more soon ...
 
 What's new
