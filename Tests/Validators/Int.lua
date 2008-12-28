@@ -1,8 +1,8 @@
-local UnitTest, Int = require"UnitTest", require"Validators.Int"
+local TestCase, Int = require"TestCase", require"Validators.Int"
 
 module(...)
 
-local IntTest = UnitTest:extend{
+local IntTest = TestCase:extend{
 	testSimple = function (self)
 		local v = Int:new()
 		self.assertTrue(v:validate(10))

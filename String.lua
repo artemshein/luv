@@ -9,6 +9,13 @@ string.capitalize = function (self)
 	return string.upper(string.slice(self, 1, 1))..string.slice(self, 2)
 end
 
+string.beginsWith = function (str, beg)
+	if 1 ~= string.find(str, beg, 1, true) then
+		return false
+	end
+	return true
+end
+
 string.split = function (str, ...)
 	local res, tail, i, len = {}, str, 1, select("#", ...)
 	for i = 1, len do
@@ -33,6 +40,10 @@ string.explode = function (self, ex)
 	end
 	table.insert(res, tail)
 	return res
+end
+
+string.htmlEscape = function (str)
+	return string.gsub(str, "[\\\"]", {["\""] = "&quot;"})
 end
 
 return string

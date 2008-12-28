@@ -1,22 +1,22 @@
-local UnitTest = require"UnitTest"
+local TestCase = require"TestCase"
 
 module(...)
 
-local SelfTest = UnitTest:extend{
-	testAsserts = function (self) assertTrue(true) assertFalse(false) assertEquals(1, 1) assertNotEquals(1, 2) assertNil(nil) assertNotNil({}) end,
+local SelfTest = TestCase:extend{
+	testAsserts = function (self) self.assertTrue(true) self.assertFalse(false) self.assertEquals(1, 1) self.assertNotEquals(1, 2) self.assertNil(nil) self.assertNotNil({}) end,
 	testThrows = function (self)
-		assertThrows(assertTrue, false)
-		assertThrows(assertFalse, true)
-		assertThrows(assertEquals, 1, 2)
-		assertThrows(assertNotEquals, 1, 1)
-		assertThrows(assertNil, {})
-		assertThrows(assertNotNil, nil)
+		self.assertThrows(self.assertTrue, false)
+		self.assertThrows(self.assertFalse, true)
+		self.assertThrows(assertEquals, 1, 2)
+		self.assertThrows(assertNotEquals, 1, 1)
+		self.assertThrows(assertNil, {})
+		self.assertThrows(assertNotNil, nil)
 	end,
 	setUp = function (self)
 		self.a = 10
 	end,
 	testSetUp = function (self)
-		assertEquals(a, 10)
+		self.assertEquals(self.a, 10)
 	end,
 }
 

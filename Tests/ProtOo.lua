@@ -1,8 +1,8 @@
-local Object, UnitTest = require"ProtOo", require"UnitTest"
+local Object, TestCase = require"ProtOo", require"TestCase"
 
 module(...)
 
-local ProtOo = UnitTest:extend{
+local TestProtOo = TestCase:extend{
 	testSimple = function (self)
 		self.assertThrows(function () Object:new() end)
 	end,
@@ -94,4 +94,4 @@ local ProtOo = UnitTest:extend{
 	end
 }
 
-return ProtOo
+return TestProtOo

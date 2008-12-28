@@ -1,12 +1,12 @@
-local CheckTypes, Debug = require"CheckTypes", require"Debug"
-local tostring, setmetatable, error, io, debug, type = tostring, setmetatable, error, io, debug, type
+local Table, CheckTypes, Debug = require"Table", require"CheckTypes", require"Debug"
+local tostring, getmetatable, setmetatable, error, io, debug, type = tostring, getmetatable, setmetatable, error, io, debug, type
 
 module(...)
 
-CheckTypes.oldExpect = CheckTypes.expect
+local expect = CheckTypes.expect
 CheckTypes.expect = function (value, valType)
 	if type(valType) == "string" then
-		return CheckTypes.oldExpect(value, valType)
+		return expect(value, valType)
 	elseif type(value) == "table" and value:isKindOf(valType) then
 		return true
 	else
@@ -18,21 +18,36 @@ local abstractMethod = function ()
 	error("Method must be implemented first! "..debug.traceback())
 end
 
+local maskedMethod = function ()
+	error("Method not founded! "..debug.traceback())
+end
+
+local singleton = function (self) return self end
+
+local clone = function (obj, tbl)
+	tbl = tbl or {}
+	tbl.parent = obj
+	local mt = getmetatable(obj)
+	if not mt then
+		mt = {}
+	else
+		mt = Table.copy(mt)
+	end
+	mt.__index = obj
+	setmetatable(tbl, mt)
+	return tbl
+end
+
 local Object = {
 	__tag = "Object",
 	init = abstractMethod,
 	extend = function (self, tbl)
-		local newObj = tbl or {}
-		newObj.parent = self
-		setmetatable(newObj, { __index = self })
-		return newObj
+		return clone(self, tbl)
 	end,
 	new = function (self, ...)
-		local newObj = {}
-		newObj.parent = self
-		setmetatable(newObj, { __index = self })
-		newObj:init(...)
-		return newObj
+		local obj = clone(self, {})
+		obj:init(...)
+		return obj
 	end,
 	isKindOf = function (self, obj)
 		if obj and (self == obj or (self.parent and (self.parent):isKindOf(obj))) then
@@ -41,6 +56,7 @@ local Object = {
 		return false
 	end,
 	abstractMethod = abstractMethod,
+	maskedMethod = maskedMethod,
 	checkTypes = CheckTypes.checkTypes
 }
 

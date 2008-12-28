@@ -1,10 +1,15 @@
-local UnitTest, Database = require"UnitTest", require"Database.Factory"
+local TestCase, Database, Driver = require"TestCase", require"Database.Factory", require"Database.Driver"
+local Debug = require"Debug"
 
 module(...)
 
-local FactoryTest = UnitTest:extend{
+local FactoryTest = TestCase:extend{
+	invalidDsn = "mysql://invalid-user:invalid-pass@invalid-host/invalid-db", -- This DSN should be invalid!
+	validDsn = "mysql://test:test@localhost/test", -- This DSN should be valid!
 	testConnect = function (self)
-		Database:connect("mysql://login:pass@host/database")
+		self.assertThrows(function () Database:connect(self.invalidDsn) end)
+		local db = Database:connect(self.validDsn)
+		self.assertTrue(db:isKindOf(Driver))
 	end
 }
 

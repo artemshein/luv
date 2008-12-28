@@ -1,8 +1,8 @@
-local UnitTest, Length = require"UnitTest", require"Validators.Length"
+local TestCase, Length = require"TestCase", require"Validators.Length"
 
 module(...)
 
-local LengthTest = UnitTest:extend{
+local LengthTest = TestCase:extend{
 	testSimple = function (self)
 		v = Length:new(5, 10)
 		self.assertTrue(v:validate("12345"))
@@ -15,7 +15,7 @@ local LengthTest = UnitTest:extend{
 		self.assertTrue(v:validate(10000))
 		self.assertFalse(v:validate(false))
 		self.assertFalse(v:validate(true))
-		v = Length:new(5)
+		v = Length:new(0, 5)
 		self.assertTrue(v:validate(""))
 		self.assertTrue(v:validate("12345"))
 		self.assertTrue(v:validate(12345))

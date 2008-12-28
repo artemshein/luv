@@ -1,6 +1,20 @@
 local Object = require"ProtOo"
+local debug = debug
 
 module(..., package.seeall)
+
+local Exception = Object:extend{
+	__tag = "Exception",
+	
+	init = function (self, message)
+		self.message = message
+		self.trace = debug.traceback("", 3)
+	end,
+	
+	throw = function (self)
+		error(self)
+	end
+}
 
 local ExceptionResult = Object:extend{
 	__tag = "ExceptionResult",
@@ -38,23 +52,10 @@ local ExceptionResult = Object:extend{
 		if self.raised then
 			if type(self.exception) == "table" then
 				self.exception:throw()
-			else
-				error(self.exception)
+			elseif type(self.exception) == "string" then
+				error(self.exception.." "..debug.traceback())
 			end
 		end
-	end
-}
-
-local Exception = Object:extend{
-	__tag = "Exception",
-	
-	init = function (self, message)
-		self.message = message
-		self.trace = debug.traceback("", 3)
-	end,
-	
-	throw = function (self)
-		error(self)
 	end
 }
 

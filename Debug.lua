@@ -118,10 +118,10 @@ function Debug.dump (obj, depth, tab, seen)
 		else
 			io.write(tostring(obj))
 		end
-		if table.find(seen, obj) then
+		if Table.find(seen, obj) then
 			io.write" RECURSION"
 		elseif 0 ~= depth then
-			table.insert(seen, obj)
+			Table.insert(seen, obj)
 			io.write"{\n"
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do
@@ -131,10 +131,13 @@ function Debug.dump (obj, depth, tab, seen)
 					io.write",\n"
 				end
 			end
-			io.write(ntab, "__metatable = ")
-			Debug.dump(getmetatable(obj), depth-1, ntab, seen)
-			io.write("\n", tab, "}")
-			table.removeValue(seen, obj)
+			if getmetatable(obj) then
+				io.write(ntab, "__metatable = ")
+				Debug.dump(getmetatable(obj), depth-1, ntab, seen)
+				io.write"\n"
+			end
+			io.write(tab, "}")
+			Table.removeValue(seen, obj)
 		end
 	elseif type(obj) == "function" then
 		io.write(tostring(obj))

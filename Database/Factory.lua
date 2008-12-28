@@ -1,5 +1,5 @@
 local Object, Exception, String = require"ProtOo", require"Exception", require"String"
-local require, ipairs = require, ipairs
+local require, ipairs, Debug = require, ipairs, require"Debug"
 
 module(...)
 

@@ -5,7 +5,7 @@ module(...)
 local Widget = Object:extend{
 	__tag = "Widgets.Widget",
 	
-	render = abstractMethod
+	render = Object.abstractMethod
 }
 
 return Widget

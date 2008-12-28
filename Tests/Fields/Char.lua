@@ -1,8 +1,8 @@
-local UnitTest, Char = require"UnitTest", require"Fields.Char"
+local TestCase, Char = require"TestCase", require"Fields.Char"
 
 module(...)
 
-local CharTest = UnitTest:extend{
+local CharTest = TestCase:extend{
 	testSimple = function (self)
 		local f = Char:new()
 		self.assertFalse(f:isRequired())

@@ -1,8 +1,8 @@
-local UnitTest, Field = require"UnitTest", require"Fields.Field"
+local TestCase, Field = require"TestCase", require"Fields.Field"
 
 module(...)
 
-local FieldTest = UnitTest:extend{
+local FieldTest = TestCase:extend{
 	testAbstract = function (self)
 		self.assertThrows(function () Field:new{name = "testName"} end)
 	end

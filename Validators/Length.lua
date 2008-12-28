@@ -6,17 +6,12 @@ module(...)
 local Length = Validator:extend{
 	__tag = "Validators.Length",
 	
-	init = function (self, minOrMaxLength, maxLength)
-		if not minOrMaxLength or type(minOrMaxLength) ~= "number" then
-			Exception:new"maxLength required!":throw()
-		end
-		if maxLength then
-			self.maxLength = maxLength
-			self.minLength = minOrMaxLength
-		else
-			self.maxLength = minOrMaxLength
-		end
+	init = function (self, minLength, maxLength)
+		self.minLength = minLength
+		self.maxLength = maxLength
 	end,
+	getMaxLength = function (self) return self.maxLength end,
+	getMinLength = function (self) return self.minLength end,
 	validate = function (self, value)
 		if type(value) == "number" then
 			value = tostring(value)

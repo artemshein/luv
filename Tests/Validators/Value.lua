@@ -1,8 +1,8 @@
-local UnitTest, Value = require"UnitTest", require"Validators.Value"
+local TestCase, Value = require"TestCase", require"Validators.Value"
 
 module(...)
 
-local ValueTest = UnitTest:extend{
+local ValueTest = TestCase:extend{
 	testSimple = function (self)
 		local v = Value:new"test"
 		self.assertTrue(v:validate("test"))

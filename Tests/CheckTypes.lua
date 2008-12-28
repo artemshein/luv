@@ -1,9 +1,9 @@
-local UnitTest, CheckTypes = require"UnitTest", require"CheckTypes"
+local TestCase, CheckTypes = require"TestCase", require"CheckTypes"
 local checkTypes, type, tostring, tonumber, io = CheckTypes.checkTypes, type, tostring, tonumber, io
 
 module(...)
 
-local CheckTypesTest = UnitTest:extend{
+local CheckTypesTest = TestCase:extend{
 	testSimple = function (self)
 		local a = checkTypes("number", function (num) return num+1 end, "number")
 		self.assertThrows(function () a("abc") end)

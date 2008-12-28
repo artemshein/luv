@@ -1,8 +1,8 @@
-local UnitTest, Tamplier, File = require"UnitTest", require"Templaters.Tamplier", require"File"
+local TestCase, Tamplier, File = require"TestCase", require"Templaters.Tamplier", require"File"
 
 module(...)
 
-local TamplierTest = UnitTest:extend{
+local TamplierTest = TestCase:extend{
 	testFileName = "fgasu2345sfafasdf",
 	
 	setUp = function (self)
@@ -16,41 +16,41 @@ local TamplierTest = UnitTest:extend{
 	testSimpleText = function (self)
 		local test = [[T~~@est st_3245ring
 		with new l%in-()es{ } { % %% }\}]]
-		assertEquals(test, t:fetchString(test))
+		self.assertEquals(test, self.t:fetchString(test))
 	end,
 
 	testSimpleVars = function (self)
-		t:assign("abc", 10)
-		t:assign("str", "string - string - string")
-		assertEquals("abc: 10, str: string - string - string", t:fetchString("abc: {{abc}}, str: {{str}}"))
+		self.t:assign("abc", 10)
+		self.t:assign("str", "string - string - string")
+		self.assertEquals("abc: 10, str: string - string - string", self.t:fetchString("abc: {{abc}}, str: {{str}}"))
 	end,
 
 	testTable = function (self)
-		t:assign("tbl", {a = 10, b = 20, c = "30"})
-		assertEquals("tbl {a = 10, b = 20, c = 30}", t:fetchString("tbl {a = {{tbl.a}}, b = {{tbl.b}}, c = {{tbl.c}}}"))
+		self.t:assign("tbl", {a = 10, b = 20, c = "30"})
+		self.assertEquals("tbl {a = 10, b = 20, c = 30}", self.t:fetchString("tbl {a = {{tbl.a}}, b = {{tbl.b}}, c = {{tbl.c}}}"))
 	end,
 
 	testSimpleExpression = function (self)
-		t:assign("a", 25)
-		t:assign("b", 50)
-		assertEquals("75", t:fetchString("{{a+b}}"))
+		self.t:assign("a", 25)
+		self.t:assign("b", 50)
+		self.assertEquals("75", self.t:fetchString("{{a+b}}"))
 	end,
 
 	testFor = function (self)
-		assertEquals("12345678910", t:fetchString("{% for i = 1, 10 do %}{{i}}{% end %}"))
+		self.assertEquals("12345678910", self.t:fetchString("{% for i = 1, 10 do %}{{i}}{% end %}"))
 	end,
 
 	testInclude = function (self)
-		local f = File:new(testFileName):openForWriting():write("included text"):close()
-		assertEquals("local text, included text", t:fetchString("local text, {{include(\""..testFileName.."\")}}"))
+		local f = File:new(self.testFileName):openForWriting():write("included text"):close()
+		self.assertEquals("local text, included text", self.t:fetchString("local text, {{include(\""..self.testFileName.."\")}}"))
 		f:delete()
 	end,
 
 	testIncludeWithVars = function (self)
-		local f = File:new(testFileName):openForWriting():write("{{a+b}}"):close()
-		t:assign{a = 10, b = 20}
-		assertEquals("value = 30", t:fetchString("value = {{include(\""..testFileName.."\")}}"))
-		assertEquals("value = 30", t:fetchString("value = {% val = include(\""..testFileName.."\") %}{{val}}"))
+		local f = File:new(self.testFileName):openForWriting():write("{{a+b}}"):close()
+		self.t:assign{a = 10, b = 20}
+		self.assertEquals("value = 30", self.t:fetchString("value = {{include(\""..self.testFileName.."\")}}"))
+		self.assertEquals("value = 30", self.t:fetchString("value = {% val = include(\""..self.testFileName.."\") %}{{val}}"))
 		f:delete()
 	end
 }

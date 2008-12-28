@@ -1,8 +1,9 @@
 Luv 0.1dev
 ==========
 
-Luv is Lua (lua.org) MVC web-framework. Luv is open-source and 
-completely free for both commercial and non-commercial use. Luv current version has a "development" status and not advised to use anywhere.
+Luv is Lua (lua.org) MVC web-framework. Luv is open-source and completely free
+for both commercial and non-commercial use. Luv current version has
+a "development" status and not advised to use anywhere.
 
 Luv:
 - is much faster then any PHP, Ruby, or Python frameworks;
@@ -19,7 +20,11 @@ Luv includes:
 - MVC (Validators, Fields, Models, Forms);
 - URL conf;
 - Widgets;
-- Databases;
+- Databases (MySQL only in this version; using LuaSQL):
+	- using LuaSQL (www.keplerproject.org/luasql/)
+	- MySQL only in this version;
+	- placeholders;
+	- DBMS agnostic interface;
 - ... will be much more soon ...
 
 What's new
@@ -31,6 +36,21 @@ Version 0.1dev
 + CGI interface;
 + Development version of Tamplier template engine;
 + Unit-testing framework;
-+ Basic validators and fields for models and forms.
++ Basic validators and fields for models and forms;
++ Basic MySQL support.
+
+Known bugs
+==========
+- MySQL connect using LuaSQL is very slow (WinXP SP3, MySQL 5.0.45,
+  LuaSQL 2.1.1).
+
+Roadmap
+=======
+
+Version 1.0
+-----------
+- PostgreSQL, Oracle, SQLite support.
+- Auto-admin panel.
+- FastCGI or mod_lua for Apache and LightTPD.
 
 Artyom Shein <temiy@aisys.ru>, 2008

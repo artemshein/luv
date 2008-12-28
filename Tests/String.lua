@@ -1,9 +1,9 @@
-local UnitTest, String = require"UnitTest", require"String"
+local TestCase, String = require"TestCase", require"String"
 local io = io
 
 module(...)
 
-local StringTest = UnitTest:extend{
+local StringTest = TestCase:extend{
 	testSlice = function (self)
 		self.assertEquals(String.slice("1234567890", 1), "1234567890")
 		self.assertEquals(String.slice("1234567890", -1), "0")

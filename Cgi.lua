@@ -1,7 +1,9 @@
-module(..., package.seeall)
+local Object, Exception = require"ProtOo", require"Exception"
+local io, os, table, ipairs = io, os, table, ipairs
 
-Object = require"ProtOo"
-Exception = require"Exception"
+module(...)
+
+local write = io.write
 
 local Cgi = Object:extend{
 	headers = {},
@@ -26,30 +28,27 @@ local Cgi = Object:extend{
 	HTTP_ACCEPT = os.getenv"HTTP_ACCEPT",
 	HTTP_USER_AGENT = os.getenv"HTTP_USER_AGENT",
 	REQUEST_URI = os.getenv"REQUEST_URI",
-	
 	Exception = Exception:extend{},
-	
+
+	new = Object.singleton,
 	sendHeaders = function (self)
-		_G.io.write = _G.io.oldWrite
+		io.write = write
 		for i, header in ipairs(self.headers) do
 			io.write(header, "\n")
 		end
 		io.write"Content-type: text/html\n\n"
 		headersAlreadySent = true
 	end,
-	
 	write = function (self, ...)
 		if not headersAlreadySent then self:sendHeaders() end
-		io.write(...)
+		write(...)
 	end,
-	
 	header = function (self, str)
 		if headersAlreadySent then self.Exception:new"Headers already sent!":throw() end
 		table.insert(self.headers, str)
 	end
 }
 
-_G.io.oldWrite = _G.io.write
-_G.io.write = function (...) Cgi:write(...) end
+io.write = function (...) Cgi:write(...) end
 
 return Cgi
