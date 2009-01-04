@@ -340,7 +340,6 @@ local Driver = Object:extend{
 	fetchAll = function (self, ...)
 		local cur = self.connection:execute(self:processPlaceholders(...))
 		local res, row = {}, {}
-		Debug.dump(cur)
 		while cur:fetch(row, "a") do
 			Table.insert(res, Table.copy(row))
 		end

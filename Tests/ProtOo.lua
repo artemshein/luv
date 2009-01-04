@@ -1,4 +1,5 @@
 local Object, TestCase = require"ProtOo", require"TestCase"
+local Debug = require"Debug"
 
 module(...)
 
@@ -91,6 +92,44 @@ local TestProtOo = TestCase:extend{
 		self.assertThrows(function() f(a2) end)
 		self.assertThrows(function() f(a) end)
 		self.assertThrows(function() f("abc") end)
+	end,
+	testMetamethods = function (self)
+		-- Test __add
+		local A = Object:extend{
+			init = function (self) self.a = 5 end,
+			__add = function (self, second)
+				local newObj = self:new()
+				newObj.a = newObj.a + second.a
+				return newObj
+			end
+		}
+		local a, b = A:new(), A:new()
+		self.assertEquals(a.a, 5)
+		self.assertEquals(b.a, 5)
+		local c = a+b
+		self.assertEquals(c.a, 10)
+		-- Test __call
+		local A = Object:extend{
+			init = function (self)
+				self.a = function (param1, param2) return param1+param2 end
+			end,
+			__call = function (self, ...)
+				return self.a(...)
+			end
+		}
+		local a = A:new()
+		self.assertEquals(a(5, 10), 15)
+		-- Test __len
+		--[[ FIXME: Doesn't work, don't know why
+		local A = Object:extend{
+			init = function (self) self.a = {1, 2, 3, 4, 5} end,
+			__len = function (self) io.write"From __len!" return #(self.a) end
+		}
+		local a = A:new()
+		Debug.dump(A, 3)
+		self.assertEquals(#a, 5)
+		a.a = {1, 2, 3}
+		self.assertEquals(#a, 3)]]
 	end
 }
 

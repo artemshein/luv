@@ -3,7 +3,9 @@ local getmetatable, io = getmetatable, io
 
 module(...)
 
-local ModelTest = TestCase:extend{
+return TestCase:extend{
+	__tag = "Tests.Models.Model",
+
 	testAbstract = function (self)
 		self.assertThrows(function () Model:new() end)
 	end,
@@ -17,12 +19,10 @@ local ModelTest = TestCase:extend{
 		local t = Test:new()
 		t.test = "123"
 		self.assertEquals(t.test, "123")
-		self.assertEquals(t.test, t:getField("test"):getValue())
-		self.assertEquals(t:getField("test"):getName(), "test")
+		self.assertEquals(t.test, t:getField"test":getValue())
+		self.assertEquals(t:getField"test":getName(), "test")
 		self.assertFalse(t:validate())
 		t.test = "1234"
 		self.assertTrue(t:validate())
 	end
 }
-
-return ModelTest

@@ -2,7 +2,7 @@ local Model, Login, Char, ForeignKey = require"Models.Model", require"Fields.Log
 
 module(...)
 
-local User = Model:extend{
+return Model:extend{
 	__tag = "Models.User",
 	
 	init = function (self)
@@ -10,11 +10,7 @@ local User = Model:extend{
 			login = Login:new(),
 			name = Char:new(),
 			passwordHash = Char:new(),
-			group = ForeignKey:new{
-				references = "Models.UserGroup"
-			}
+			group = ForeignKey:new{references = "Models.UserGroup"}
 		}
 	end
 }
-
-return User

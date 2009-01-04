@@ -53,7 +53,7 @@ local ExceptionResult = Object:extend{
 			if type(self.exception) == "table" then
 				self.exception:throw()
 			elseif type(self.exception) == "string" then
-				error(self.exception.." "..debug.traceback())
+				error(self.exception)
 			end
 		end
 	end

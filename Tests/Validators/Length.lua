@@ -2,7 +2,9 @@ local TestCase, Length = require"TestCase", require"Validators.Length"
 
 module(...)
 
-local LengthTest = TestCase:extend{
+return TestCase:extend{
+	__tag = "Tests.Validators.Length",
+
 	testSimple = function (self)
 		v = Length:new(5, 10)
 		self.assertTrue(v:validate("12345"))
@@ -24,7 +26,9 @@ local LengthTest = TestCase:extend{
 		self.assertTrue(v:validate())
 		self.assertTrue(v:validate(true))
 		self.assertTrue(v:validate(false))
+		v = Length:new(5, 0)
+		self.assertFalse(v:validate "abcd")
+		self.assertTrue(v:validate "abcde")
+		self.assertTrue(v:validate "abcdefgh")
 	end
 }
-
-return LengthTest

@@ -13,11 +13,13 @@ local AllTest = UnitTest:extend{
 		-- Validators
 		"Tests.Validators.Filled", "Tests.Validators.Length", "Tests.Validators.Value", "Tests.Validators.Int", "Tests.Validators.Regexp",
 		-- Fields
-		"Tests.Fields.Field", "Tests.Fields.Char", "Tests.Fields.Login",
+		"Tests.Fields.Field", "Tests.Fields.Char", "Tests.Fields.Login", "Tests.Fields.ManyToOne",
 		-- Widgets
 		"Tests.Widgets.InputField",
+		-- QuerySet
+		"Tests.QuerySet",
 		-- Models
-		"Tests.Models.Model"
+		"Tests.Models.Model", "Tests.Models.User", "Tests.Models.UserGroup", "Tests.Models.GroupRight"
 	}
 }
 

@@ -3,7 +3,7 @@ local type, tostring, dump = type, tostring, dump
 
 module(...)
 
-local Length = Validator:extend{
+return Validator:extend{
 	__tag = "Validators.Length",
 	
 	init = function (self, minLength, maxLength)
@@ -18,11 +18,9 @@ local Length = Validator:extend{
 		elseif type(value) ~= "string" then
 			value = ""
 		end
-		if #value > self.maxLength or (self.minLength and #value < self.minLength) then
+		if (self.maxLength ~= 0 and #value > self.maxLength) or (self.minLength and #value < self.minLength) then
 			return false
 		end
 		return true
 	end
 }
-
-return Length

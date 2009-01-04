@@ -1,8 +1,8 @@
-Luv 0.1dev
+Luv 0.2dev
 ==========
 
-Luv is Lua (lua.org) MVC web-framework. Luv is open-source and completely free
-for both commercial and non-commercial use. Luv current version has
+Luv is Lua (lua.org) MVC web-framework. Luv is open-source and completely
+free for both commercial and non-commercial use. Luv current version has
 a "development" status and not advised to use anywhere.
 
 Luv:
@@ -10,18 +10,21 @@ Luv:
 - has simple and flexible API;
 - is complete solution for any web-service.
 
+Luv requirements:
+- mod_rewrite (Apache, LightTPD) or something similar on your web-server;
+- LuaSQL (www.keplerproject.org/luasql/) for MySQL support.
+
 Luv includes:
-- Some usefull table, string and debug extensions;
+- Table, String and Debug extensions;
 - Prototype-based OOP;
 - Exceptions;
 - CGI lib;
 - Unit-testing libs;
 - "Tamplier" template engine written in pure Lua;
-- MVC (Validators, Fields, Models, Forms);
-- URL conf;
-- Widgets;
-- Databases (MySQL only in this version; using LuaSQL):
-	- using LuaSQL (www.keplerproject.org/luasql/)
+- MVC (Validators, Fields, Models & Forms);
+- URL conf (URL to action binding);
+- Widgets (representation layer);
+- Databases:
 	- MySQL only in this version;
 	- placeholders;
 	- DBMS agnostic interface;
@@ -30,7 +33,12 @@ Luv includes:
 What's new
 ==========
 
-Version 0.1dev
+Version 0.2dev [IN PROGRESS]
+--------------
++ Constraint fields (ManyToOne, OneToMany, ManyToMany);
++ User, UserGroup, GroupRight models for auth module.
+
+Version 0.1dev [DONE]
 --------------
 + Basic OOP and exceptions; 
 + CGI interface;
@@ -47,10 +55,27 @@ Known bugs
 Roadmap
 =======
 
-Version 1.0
+Version 1.0 [Q4 2009 - Q1 2010]
 -----------
-- PostgreSQL, Oracle, SQLite support.
-- Auto-admin panel.
-- FastCGI or mod_lua for Apache and LightTPD.
+- PostgreSQL, SQLite, Oracle support.
+- Full auto-admin site.
+- Much more...
+
+Version 0.5
+-----------
+- SCGI or FastCGI application-server.
+- Cacher with Memcached support.
+
+Version 0.4
+-----------
+- Basic auto-admin site.
+
+Version 0.3 [jan-feb 2009]
+-----------
+- Forms and Managers (Models to Forms binding).
+
+Version 0.2 [jan 2009]
+-----------
+- Models functional.
 
 Artyom Shein <temiy@aisys.ru>, 2008

@@ -25,6 +25,7 @@ end
 
 local Struct = Object:extend{
 	__tag = "Struct",
+
 	init = Object.abstractMethod,
 	--[[extend = function (self, tbl)
 		local newObj = Object.extend(self, tbl)
@@ -46,7 +47,13 @@ local Struct = Object:extend{
 		return true
 	end,
 	getField = function (self, field)
-		return self.fields[field]
+		local _, v
+		for _, v in pairs(self.fields) do
+			if v:getName() == field then
+				return v
+			end
+		end
+		return nil
 	end
 }
 

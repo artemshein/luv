@@ -1,5 +1,5 @@
 local Table, CheckTypes, Debug = require"Table", require"CheckTypes", require"Debug"
-local tostring, getmetatable, setmetatable, error, io, debug, type = tostring, getmetatable, setmetatable, error, io, debug, type
+local tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset = tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset
 
 module(...)
 
@@ -33,6 +33,15 @@ local clone = function (obj, tbl)
 	else
 		mt = Table.copy(mt)
 	end
+	-- Move magic methods to metatable
+	local magicMethods, _, v = {"__add", "__sub", "__mul", "__div", "__mod", "__pow", "__unm", "__concat", "__len", "__eq", "__lt", "__le", "__index", "__newindex", "__call", "__tostring"}
+	for _, v in pairs(magicMethods) do
+		local method = rawget(tbl, v)
+		if method then
+			rawset(mt, v, method)
+			rawset(tbl, v, nil)
+		end
+	end
 	mt.__index = obj
 	setmetatable(tbl, mt)
 	return tbl
@@ -40,6 +49,7 @@ end
 
 local Object = {
 	__tag = "Object",
+
 	init = abstractMethod,
 	extend = function (self, tbl)
 		return clone(self, tbl)

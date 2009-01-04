@@ -21,6 +21,9 @@ local TestCase = Object:extend{
 			Exception:new"assertThrows failed":throw()
 		end)
 	end,
+	assertNotThrows = function (func, ...)
+		func(...)
+	end,
 	setUp = function (self) end,
 	tearDown = function (self) end,
 	run = function (self)
