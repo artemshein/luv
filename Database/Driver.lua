@@ -6,11 +6,6 @@ module(...)
 local Select = Object:extend{
 	__tag = "Database.Driver.Select",
 
-	extend = function (self, ...)
-		local new = Object.extend(self, ...)
-		getmetatable(new).__tostring = getmetatable(self).__tostring
-		return new
-	end,
 	init = function (self, db, ...)
 		self.db = db
 		self.fields = {}
@@ -101,23 +96,23 @@ local Select = Object:extend{
 	joinLeftUsing = function (self, ...) Table.insert(self.joinsUsing.left, {...}) return self end,
 	joinRightUsing = function (self, ...) Table.insert(self.joinsUsing.right, {...}) return self end,
 	joinFullUsing = function (self, ...) Table.insert(self.joinsUsing.full, {...}) return self end,
-	exec = function (self) return self.db:fetchAll(tostring(self)) end
+	exec = function (self) return self.db:fetchAll(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(Select).__tostring = Object.abstractMethod
 
 local SelectRow = Select:extend{
 	__tag = "Database.Driver.SelectRow",
 	
-	exec = function (self) return self.db:fetchRow(tostring(self)) end
+	exec = function (self) return self.db:fetchRow(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(SelectRow).__tostring = Object.abstractMethod
 
 local SelectCell = SelectRow:extend{
 	__tag = "Database.Driver.SelectCell",
 	
-	exec = function (self) return self.db:fetchCell(tostring(self)) end
+	exec = function (self) return self.db:fetchCell(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(SelectCell).__tostring = Object.abstractMethod
 
 local Insert = Object:extend{
 	__tag = "Database.Driver.Insert",
@@ -130,9 +125,9 @@ local Insert = Object:extend{
 	end,
 	into = function (self, ...) self.table = {...} return self end,
 	values = function (self, ...) Table.insert(self.valuesData, {...}) return self end,
-	exec = function (self) return self.db:query(tostring(self)) end
+	exec = function (self) return self.db:query(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(Insert).__tostring = Object.abstractMethod
 
 local InsertRow = Object:extend{
 	__tag = "Database.Driver.InsertRow",
@@ -143,9 +138,9 @@ local InsertRow = Object:extend{
 	end,
 	into = function (self, table) self.table = table return self end,
 	set = function (self, ...) Table.insert(self.sets, {...}) return self end,
-	exec = function (self) return self.db:query(tostring(self)) end
+	exec = function (self) return self.db:query(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(InsertRow).__tostring = Object.abstractMethod
 
 local Update = Object:extend{
 	__tag = "Database.Driver.Update",
@@ -187,9 +182,9 @@ local Update = Object:extend{
 		self.conditions.limit.to = (page-1)*onPage+1
 		return self
 	end,
-	exec = function (self) return self.db:query(tostring(self)) end
+	exec = function (self) return self.db:query(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(Update).__tostring = Object.abstractMethod
 
 local UpdateRow = Update:extend{
 	__tag = "Database.Driver.UpdateRow",
@@ -204,9 +199,9 @@ local UpdateRow = Update:extend{
 		end
 		return self
 	end,
-	limitPage = Update.maskedMethod
+	limitPage = Update.maskedMethod,
+	__tostring = Object.abstractMethod
 }
-getmetatable(UpdateRow).__tostring = Object.abstractMethod
 
 local Delete = Object:extend{
 	__tag = "Database.Driver.Delete",
@@ -246,9 +241,9 @@ local Delete = Object:extend{
 		self.conditions.limit.to = page*onPage
 		return self
 	end,
-	exec = function (self) return self.db:query(tostring(self)) end
+	exec = function (self) return self.db:query(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(Delete).__tostring = Object.abstractMethod
 
 local DeleteRow = Delete:extend{
 	__tag = "Database.Driver.DeleteRow",
@@ -263,9 +258,9 @@ local DeleteRow = Delete:extend{
 		end
 		return self
 	end,
-	limitPage = Delete.maskedMethod
+	limitPage = Delete.maskedMethod,
+	__tostring = Object.abstractMethod
 }
-getmetatable(DeleteRow).__tostring = Object.abstractMethod
 
 local DropTable = Object:extend{
 	__tag = "Database.Driver.DropTable",
@@ -274,9 +269,9 @@ local DropTable = Object:extend{
 		self.db = db
 		self.table = table
 	end,
-	exec = function (self) return self.db:query(tostring(self)) end
+	exec = function (self) return self.db:query(tostring(self)) end,
+	__tostring = function (self) return self.db:processPlaceholders("DROP TABLE ?#;", self.table) end
 }
-getmetatable(DropTable).__tostring = function (self) return self.db:processPlaceholders("DROP TABLE ?#;", self.table) end
 
 local CreateTable = Object:extend{
 	__tag = "Database.Driver.CreateTable",
@@ -292,22 +287,19 @@ local CreateTable = Object:extend{
 	field = function (self, ...) Table.insert(self.fields, {...}) return self end,
 	uniqueTogether = function (self, ...) Table.insert(self.unique, {...}) return self end,
 	option = function (self, key, value)
-		if value then
-			self.options[key] = value
-		else
-			Table.insert(self.options, key)
-		end
+		self.options[key] = value
 		return self
 	end,
 	constraint = function (self, ...) Table.insert(self.constraints, {...}) return self end,
 	primaryKey = function (self, ...) self.primaryKeyValue = {...} return self end,
-	exec = function (self) return self.db:query(tostring(self)) end
+	exec = function (self) return self.db:query(tostring(self)) end,
+	__tostring = Object.abstractMethod
 }
-getmetatable(CreateTable).__tostring = Object.abstractMethod
 
-local Driver = Object:extend{
+return Object:extend{
 	__tag = "Database.Driver",
-	Exception = Exception:extend{},
+
+	Exception = Exception:extend{__tag = "Database.Driver.Exception"},
 	Select = Select,
 	SelectRow = SelectRow,
 	SelectCell = SelectCell,
@@ -373,5 +365,3 @@ local Driver = Object:extend{
 	createTable = function (self, ...) return self.CreateTable:new(self, ...) end,
 	dropTable = function (self, ...) return self.DropTable:new(self, ...) end
 }
-
-return Driver

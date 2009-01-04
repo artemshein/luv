@@ -5,12 +5,10 @@ module(...)
 return Model:extend{
 	__tag = "Models.GroupRight",
 
-	init = function (self)
-		self:setFields{
-			model = Char:new(),
-			action = Char:new(),
-			description = Char:new{maxLength = 0},
-			groups = ManyToMany:new"Models.UserGroup"
-		}
-	end
+	fields = {
+		model = Char:new(),
+		action = Char:new(),
+		description = Char:new{maxLength = 0},
+		groups = ManyToMany:new"Models.UserGroup"
+	}
 }

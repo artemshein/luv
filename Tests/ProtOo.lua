@@ -1,5 +1,5 @@
 local Object, TestCase = require"ProtOo", require"TestCase"
-local Debug = require"Debug"
+local Debug, getmetatable = require"Debug", getmetatable
 
 module(...)
 
@@ -63,6 +63,14 @@ local TestProtOo = TestCase:extend{
 		self.assertEquals(b.parent.parent.test, 10)
 		self.assertEquals(b.parent.parent.parent, Object)
 		self.assertNil(b.parent.parent.parent.parent)
+	end,
+	testClone = function (self)
+		local A = Object:extend{init = function () end}
+		local a = A:new()
+		local b = a:clone()
+		self.assertNotEquals(a, b)
+		self.assertEquals(a.parent, b.parent)
+		self.assertEquals(getmetatable(a), getmetatable(b))
 	end,
 	testMethodCall = function (self)
 		local A = Object:extend{init = function () end, test = function () return "123" end}

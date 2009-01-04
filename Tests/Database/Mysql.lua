@@ -104,11 +104,11 @@ local MysqlTest = TestCase:extend{
 	end,
 	testCreateTable = function (self)
 		self.assertEquals(
-			tostring(self.db:createTable("test_`tbl"):field("id", "INTEGER", {primaryKey = true, serial = true}):field("title", "VARCHAR(255)", {null = true, unique = true, default = "NULL"}):option("CHARACTER SET utf8"):option("ENGINE", "MyISAM")),
-			"CREATE TABLE `test_``tbl` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL, `title` VARCHAR(255) NULL UNIQUE DEFAULT NULL) CHARACTER SET utf8 ENGINE = MyISAM;"
+			tostring(self.db:createTable("test_`tbl"):field("id", "INTEGER", {primaryKey = true, serial = true}):field("title", "VARCHAR(255)", {null = true, unique = true, default = "NULL"}):option("charset", "latin1"):option("engine", "MyISAM")),
+			"CREATE TABLE `test_``tbl` (`id` INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL, `title` VARCHAR(255) NULL UNIQUE DEFAULT NULL) CHARACTER SET latin1 ENGINE = MyISAM;"
 		)
 		self.assertEquals(
-			tostring(self.db:createTable("test"):field("lang", "CHAR(2)", {unique = true}):field("url", "TEXT"):uniqueTogether("lang", "url"):constraint("lang", "dtb.langs", "id", "SET NULL", "SET NULL"):option("ENGINE", "InnoDB"):option("CHARACTER SET utf8")),
+			tostring(self.db:createTable("test"):field("lang", "CHAR(2)", {unique = true}):field("url", "TEXT"):uniqueTogether("lang", "url"):constraint("lang", "dtb.langs", "id", "SET NULL", "SET NULL")),
 			"CREATE TABLE `test` (`lang` CHAR(2) NOT NULL UNIQUE, `url` TEXT NOT NULL, UNIQUE (`lang`, `url`), CONSTRAINT FOREIGN KEY (`lang`) REFERENCES `dtb`.`langs` (`id`) ON UPDATE SET NULL ON DELETE SET NULL) CHARACTER SET utf8 ENGINE = InnoDB;"
 		)
 	end,

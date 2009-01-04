@@ -4,115 +4,131 @@ local Debug, io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack =
 module(...)
 
 local Select = Driver.Select:extend{
-	__tag = "Database.Mysql.Select"
+	__tag = "Database.Mysql.Select",
+
+	__tostring = function (self)
+		return
+			"SELECT "
+			..self.db:constructFields(self.fields)
+			..self.db:constructFrom(self.tables)
+			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
+			..self.db:constructOrder(self.conditions.order)
+			..self.db:constructLimit(self.conditions.limit)
+			..";"
+	end
 }
-getmetatable(Select).__tostring = function (self)
-	return
-		"SELECT "
-		..self.db:constructFields(self.fields)
-		..self.db:constructFrom(self.tables)
-		..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
-		..self.db:constructOrder(self.conditions.order)
-		..self.db:constructLimit(self.conditions.limit)
-		..";"
-end
 
 local SelectRow = Driver.SelectRow:extend{
-	__tag = "Database.Mysql.SelectRow"
+	__tag = "Database.Mysql.SelectRow",
+
+	__tostring = getmetatable(Select).__tostring
 }
-getmetatable(SelectRow).__tostring = getmetatable(Select).__tostring
 
 local SelectCell = Driver.SelectCell:extend{
-	__tag = "Database.Mysql.SelectCell"
+	__tag = "Database.Mysql.SelectCell",
+
+	__tostring = getmetatable(SelectRow).__tostring
 }
-getmetatable(SelectCell).__tostring = getmetatable(SelectRow).__tostring
 
 local Insert = Driver.Insert:extend{
-	__tag = "Database.Mysql.Insert"
+	__tag = "Database.Mysql.Insert",
+
+	__tostring = function (self)
+		return
+			"INSERT INTO "
+			..self.db:processPlaceholder("?#", self.table)
+			.." ("..self.db:constructFields(self.fieldNames)..") VALUES "
+			..self.db:constructValues(self.fields, self.valuesData)
+			..";"
+	end
 }
-getmetatable(Insert).__tostring = function (self)
-	return
-		"INSERT INTO "
-		..self.db:processPlaceholder("?#", self.table)
-		.." ("..self.db:constructFields(self.fieldNames)..") VALUES "
-		..self.db:constructValues(self.fields, self.valuesData)
-		..";"
-end
 
 local InsertRow = Driver.InsertRow:extend{
-	__tag = "Database.Mysql.InsertRow"
+	__tag = "Database.Mysql.InsertRow",
+
+	__tostring = function (self)
+		return
+			"INSERT INTO "
+			..self.db:processPlaceholder("?#", self.table)
+			..self.db:constructSet(self.sets)
+			..";"
+	end
 } 
-getmetatable(InsertRow).__tostring = function (self)
-	return
-		"INSERT INTO "
-		..self.db:processPlaceholder("?#", self.table)
-		..self.db:constructSet(self.sets)
-		..";"
-end
 
 local Update = Driver.Update:extend{
-	__tag = "Database.Mysql.Update"
+	__tag = "Database.Mysql.Update",
+
+	__tostring = function (self)
+		return
+			"UPDATE "
+			..self.db:processPlaceholder("?#", self.table)
+			..self.db:constructSet(self.sets)
+			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
+			..self.db:constructOrder(self.conditions.order)
+			..self.db:constructLimit(self.conditions.limit)
+			..";"
+	end
 }
-getmetatable(Update).__tostring = function (self)
-	return
-		"UPDATE "
-		..self.db:processPlaceholder("?#", self.table)
-		..self.db:constructSet(self.sets)
-		..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
-		..self.db:constructOrder(self.conditions.order)
-		..self.db:constructLimit(self.conditions.limit)
-		..";"
-end
 
 local UpdateRow = Driver.UpdateRow:extend{
-	__tag = "Database.Mysql.UpdateRow"
+	__tag = "Database.Mysql.UpdateRow",
+
+	__tostring = getmetatable(Update).__tostring
 }
-getmetatable(UpdateRow).__tostring = getmetatable(Update).__tostring
 
 local Delete = Driver.Delete:extend{
-	__tag = "Database.Mysql.Delete"
+	__tag = "Database.Mysql.Delete",
+
+	__tostring = function (self)
+		return
+			"DELETE FROM "
+			..self.db:processPlaceholder("?#", self.table)
+			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
+			..self.db:constructOrder(self.conditions.order)
+			..self.db:constructLimit(self.conditions.limit)
+			..";"
+	end
 }
-getmetatable(Delete).__tostring = function (self)
-	return
-		"DELETE FROM "
-		..self.db:processPlaceholder("?#", self.table)
-		..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
-		..self.db:constructOrder(self.conditions.order)
-		..self.db:constructLimit(self.conditions.limit)
-		..";"
-end
 
 local DeleteRow = Driver.DeleteRow:extend{
-	__tag = "Database.Mysql.DeleteRow"
+	__tag = "Database.Mysql.DeleteRow",
+
+	__tostring = getmetatable(Delete).__tostring
 }
-getmetatable(DeleteRow).__tostring = getmetatable(Delete).__tostring
 
 local CreateTable = Driver.CreateTable:extend{
-	__tag = "Database.Mysql.CreateTable"
+	__tag = "Database.Mysql.CreateTable",
+
+	init = function (self, ...)
+		Driver.CreateTable.init(self, ...)
+		self.options = { ["charset"] = "utf8", ["engine"] = "InnoDB"}
+	end,
+	__tostring = function (self)
+		return
+			"CREATE TABLE "
+			..self.db:processPlaceholder("?#", self.table)
+			.." ("
+			..self.db:constructFieldsDefinition(self.fields)
+			..self.db:constructPrimaryKey(self.primaryKeyValue)
+			..self.db:constructUnique(self.unique)
+			..self.db:constructConstraints(self.constraints)
+			..")"
+			..self.db:constructOptions(self.options)
+			..";"
+	end
 }
-getmetatable(CreateTable).__tostring = function (self)
-	return
-		"CREATE TABLE "
-		..self.db:processPlaceholder("?#", self.table)
-		.." ("
-		..self.db:constructFieldsDefinition(self.fields)
-		..self.db:constructPrimaryKey(self.primaryKeyValue)
-		..self.db:constructUnique(self.unique)
-		..self.db:constructConstraints(self.constraints)
-		..")"
-		..self.db:constructOptions(self.options)
-		..";"
-end
 
 local DropTable = Driver.DropTable:extend{
-	__tag = "Database.Mysql.DropTable"
-}
-getmetatable(DropTable).__tostring = function (self)
-	return self.db:processPlaceholders("DROP TABLE IF EXISTS ?#;", self.table)
-end
+	__tag = "Database.Mysql.DropTable",
 
-local Mysql = Driver:extend{
+	__tostring = function (self)
+		return self.db:processPlaceholders("DROP TABLE IF EXISTS ?#;", self.table)
+	end
+}
+
+return Driver:extend{
 	__tag = "Database.Mysql",
+
 	Select = Select,
 	SelectRow = SelectRow,
 	SelectCell = SelectCell,
@@ -124,7 +140,7 @@ local Mysql = Driver:extend{
 	DeleteRow = DeleteRow,
 	CreateTable = CreateTable,
 	DropTable = DropTable,
-	
+
 	init = function (self, host, login, pass, database, port, params)
 		local mysql = LuaSql.mysql()
 		self.connection = mysql:connect(database, login, pass, host, port)
@@ -348,14 +364,14 @@ local Mysql = Driver:extend{
 		local res, k, v = {}
 		if not options then return "" end
 		for k, v in pairs(options) do
-			if type(k) == "string" then
-				Table.insert(res, k.." = "..v)
+			if k == "charset" then
+				Table.insert(res, "CHARACTER SET "..v)
+			elseif k == "engine" then
+				Table.insert(res, "ENGINE = "..v)
 			else
-				Table.insert(res, v)
+				Exception:new("Unsupported option "..k.."!"):throw()
 			end
 		end
 		return " "..Table.join(res, " ")
 	end
 }
-
-return Mysql

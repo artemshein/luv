@@ -1,20 +1,7 @@
 local Object = require"ProtOo"
-local debug = debug
+local debug, type, error, pcall, _G = debug, type, error, pcall, _G
 
-module(..., package.seeall)
-
-local Exception = Object:extend{
-	__tag = "Exception",
-	
-	init = function (self, message)
-		self.message = message
-		self.trace = debug.traceback("", 3)
-	end,
-	
-	throw = function (self)
-		error(self)
-	end
-}
+module(...)
 
 local ExceptionResult = Object:extend{
 	__tag = "ExceptionResult",
@@ -25,7 +12,6 @@ local ExceptionResult = Object:extend{
 		self.raised = not res
 		self.exception = exc
 	end,
-	
 	catch = function (self, excType, func)
 		if not self.raised then
 			return self
@@ -40,14 +26,12 @@ local ExceptionResult = Object:extend{
 		end
 		return self
 	end,
-	
 	elseDo = function (self, func)
 		if not self.raised then
 			func(self.exception)
 		end
 		return self
 	end,
-	
 	throw = function (self)
 		if self.raised then
 			if type(self.exception) == "table" then
@@ -63,6 +47,13 @@ _G.try = function (...)
 	return ExceptionResult:new(pcall(...))
 end
 
-getmetatable(Exception).__tostring = function (self) return self.message end
+return Object:extend{
+	__tag = "Exception",
 
-return Exception
+	init = function (self, message)
+		self.message = message
+		self.trace = debug.traceback("", 3)
+	end,
+	throw = function (self) error(self) end,
+	__tostring = function (self) return self.message end
+}

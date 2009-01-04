@@ -1,20 +1,20 @@
 local Object, Debug, Exception = require"ProtOo", require"Debug", require"Exception"
-local getmetatable, setmetatable, rawget, io, pairs, dump, debug = getmetatable, setmetatable, rawget, io, pairs, dump, debug
+local getmetatable, setmetatable, rawget, rawset, io, pairs, dump, debug = getmetatable, setmetatable, rawget, rawset, io, pairs, dump, debug
 
 module(...)
 
 local get = function (self, field)
 	local res = rawget(self, "parent")[field]
 	if res then return res end
-	res = rawget(self, "fields")
-	if not res or not res[field] then
+	res = self:getField(field)
+	if not res then
 		return nil
 	end
-	return res[field]:getValue()
+	return res:getValue()
 end
 
 local set = function (self, field, value)
-	local res = self.fields[field]
+	local res = self:getField(field)
 	if res then
 		res:setValue(value)
 	else
@@ -26,12 +26,6 @@ end
 local Struct = Object:extend{
 	__tag = "Struct",
 
-	init = Object.abstractMethod,
-	--[[extend = function (self, tbl)
-		local newObj = Object.extend(self, tbl)
-		setmetatable(newObj, { __index = get, __newindex = set })
-		return newObj
-	end,]]
 	new = function (self)
 		local obj = Object.new(self)
 		setmetatable(obj, { __index = get, __newindex = set })

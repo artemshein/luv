@@ -4,13 +4,11 @@ module(...)
 
 return Model:extend{
 	__tag = "Models.User",
-	
-	init = function (self)
-		self:setFields{
-			login = Login:new(),
-			name = Char:new(),
-			passwordHash = Char:new(),
-			group = ForeignKey:new{references = "Models.UserGroup"}
-		}
-	end
+
+	fields = {
+		login = Login:new(),
+		name = Char:new(),
+		passwordHash = Char:new(),
+		group = ForeignKey:new{references = "Models.UserGroup"}
+	}
 }

@@ -59,6 +59,11 @@ local Object = {
 		obj:init(...)
 		return obj
 	end,
+	clone = function (self)
+		local new = Table.copy(self)
+		setmetatable(new, getmetatable(self))
+		return new
+	end,
 	isKindOf = function (self, obj)
 		if obj and (self == obj or (self.parent and (self.parent):isKindOf(obj))) then
 			return true
