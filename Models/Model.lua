@@ -1,5 +1,6 @@
-local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, Debug = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, require"Debug"
+local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, Debug, type = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, require"Debug", type
 local Struct, Table, Reference, String = require"Struct", require"Table", require"Fields.Reference", require"String"
+local ManyToMany, OneToMany, ManyToOne, OneToOne = require"Fields.ManyToMany", require"Fields.OneToMany", require"Fields.ManyToOne", require"Fields.OneToOne"
 
 module(...)
 
@@ -56,6 +57,81 @@ return Struct:extend{
 	end,
 	getDb = function (self) return self.db end,
 	setDb = function (self, db) self.db = db return self end,
+	-- Find
+	getFieldPlaceholder = function (self, field)
+		if not field:isRequired() then
+			return "?n"
+		end
+		if field:isKindOf(require"Fields.Char") then
+			return "?"
+		elseif field:isKindOf(require"Fields.Int") then
+			return "?d"
+		elseif field:isKindOf(ManyToOne) then
+			return "?n"
+		else
+			Exception:new"Unsupported field type!":throw()
+		end
+	end,
+	find = function (self, what)
+		local new = self:new()
+		local select = self.db:selectRow():from(self:getTableName())
+		local _, k, v
+		if type(what) == "table" then
+			for _, v in pairs(self.fields) do
+				local name = v:getName()
+				local value = what[name]
+				if value then
+					select:where("?#="..self:getFieldPlaceholder(v), name, value)
+				end
+			end
+		else
+			local pk = self:getPk()
+			select:where("?#="..self:getFieldPlaceholder(pk), pk:getName(), what)
+		end
+		local res = select:exec()
+		if not res then
+			return nil
+		end
+		for k, v in pairs(res) do
+			new[k] = v
+		end
+		return new
+	end,
+	-- Save, insert, update
+	insert = function (self)
+		local insert = self:getDb():insertRow():into(self:getTableName())
+		local _, v
+		for _, v in pairs(self.fields) do
+			if not v:isKindOf(ManyToMany) and not v:isKindOf(OneToOne) and not v:isKindOf(OneToMany) then
+				insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), v:getValue())
+			end
+		end
+		local res = insert:exec()
+		if res then
+			self:getPk():setValue(res)
+		end
+		return res
+	end,
+	update = function (self)
+		local updateRow = self:getDb():updateRow(self:getTableName())
+		local pk, _, v = self:getPk()
+		updateRow:where("?#="..self:getFieldPlaceholder(pk), pk:getName(), pk:getValue())
+		for _, v in pairs(self.fields) do
+			if not v:isKindOf(ManyToMany) and not v:isKindOf(OneToOne) and not v:isKindOf(OneToMany) and not v:isPk() then
+				updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), v:getValue())
+			end
+		end
+		return updateRow:exec()
+	end,
+	save = function (self)
+		local pk = self:getPk()
+		if not pk:getValue() or not self:getDb():selectCell(pk:getName()):from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pk:getName(), pk:getValue()):exec() then
+			return self:insert()
+		else
+			return self:update()
+		end
+	end,
+	-- Create and drop
 	getTableName = function (self)
 		if (not self.tableName) then
 			self.tableName = String.lower(String.slice(self.__tag, String.findLast(self.__tag, ".")+1))
@@ -70,7 +146,7 @@ return Struct:extend{
 	getConstraintModels = function (self)
 		local models, _, v = {}
 		for _, v in pairs(self.fields) do
-			if v:isKindOf(require"Fields.OneToMany") then
+			if v:isKindOf(OneToMany) then
 				Table.insert(models, v:getRef())
 			end
 		end
@@ -83,8 +159,10 @@ return Struct:extend{
 			else
 				return "TEXT"
 			end
-		elseif field:isKindOf(require"Fields.Int") or field:isKindOf(require"Fields.ManyToOne") then
+		elseif field:isKindOf(require"Fields.Int") then
 			return "INTEGER"
+		elseif field:isKindOf(ManyToOne) then
+			return self:getFieldTypeSql(field:getRefModel():getPk())
 		else
 			Exception:new"Unsupported field type!":throw()
 		end
@@ -94,7 +172,7 @@ return Struct:extend{
 		-- Fields
 		local _, v, hasPk = nil, nil, false
 		for _, v in pairs(self.fields) do
-			if not v:isKindOf(require"Fields.OneToMany") and not v:isKindOf(require"Fields.ManyToMany") and not v:isKindOf(require"Fields.OneToOne") then
+			if not v:isKindOf(OneToMany) and not v:isKindOf(ManyToMany) and not v:isKindOf(OneToOne) then
 				hasPk = hasPk or v:isPk()
 				c:field(v:getName(), self:getFieldTypeSql(v), {
 					primaryKey = v:isPk(),
@@ -102,7 +180,7 @@ return Struct:extend{
 					null = not v:isRequired(),
 					serial = v:isKindOf(require"Fields.Id")
 				})
-				if v:isKindOf(require"Fields.ManyToOne") then
+				if v:isKindOf(ManyToOne) then
 					local onDelete
 					if v:isRequired() then
 						onDelete = "CASCADE"
@@ -125,7 +203,7 @@ return Struct:extend{
 		end
 		-- Create references tables
 		for _, v in pairs(self.fields) do
-			if v:isKindOf(require"Fields.ManyToMany") or v:isKindOf(require"Fields.OneToOne") then
+			if v:isKindOf(ManyToMany) or v:isKindOf(OneToOne) then
 				v:createTable()
 			end
 		end
@@ -133,7 +211,7 @@ return Struct:extend{
 	drop = function (self)
 		local _, v
 		for _, v in pairs(self.fields) do
-			if v:isKindOf(require"Fields.ManyToMany") or v:isKindOf(require"Fields.OneToOne") then
+			if v:isKindOf(ManyToMany) or v:isKindOf(OneToOne) then
 				v:dropTable()
 			end
 		end
