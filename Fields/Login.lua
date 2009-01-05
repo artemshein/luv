@@ -2,7 +2,7 @@ local Char = require"Fields.Char"
 
 module(...)
 
-local Login = Char:extend{
+return Char:extend{
 	__tag = "Fields.Login",
 	
 	init = function (self, params)
@@ -12,8 +12,6 @@ local Login = Char:extend{
 		params.required = true
 		params.unique = true
 		params.regexp = "^[a-zA-Z0-9_%.%-]+$"
-		self.parent:init(params)
+		Char.init(self, params)
 	end
 }
-
-return Login

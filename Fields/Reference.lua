@@ -14,11 +14,15 @@ return Field:extend{
 			self.ref = params or Exception:new"References required!":throw()
 		end
 	end,
+	getRef = function (self) return self.ref end,
 	getRole = function (self) return self.role end,
 	setRole = function (self, role) self.role = role return self end,
 	getRefModel = function (self)
 		if not self.refModel then
-			local model = require(self.ref or Exception:new"References")
+			if not self.ref then
+				Exception:new"References required!":throw()
+			end
+			local model = require(self.ref)
 			self.refModel = model:new()
 		end
 		return self.refModel

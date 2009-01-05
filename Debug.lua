@@ -5,17 +5,17 @@ module(..., package.seeall)
 -- and returns, and another function to turn it off.
 --
 -- Usage:
--- require(“calltrace”)
+-- require(calltrace)
 -- Trace() -- Turns on tracing.
 -- Untrace() -- Turns off tracing.
 -- The current depth of the stack (nil when not tracing):
 local Depth
 -- Returns a string naming the function at StackLvl; this string will
--- include the function’s current line number if WithLineNum is true. A
+-- include the functions current line number if WithLineNum is true. A
 -- sensible string will be returned even if a name or line numbers
--- can’t be found.
+-- cant be found.
 local function GetInfo(StackLvl, WithLineNum)
-	-- StackLvl is reckoned from the caller’s level:
+	-- StackLvl is reckoned from the callers level:
 	StackLvl = StackLvl + 1
 	local Ret
 	local Info = Debug.getinfo(StackLvl, "nlS")

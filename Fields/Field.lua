@@ -9,14 +9,16 @@ local Field = Object:extend{
 	pk = false,
 	unique = false,
 	required = false,
-	validators = {},
 
 	clone = function (self)
 		local new = Object.clone(self)
-		local k, v
+		-- Clone validators
 		new.validators = {}
-		for _, v in pairs(self.validators) do
-			Table.insert(new.validators, v:clone())
+		if self.validators then
+			local k, v
+			for k, v in pairs(self.validators) do
+				new.validators[k] = v:clone()
+			end
 		end
 		return new
 	end,
@@ -42,6 +44,9 @@ local Field = Object:extend{
 	getDefaultValue = function (self) return self.defaultValue end,
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
 	validate = function (self)
+		if not self.validators then
+			return true
+		end
 		local _, val
 		for _, val in pairs(self.validators) do
 			if not val:validate(self.value) then

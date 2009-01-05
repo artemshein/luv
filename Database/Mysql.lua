@@ -122,7 +122,7 @@ local DropTable = Driver.DropTable:extend{
 	__tag = "Database.Mysql.DropTable",
 
 	__tostring = function (self)
-		return self.db:processPlaceholders("DROP TABLE IF EXISTS ?#;", self.table)
+		return self.db:processPlaceholders("DROP TABLE ?#;", self.table)
 	end
 }
 

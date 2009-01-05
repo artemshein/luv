@@ -14,5 +14,8 @@ return Reference:extend{
 			Exception:new("Instance of "..self.ref.." or nil required!"):throw()
 		end
 		Reference.setValue(self, value)
+	end,
+	getTableName = function (self)
+		return self:getRefModel():getTableName()
 	end
 }

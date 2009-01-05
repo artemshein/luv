@@ -30,6 +30,17 @@ string.split = function (str, ...)
 	return unpack(res)
 end
 
+string.findLast = function (self, substr)
+	local i, lastPos = 1
+	local begPos = string.find(self, substr, i, true)
+	while begPos do
+		lastPos = begPos
+		i = begPos+1
+		begPos = string.find(self, substr, i, true)
+	end
+	return lastPos
+end
+
 string.explode = function (self, ex)
 	local res, tail, begPos, endPos = {}, self
 	begPos, endPos = string.find(tail, ex, 1, true)

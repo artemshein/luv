@@ -8,7 +8,7 @@ local Char = Field:extend{
 	init = function (self, params)
 		params = params or {}
 		self:setParams(params)
-		self.validators.length = Length:new(params.minLength or 0, params.maxLength or 255)
+		self.validators = {length = Length:new(params.minLength or 0, params.maxLength or 255)}
 		if params.regexp then
 			self.validators.regexp = Regexp:new(params.regexp)
 		end

@@ -8,7 +8,7 @@ return Model:extend{
 	fields = {
 		login = Login:new(),
 		name = Char:new(),
-		passwordHash = Char:new(),
+		passwordHash = Char:new{required = true},
 		group = ForeignKey:new{references = "Models.UserGroup"}
 	}
 }

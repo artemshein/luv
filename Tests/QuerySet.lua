@@ -12,6 +12,7 @@ return TestCase:extend{
 		self.assertEquals(#q, 0)
 		self.assertThrows(function () q.append(10) end)
 		local M = Model:extend{
+			fields = {},
 			init = function () end
 		}
 		local q = QuerySet:new{M:new(), M:new(), M:new()}

@@ -7,5 +7,8 @@ return Reference:extend{
 
 	init = function (self, params)
 		self:setParams(params)
+	end,
+	getTableName = function (self)
+		return self:getRefModel():getTableName()
 	end
 }

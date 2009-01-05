@@ -115,7 +115,7 @@ local MysqlTest = TestCase:extend{
 	testDropTable = function (self)
 		self.assertEquals(
 			tostring(self.db:dropTable("data.tbl")),
-			"DROP TABLE IF EXISTS `data`.`tbl`;"
+			"DROP TABLE `data`.`tbl`;"
 		)
 	end
 }

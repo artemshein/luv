@@ -1,9 +1,12 @@
-local TestCase, User, UserGroup = require"TestCase", require"Models.User", require"Models.UserGroup"
+local io, tostring = io, tostring
+local TestCase, User, UserGroup, Factory = require"TestCase", require"Models.User", require"Models.UserGroup", require"Database.Factory"
 
 module(...)
 
 return TestCase:extend{
 	__tag = "Tests.Models.User",
+
+	validDsn = "mysql://test:test@localhost/test",
 
 	testSimple = function (self)
 		local u = User:new()

@@ -1,10 +1,9 @@
 local Reference = require"Fields.Reference"
-local Debug = require"Debug"
 
 module(...)
 
 return Reference:extend{
-	__tag = "Fields.ManyToMany",
+	__tag = "Fields.OneToOne",
 
 	init = function (self, params)
 		self:setParams(params)
@@ -13,11 +12,10 @@ return Reference:extend{
 		if not self.tableName then
 			local t1, t2 = self:getContainer():getTableName(), self:getRefModel():getTableName()
 			if t1 > t2 then
-				self.tableName = "m2m_"..t1.."_"..t2
+				self.tableName = "o2o_"..t1.."_"..t2
 			else
-				self.tableName = "m2m_"..t2.."_"..t1
+				self.tableName = "o2o_"..t2.."_"..t1
 			end
-			local role = self:getRole()
 			if role then
 				self.tableName = self.tableName.."_"..role
 			end
@@ -30,11 +28,10 @@ return Reference:extend{
 		local containerPk = self:getContainer():getPk()
 		local refTableName = self:getRefModel():getTableName()
 		local refPk = self:getRefModel():getPk()
-		c:field(containerTableName, self:getContainer():getFieldTypeSql(containerPk), {required = true, null = false})
+		c:field(containerTableName, self:getContainer():getFieldTypeSql(containerPk), {required = true, null = false, unique = true})
 		c:constraint(containerTableName, containerTableName, containerPk:getName())
-		c:field(refTableName, self:getRefModel():getFieldTypeSql(refPk), {required = true, null = false})
+		c:field(refTableName, self:getRefModel():getFieldTypeSql(refPk), {required = true, null = false, unique = true})
 		c:constraint(refTableName, refTableName, refPk:getName())
-		c:uniqueTogether(containerTableName, refTableName)
 		return c:exec()
 	end,
 	dropTable = function (self)

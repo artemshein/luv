@@ -8,11 +8,12 @@ a "development" status and not advised to use anywhere.
 Luv:
 - is much faster then any PHP, Ruby, or Python frameworks;
 - has simple and flexible API;
-- is complete solution for any web-service.
+- is complete solution for any REST web-service.
 
 Luv requirements:
-- mod_rewrite (Apache, LightTPD) or something similar on your web-server;
-- LuaSQL (www.keplerproject.org/luasql/) for MySQL support.
+- mod_rewrite (Apache, LightTPD) or something similar on your web-server
+for CGI;
+- LuaSQL (www.keplerproject.org/luasql/) with mysql driver for MySQL support.
 
 Luv includes:
 - Table, String and Debug extensions;
@@ -35,8 +36,11 @@ What's new
 
 Version 0.2dev [IN PROGRESS]
 --------------
-+ Constraint fields (ManyToOne, OneToMany, ManyToMany);
++ Constraint fields (ManyToOne, OneToMany, ManyToMany, OneToOne);
 + User, UserGroup, GroupRight models for auth module.
++ Id field (default primary key field).
++ create and drop model methods.
++ createModels, dropModels Luv methods.
 
 Version 0.1dev [DONE]
 --------------

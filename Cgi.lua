@@ -30,6 +30,7 @@ local Cgi = Object:extend{
 	REQUEST_URI = os.getenv"REQUEST_URI",
 	Exception = Exception:extend{},
 
+	init = function () end,
 	new = Object.singleton,
 	sendHeaders = function (self)
 		io.write = write

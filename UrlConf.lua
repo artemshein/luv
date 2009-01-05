@@ -1,5 +1,5 @@
 local Object, Cgi, Exception = require"ProtOo", require"Cgi", require"Exception"
-local pairs, string, dump, table, dofile = pairs, string, dump, table, dofile
+local pairs, string, dump, table, dofile, type, io = pairs, string, dump, table, dofile, type, io
 
 module(...)
 
@@ -26,7 +26,13 @@ local UrlConf = Object:extend{
 				for i = 3, #res do
 					table.insert(self.captures, res[i])
 				end
-				dofile(script)
+				if type(script) == "string" then
+					dofile(script)
+				elseif type(script) == "function" then
+					script(self)
+				else
+					Exception:new"Invalid action!":throw()
+				end
 				return true
 			end
 		end

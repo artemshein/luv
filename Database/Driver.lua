@@ -1,5 +1,5 @@
 local Table, String, Object, Exception = require"Table", require"String", require"ProtOo", require"Exception"
-local Debug, io, select, type, next, getmetatable, setmetatable, pairs, unpack = require"Debug", io, select, type, next, getmetatable, setmetatable, pairs, unpack
+local Debug, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select = require"Debug", io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select
 
 module(...)
 
@@ -330,7 +330,11 @@ return Object:extend{
 		return Table.join(res)
 	end,
 	fetchAll = function (self, ...)
-		local cur = self.connection:execute(self:processPlaceholders(...))
+		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		if not cur then
+			self.error = error
+			return nil
+		end
 		local res, row = {}, {}
 		while cur:fetch(row, "a") do
 			Table.insert(res, Table.copy(row))
@@ -338,21 +342,34 @@ return Object:extend{
 		return res
 	end,
 	fetchRow = function (self, ...)
-		local cur = self.connection:execute(self:processPlaceholders(...))
+		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		if not cur then
+			self.error = error
+		end
 		return cur:fetch({}, "a")
 	end,
 	fetchCell = function (self, ...)
-		local cur = self.connection:execute(self:processPlaceholders(...))
+		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		if not cur then
+			self.error = error
+			return nil
+		end
 		local _, v = next(cur:fetch({}, "a"))
 		return v
 	end,
 	query = function (self, ...)
-		local cur = self.connection:execute(self:processPlaceholders(...))
+		--io.write(select(1, ...), "<br />")
+		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		if not cur then
+			self.error = error
+			return nil
+		end
 		if type(cur) == "userdata" then
 			return cur:fetch({}, "a")
 		end
 		return cur
 	end,
+	getError = function (self) return self.error end,
 	select = function (self, ...) return self.Select:new(self, ...) end,
 	selectRow = function (self, ...) return self.SelectRow:new(self, ...) end,
 	selectCell = function (self, ...) return self.SelectCell:new(self, ...) end,
