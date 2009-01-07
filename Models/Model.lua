@@ -23,6 +23,9 @@ return Struct:extend{
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isKindOf and v:isKindOf(Field) then
 				new.fields[k] = v
+				if v:isKindOf(Reference) then
+					v:setContainer(self)
+				end
 				new[k] = nil
 				hasPk = hasPk or v:isPk()
 			end
@@ -43,6 +46,9 @@ return Struct:extend{
 		for k, v in pairs(self.fields) do
 			local field = v:clone()
 			fields[k] = field
+			if field:isKindOf(Reference) then
+				field:setContainer(self)
+			end
 		end
 		self.fields = fields
 		if values then
@@ -74,6 +80,15 @@ return Struct:extend{
 	end,
 	getPk = function (self)
 		return self:getField(self:getPkName())
+	end,
+	getReferenceField = function (self, class, model)
+		local k, v
+		for k, v in pairs(self:getFields()) do
+			if v:isKindOf(class) and model:isKindOf(v:getRefModel()) then
+				return k
+			end
+		end
+		return nil
 	end,
 	getDb = function (self) return self.db end,
 	setDb = function (self, db) self.db = db return self end,

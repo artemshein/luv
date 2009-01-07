@@ -39,5 +39,8 @@ return Object:extend{
 			Exception:new"Fields must be defined first!":throw()
 		end
 		return self.fields[field]
+	end,
+	getFields = function (self)
+		return self.fields
 	end
 }

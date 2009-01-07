@@ -22,8 +22,8 @@ Luv includes:
 - CGI lib;
 - Unit-testing libs;
 - "Tamplier" template engine written in pure Lua;
-- MVC (Validators, Fields, Models & Forms);
-- URL conf (URL to action binding);
+- Fields (with Validators), Models & Forms;
+- URLconf (URL to action binding);
 - Widgets (representation layer);
 - Databases:
 	- MySQL only in this version;
@@ -39,7 +39,8 @@ Version 0.2dev [IN PROGRESS]
 + Constraint fields (ManyToOne, OneToMany, ManyToMany, OneToOne);
 + User, UserGroup, GroupRight models for auth module.
 + Id field (default primary key field).
-+ create and drop model methods.
++ createTables and dropTables model methods.
++ insert, update, save and create model methods.
 + createModels, dropModels Luv methods.
 
 Version 0.1dev [DONE]
@@ -80,6 +81,6 @@ Version 0.3 [jan-feb 2009]
 
 Version 0.2 [jan 2009]
 -----------
-- Models functional.
+- Models functional (with relations).
 
 Artyom Shein <temiy@aisys.ru>, 2008

@@ -8,18 +8,8 @@ local Select = Object:extend{
 
 	init = function (self, db, ...)
 		self.db = db
-		self.fields = {}
-		local i, val, k, v
-		for i = 1, select("#", ...) do
-			val = select(i, ...)
-			if type(val) == "table" then
-				for k, v in pairs(val) do
-					self.fields[k] = v
-				end
-			else
-				Table.insert(self.fields, val)
-			end
-		end
+		self.fieldsVal = {}
+		self:fields(...)
 		self.tables = {}
 		self.conditions = {
 			where = {},
@@ -54,6 +44,23 @@ local Select = Object:extend{
 				end
 			else
 				Table.insert(self.tables, val)
+			end
+		end
+		return self
+	end,
+	fields = function (self, ...)
+		self.fieldsVal = {}
+		local i, val, k, v
+		if 0 ~= select("#", ...) then
+			for i = 1, select("#", ...) do
+				val = select(i, ...)
+				if type(val) == "table" then
+					for k, v in pairs(val) do
+						self.fieldsVal[k] = v
+					end
+				else
+					Table.insert(self.fieldsVal, val)
+				end
 			end
 		end
 		return self

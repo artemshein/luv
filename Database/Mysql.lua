@@ -9,7 +9,7 @@ local Select = Driver.Select:extend{
 	__tostring = function (self)
 		return
 			"SELECT "
-			..self.db:constructFields(self.fields)
+			..self.db:constructFields(self.fieldsVal)
 			..self.db:constructFrom(self.tables)
 			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
 			..self.db:constructOrder(self.conditions.order)
@@ -256,7 +256,11 @@ return Driver:extend{
 		end
 		res2 = Table.join(ow, ") OR (")
 		if res2 ~= "" then
-			res2 = " OR ("..res2..")"
+			if res ~= "" then
+				res2 = " OR ("..res2..")"
+			else
+				res2 = " WHERE ("..res2..")"
+			end
 		end
 		return res..res2
 	end,

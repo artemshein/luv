@@ -98,6 +98,17 @@ return TestCase:extend{
 		self.assertEquals(peter.name, "Peter")
 		self.assertEquals(peter.group, g581)
 		self.assertNotEquals(peter.group, Group:new())
+		-- Tests backward relation
+		self.assertEquals(g581.students:count(), 3)
+		Student:create{name="Liza", group=g581}
+		self.assertEquals(g581.students:count(), 4)
+		local g372 = Group:create(372)
+		g372.students:add(peter)
+		self.assertEquals(g372.students:count(), 1)
+		self.assertEquals(g581.students:count(), 3)
+		g372.students:add(john, max)
+		self.assertEquals(g372.students:count(), 3)
+		self.assertEquals(g581.students:count(), 1)
 
 		Student:dropTables()
 		Group:dropTables()
