@@ -43,4 +43,16 @@ Table.join = function (tbl, sp)
 	return res
 end
 
+Table.size = function (tbl)
+	local count, _ = 0
+	for _ in pairs(tbl) do
+		count = count + 1
+	end
+	return count
+end
+
+Table.isEmpty = function (tbl)
+	return Table.size(tbl) == 0
+end
+
 return Table

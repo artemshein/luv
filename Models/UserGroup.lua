@@ -5,10 +5,8 @@ module(...)
 return Model:extend{
 	__tag = "Models.UserGroup",
 
-	fields = {
-		title = Char:new{required = true, unique = true},
-		description = Char:new{maxLength = 0},
-		rights = ManyToMany:new{references = "Models.GroupRight"},
-		users = OneToMany:new"Models.User",
-	}
+	title = Char:new{required = true, unique = true},
+	description = Char:new{maxLength = 0},
+	rights = ManyToMany:new{references = "Models.GroupRight"},
+	users = OneToMany:new"Models.User"
 }

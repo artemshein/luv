@@ -1,4 +1,4 @@
-local TestCase, QuerySet, Model = require"TestCase", require"QuerySet", require"Models.Model"
+local TestCase, QuerySet, Model, Int = require"TestCase", require"QuerySet", require"Models.Model", require"Fields.Int"
 local Debug = require"Debug"
 
 module(...)
@@ -12,8 +12,7 @@ return TestCase:extend{
 		self.assertEquals(#q, 0)
 		self.assertThrows(function () q.append(10) end)
 		local M = Model:extend{
-			fields = {},
-			init = function () end
+			num = Int:new()
 		}
 		local q = QuerySet:new{M:new(), M:new(), M:new()}
 		self.assertFalse(q:isEmpty())

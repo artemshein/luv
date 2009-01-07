@@ -12,7 +12,7 @@ return TestCase:extend{
 		local u = User:new()
 		self.assertTrue(u:getField"group":getRefModel():isKindOf(UserGroup))
 		local g = UserGroup:new()
-		self.assertThrows(function () u.group = 15 end)
+		self.assertNotThrows(function () u.group = 15 end)
 		self.assertThrows(function () u.group = "abcd" end)
 		self.assertThrows(function () u.group = u end)
 		self.assertNotThrows(function () u.group = g end)

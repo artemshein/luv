@@ -22,8 +22,7 @@ return Field:extend{
 			if not self.ref then
 				Exception:new"References required!":throw()
 			end
-			local model = require(self.ref)
-			self.refModel = model:new()
+			self.refModel = require(self.ref)
 		end
 		return self.refModel
 	end

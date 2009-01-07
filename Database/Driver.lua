@@ -354,7 +354,11 @@ return Object:extend{
 			self.error = error
 			return nil
 		end
-		local _, v = next(cur:fetch({}, "a"))
+		local res = cur:fetch({}, "a")
+		if not res then
+			return nil
+		end
+		local _, v = next(res)
 		return v
 	end,
 	query = function (self, ...)

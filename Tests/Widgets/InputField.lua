@@ -10,13 +10,13 @@ local InputFieldTest = TestCase:extend{
 			name = "test",
 			htmlWidget = InputField:new()
 		}
-		self.assertEquals(c:asHtml(), [[<input type="text" name="test" value="" />]])
+		self.assertEquals(c:asHtml(), [[<input type="text" value="" />]])
 		c = Char:new{
 			name = "test",
 			defaultValue = [[abc"def']],
 			htmlWidget = InputField:new"hidden"
 		}
-		self.assertEquals(c:asHtml(), [[<input type="hidden" name="test" value="abc&quot;def'" />]])
+		self.assertEquals(c:asHtml(), [[<input type="hidden" value="abc&quot;def'" />]])
 	end
 }
 

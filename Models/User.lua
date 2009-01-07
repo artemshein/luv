@@ -5,10 +5,8 @@ module(...)
 return Model:extend{
 	__tag = "Models.User",
 
-	fields = {
-		login = Login:new(),
-		name = Char:new(),
-		passwordHash = Char:new{required = true},
-		group = ForeignKey:new{references = "Models.UserGroup"}
-	}
+	login = Login:new(),
+	name = Char:new(),
+	passwordHash = Char:new{required = true},
+	group = ForeignKey:new{references = "Models.UserGroup"}
 }

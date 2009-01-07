@@ -14,8 +14,8 @@ local AllTest = UnitTest:extend{
 		"Tests.Validators.Filled", "Tests.Validators.Length", "Tests.Validators.Value", "Tests.Validators.Int", "Tests.Validators.Regexp",
 		-- Fields
 		"Tests.Fields.Field", "Tests.Fields.Char", "Tests.Fields.Login", "Tests.Fields.ManyToOne",
-		-- Widgets
-		"Tests.Widgets.InputField",
+		-- Widgets ()
+		--"Tests.Widgets.InputField",
 		-- QuerySet
 		"Tests.QuerySet",
 		-- Models

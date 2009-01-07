@@ -24,7 +24,6 @@ local Field = Object:extend{
 	end,
 	setParams = function (self, params)
 		params = params or {}
-		self.name = params.name
 		self.pk = params.pk or false
 		self.unique = params.unique or false
 		self.required = params.required or false
@@ -35,21 +34,18 @@ local Field = Object:extend{
 	isRequired = function (self) return self.required end,
 	isUnique = function (self) return self.unique end,
 	isPk = function (self) return self.pk end,
-	getContainer = function (self) return self.container end,
-	setContainer = function (self, container) self.container = container end,
-	getName = function (self) return self.name end,
-	setName = function (self, name) self.name = name return self end,
 	getValue = function (self) return self.value end,
 	setValue = function (self, value) self.value = value return self end,
 	getDefaultValue = function (self) return self.defaultValue end,
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
-	validate = function (self)
+	validate = function (self, value)
+		local value = value or self.value
 		if not self.validators then
 			return true
 		end
 		local _, val
 		for _, val in pairs(self.validators) do
-			if not val:validate(self.value) then
+			if not val:validate(value) then
 				return false
 			end
 		end

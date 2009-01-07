@@ -15,7 +15,7 @@ local function dropModel (db, modelName, models)
 		end
 	end
 	-- Drop self
-	if not model:drop() then
+	if not model:dropTables() then
 		return false
 	else
 		return true
@@ -26,7 +26,7 @@ local function createModel (db, modelName, models)
 	local model = require(modelName)
 	model:setDb(db)
 	-- Create self
-	if not model:create() then
+	if not model:createTables() then
 		return false
 	else
 		return true

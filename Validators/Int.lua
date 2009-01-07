@@ -1,5 +1,5 @@
 local Validator = require"Validators.Validator"
-local type, tonumber = type, tonumber
+local type, tonumber, Debug = type, tonumber, require"Debug"
 
 module(...)
 
@@ -8,6 +8,9 @@ local Int = Validator:extend{
 	
 	init = function (self) return self end,
 	validate = function (self, value)
+		if value == nil then
+			return true
+		end
 		if type(value) == "number" then
 			return true
 		elseif type(value) == "string" then

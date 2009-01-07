@@ -29,9 +29,12 @@ local clone = function (obj, tbl)
 	tbl.parent = obj
 	local mt = getmetatable(obj)
 	if not mt then
-		mt = {}
+		mt = {__index = obj}
 	else
 		mt = Table.copy(mt)
+	end
+	if type(mt.__index) == "table" then
+		mt.__index = obj
 	end
 	-- Move magic methods to metatable
 	local magicMethods, _, v = {"__add", "__sub", "__mul", "__div", "__mod", "__pow", "__unm", "__concat", "__len", "__eq", "__lt", "__le", "__index", "__newindex", "__call", "__tostring"}
@@ -42,12 +45,11 @@ local clone = function (obj, tbl)
 			rawset(tbl, v, nil)
 		end
 	end
-	mt.__index = obj
 	setmetatable(tbl, mt)
 	return tbl
 end
 
-local Object = {
+return {
 	__tag = "Object",
 
 	init = abstractMethod,
@@ -74,5 +76,3 @@ local Object = {
 	maskedMethod = maskedMethod,
 	checkTypes = CheckTypes.checkTypes
 }
-
-return Object

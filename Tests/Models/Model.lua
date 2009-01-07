@@ -14,11 +14,11 @@ return TestCase:extend{
 			fields = {title = Char:new()}
 		}
 		self.A:setDb(Factory:connect(self.validDsn))
-		self.A:drop()
-		self.A:create()
+		self.A:dropTables()
+		self.A:createTables()
 	end,
 	tearDown = function (self)
-		self.A:drop()
+		self.A:dropTables()
 		self.A = nil
 	end,
 	testAbstract = function (self)
@@ -27,22 +27,15 @@ return TestCase:extend{
 	testBasic = function (self)
 		local Test = Model:extend{
 			__tag = "Models.Test",
-			fields = {test = Char:new{minLength = 4, maxLength = 6}}
+			test = Char:new{minLength = 4, maxLength = 6}
 		}
 		local t = Test:new()
 		t.test = "123"
 		self.assertEquals(t.test, "123")
 		self.assertEquals(t.test, t:getField"test":getValue())
-		self.assertEquals(t:getField"test":getName(), "test")
 		self.assertFalse(t:validate())
 		t.test = "1234"
 		self.assertTrue(t:validate())
-		local t2 = t:clone()
-		t2:getField"test":setName"test2"
-		self.assertNotNil(t:getField"test")
-		self.assertNil(t:getField"test2")
-		self.assertNil(t2:getField"test")
-		self.assertNotNil(t2:getField"test2")
 	end,
 	testFindSimple = function (self)
 		local lastId = self.A:getDb():insertRow():into(self.A:getTableName()):set("?#=?", "title", "abc"):exec()
@@ -69,5 +62,44 @@ return TestCase:extend{
 		a:update()
 		local b = self.A:getDb():selectRow():from(self.A:getTableName()):where("?#=?n", "id", id):exec()
 		self.assertTrue(b.title, "cde")
+	end,
+	testT01 = function (self)
+		local Student, Group = require"Tests.TestModels.T01Student", require"Tests.TestModels.T01Group"
+		local db = Factory:connect(self.validDsn)
+		Student:setDb(db)
+		Group:setDb(db)
+		Student:dropTables()
+		Group:dropTables()
+		Group:createTables()
+		Student:createTables()
+
+
+		local max = Student:new{name="Max"}
+		self.assertEquals(max.name, "Max")
+		self.assertFalse(max:insert())
+		-- Group
+		local g581 = Group:new(581)
+		self.assertEquals(g581.number, 581)
+		self.assertTrue(g581:insert())
+		self.assertEquals(g581.number, 581)
+		max.group = g581
+		self.assertTrue(max:insert())
+		-- Second student
+		local john = Student:new{name="John", group=g581}
+		self.assertEquals(john.name, "John")
+		self.assertEquals(john.group, g581)
+		self.assertTrue(john:save())
+		-- Third student
+		local peter = Student:create{name="Peter", group=g581}
+		self.assertEquals(peter.name, "Peter")
+		self.assertEquals(peter.group, g581)
+		-- Find Peter
+		peter = Student:find"Peter"
+		self.assertEquals(peter.name, "Peter")
+		self.assertEquals(peter.group, g581)
+		self.assertNotEquals(peter.group, Group:new())
+
+		Student:dropTables()
+		Group:dropTables()
 	end,
 }

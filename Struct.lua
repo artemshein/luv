@@ -3,33 +3,27 @@ local getmetatable, setmetatable, rawget, rawset, io, pairs, dump, debug = getme
 
 module(...)
 
-local get = function (self, field)
-	local res = rawget(self, "parent")[field]
-	if res then return res end
-	res = self:getField(field)
-	if not res then
-		return nil
-	end
-	return res:getValue()
-end
-
-local set = function (self, field, value)
-	local res = self:getField(field)
-	if res then
-		res:setValue(value)
-	else
-		rawset(self, field, value)
-	end
-	return value
-end
-
-local Struct = Object:extend{
+return Object:extend{
 	__tag = "Struct",
 
-	new = function (self)
-		local obj = Object.new(self)
-		setmetatable(obj, { __index = get, __newindex = set })
-		return obj
+	__index = function (self, field)
+		local res = rawget(self, "fields")
+		if res then
+			res = res[field]
+			if res then
+				return res:getValue()
+			end
+		end
+		return rawget(self, "parent")[field]
+	end,
+	__newindex = function (self, field, value)
+		local res = self:getField(field)
+		if res then
+			res:setValue(value)
+		else
+			rawset(self, field, value)
+		end
+		return value
 	end,
 	validate = function (self)
 		local k, v
@@ -41,14 +35,9 @@ local Struct = Object:extend{
 		return true
 	end,
 	getField = function (self, field)
-		local _, v
-		for _, v in pairs(self.fields) do
-			if v:getName() == field then
-				return v
-			end
+		if not self.fields then
+			Exception:new"Fields must be defined first!":throw()
 		end
-		return nil
+		return self.fields[field]
 	end
 }
-
-return Struct

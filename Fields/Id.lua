@@ -8,6 +8,5 @@ return Int:extend{
 	init = function (self, params)
 		Int.init(self, params)
 		self.pk = true
-		self:setName"id"
 	end
 }
