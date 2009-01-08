@@ -318,7 +318,10 @@ return Object:extend{
 	DeleteRow = DeleteRow,
 	CreateTable = CreateTable,
 	DropTable = DropTable,
-	
+
+	logger = function (sql, result)
+		--io.write(sql, "<br />")
+	end,
 	processPlaceholder = Object.abstractMethod,
 	processPlaceholders = function (self, sql, ...)
 		local begPos, endPos, res, match, i, lastEnd = 0, 0, {}, nil, 1, 0
@@ -337,7 +340,9 @@ return Object:extend{
 		return Table.join(res)
 	end,
 	fetchAll = function (self, ...)
-		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		local rawSql = self:processPlaceholders(...)
+		local cur, error = self.connection:execute(rawSql)
+		self.logger(rawSql)
 		if not cur then
 			self.error = error
 			return nil
@@ -349,14 +354,18 @@ return Object:extend{
 		return res
 	end,
 	fetchRow = function (self, ...)
-		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		local rawSql = self:processPlaceholders(...)
+		local cur, error = self.connection:execute(rawSql)
+		self.logger(rawSql)
 		if not cur then
 			self.error = error
 		end
 		return cur:fetch({}, "a")
 	end,
 	fetchCell = function (self, ...)
-		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		local rawSql = self:processPlaceholders(...)
+		local cur, error = self.connection:execute(rawSql)
+		self.logger(rawSql)
 		if not cur then
 			self.error = error
 			return nil
@@ -369,8 +378,9 @@ return Object:extend{
 		return v
 	end,
 	query = function (self, ...)
-		--io.write(select(1, ...), "<br />")
-		local cur, error = self.connection:execute(self:processPlaceholders(...))
+		local rawSql = self:processPlaceholders(...)
+		local cur, error = self.connection:execute(rawSql)
+		self.logger(rawSql)
 		if not cur then
 			self.error = error
 			return nil

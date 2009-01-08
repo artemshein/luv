@@ -100,7 +100,7 @@ return TestCase:extend{
 		self.assertNotEquals(peter.group, Group:new())
 		-- Tests backward relation
 		self.assertEquals(g581.students:count(), 3)
-		Student:create{name="Liza", group=g581}
+		local liza = Student:create{name="Liza", group=g581}
 		self.assertEquals(g581.students:count(), 4)
 		local g372 = Group:create(372)
 		g372.students:add(peter)
@@ -108,7 +108,27 @@ return TestCase:extend{
 		self.assertEquals(g581.students:count(), 3)
 		g372.students:add(john, max)
 		self.assertEquals(g372.students:count(), 3)
+		self.assertEquals(g372.students:all():filter{name="Max"}:count(), 1)
+		self.assertEquals(g372.students:all():filter{name__exact="Max"}:count(), 1)
+		self.assertEquals(g372.students:all():filter{name__beginswith="Ma"}:count(), 1)
+		self.assertEquals(g372.students:all():filter{name__endswith="hn"}:count(), 1)
+		self.assertEquals(g372.students:all():filter{name__contains="a"}:count(), 1)
+		self.assertEquals(g372.students:all():filter"Max":count(), 1)
+		self.assertEquals(g372.students:all():filter{name__in={"Max", "John", "Mary"}}:count(), 2)
+		self.assertEquals(g372.students:all():exclude"Max":count(), 2)
+		self.assertEquals(g372.students:all():exclude{name__in={"Max", "John", "Fil"}}:count(), 1)
 		self.assertEquals(g581.students:count(), 1)
+
+		self.assertEquals(g372.students:all().Max.group, g372)
+		self.assertEquals(g372.students:all().John.group, g372)
+		self.assertEquals(g372.students:all().Peter.group, g372)
+		self.assertNil(g372.students:all().Kevin)
+
+		self.assertTrue(g372.students:delete())
+		self.assertEquals(g372.students:count(), 0)
+		self.assertEquals(g581.students:count(), 1)
+		self.assertTrue(g581.students:delete())
+		self.assertEquals(g581.students:count(), 0)
 
 		Student:dropTables()
 		Group:dropTables()
