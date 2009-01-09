@@ -6,9 +6,6 @@ module(...)
 return Reference:extend{
 	__tag = "Fields.ManyToOne",
 
-	init = function (self, params)
-		self:setParams(params)
-	end,
 	getValue = function (self)
 		local valType = type(self.value)
 		if valType ~= nil and valType ~= "table" then

@@ -18,9 +18,6 @@ end
 return Reference:extend{
 	__tag = "Fields.OneToMany",
 
-	init = function (self, params)
-		self:setParams(params)
-	end,
 	getTableName = function (self)
 		return self:getRefModel():getTableName()
 	end,
@@ -40,11 +37,23 @@ return Reference:extend{
 		end
 		return QuerySet:new(refModel):filter{[refFieldName]=relationField:getValue()}
 	end,
+	filter = function (self, ...)
+		return self:all():filter(...)
+	end,
+	exclude = function (self, ...)
+		return self:all():exclude(...)
+	end,
 	count = function (self)
 		return self:all():count()
 	end,
+	pairs = function (self)
+		return self:all():pairs()
+	end,
 	delete = function (self)
 		return self:all():delete()
+	end,
+	update = function (self, ...)
+		return self:all():update(...)
 	end,
 	add = function (self, ...)
 		local refModel, model = self:getRefModel(), self:getContainer()
@@ -62,5 +71,13 @@ return Reference:extend{
 		update:set("?#="..container:getFieldPlaceholder(refModel:getField(toFieldName)), toFieldName, toFieldRelationField:getValue())
 		local refPkName = self:getRefModel():getPkName()
 		update:where("?# IN (?a)", refPkName, getKeysForObjects(self, ...)):exec()
+	end,
+	remove = function (self)
+		local container, refModel = self:getContainer(), self:getRefModel()
+		local toFieldName = refModel:getReferenceField(require"Fields.ManyToOne", container)
+		if refModel:getField(toFieldName):isRequired() then
+			Exception:new"Can't remove references with required property(you should delete it or set another value instead)!":throw()
+		end
+		return self:all():update{[toFieldName] = nil}
 	end
 }

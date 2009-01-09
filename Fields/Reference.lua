@@ -1,20 +1,26 @@
+local select, require, type = select, require, type
 local Field, Exception = require"Fields.Field", require"Exception"
-local require, type = require, type
 
 module(...)
+
+local CLASS = select(1, ...)
 
 return Field:extend{
 	__tag = "Fields.Reference",
 
+	init = function (self, ...)
+		if self.parent == require(CLASS) then
+			Exception:new"Instantiate of abstract class is not allowed!":throw()
+		end
+		Field.init(self, ...)
+	end,
 	setParams = function (self, params)
-		Field.setParams(self, params)
 		if type(params) == "table" then
 			self.ref = params.references or Exception:new"References required!":throw()
+			Field.setParams(self, params)
+			self.relationField = params.relationField
 		else
 			self.ref = params or Exception:new"References required!":throw()
-		end
-		if params.relationField then
-			self.relationField = params.relationField
 		end
 	end,
 	getRelationField = function (self) return self.relationField end,

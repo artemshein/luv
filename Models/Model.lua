@@ -24,7 +24,7 @@ return Struct:extend{
 			if type(v) == "table" and v.isKindOf and v:isKindOf(Field) then
 				new.fields[k] = v
 				if v:isKindOf(Reference) then
-					v:setContainer(self)
+					v:setContainer(new)
 				end
 				new[k] = nil
 				hasPk = hasPk or v:isPk()
@@ -96,9 +96,7 @@ return Struct:extend{
 	setValues = function (self, values)
 		local k, v
 		for k, v in pairs(self.fields) do
-			if not v:isKindOf(ManyToMany) and not v:isKindOf(OneToOne) then
-				v:setValue(values[k])
-			end
+			v:setValue(values[k])
 		end
 	end,
 	-- Find
@@ -141,6 +139,9 @@ return Struct:extend{
 	end,
 	-- Save, insert, update, create
 	insert = function (self)
+		if not self:validate() then
+			Exception:new"Validation error!":throw()
+		end
 		local insert = self:getDb():insertRow():into(self:getTableName())
 		local k, v
 		for k, v in pairs(self.fields) do
@@ -156,17 +157,20 @@ return Struct:extend{
 				end
 			end
 		end
-		local res = insert:exec()
-		-- Retrieve new generated ID
-		if res then
-			local pk = self:getPk()
-			if pk:isKindOf(Id) then
-				pk:setValue(res)
-			end
+		if not insert:exec() then
+			return false
 		end
-		return res
+		-- If Fields.Id than retrieve new generated ID
+		local pk = self:getPk()
+		if pk:isKindOf(Id) then
+			pk:setValue(self.db:getLastInsertId())
+		end
+		return self
 	end,
 	update = function (self)
+		if not self:validate() then
+			Exception:new"Validation error!":throw()
+		end
 		local updateRow = self:getDb():updateRow(self:getTableName())
 		local pkName, k, v = self:getPkName()
 		local pk = self:getField(pkName)

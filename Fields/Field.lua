@@ -1,15 +1,20 @@
-local Object, Exception = require"ProtOo", require"Exception"
+local require, select, Object, Exception, Filled = require, select, require"ProtOo", require"Exception", require"Validators.Filled"
 local Table, type, pairs = require"Table", type, pairs
 
 module(...)
 
-local Field = Object:extend{
-	__tag = "Fields.Field",
-	
-	pk = false,
-	unique = false,
-	required = false,
+local CLASS = select(1, ...)
 
+return Object:extend{
+	__tag = "Fields.Field",
+
+	init = function (self, params)
+		if self.parent == require(CLASS) then
+			Exception:new"Can not instantiate abstract class!":throw()
+		end
+		self.validators = {}
+		self:setParams(params)
+	end,
 	clone = function (self)
 		local new = Object.clone(self)
 		-- Clone validators
@@ -27,6 +32,9 @@ local Field = Object:extend{
 		self.pk = params.pk or false
 		self.unique = params.unique or false
 		self.required = params.required or false
+		if self.required then
+			self.validators.filled = Filled:new()
+		end
 		self.htmlWidget = params.htmlWidget
 		self.defaultValue = params.defaultValue
 		return self
@@ -53,5 +61,3 @@ local Field = Object:extend{
 	end,
 	asHtml = function (self) return self.htmlWidget:render(self) end
 }
-
-return Field

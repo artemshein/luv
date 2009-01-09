@@ -117,6 +117,12 @@ local MysqlTest = TestCase:extend{
 			tostring(self.db:dropTable("data.tbl")),
 			"DROP TABLE `data`.`tbl`;"
 		)
+	end,
+	testJoins = function (self)
+		self.assertEquals(
+			tostring(self.db:select("p.product_id", "p.product_name"):from{p="products"}:join({l="line_items"}, {"?# = ?#", "p.product_id", "l.product_id"})),
+			"SELECT `p`.`product_id`, `p`.`product_name`, `l`.* FROM `products` AS `p` JOIN `line_items` AS `l` ON `p`.`product_id` = `l`.`product_id`;"
+		)
 	end
 }
 

@@ -90,8 +90,38 @@ local Select = Object:extend{
 		self.conditions.limit.to = page*onPage
 		return self
 	end,
-	join = function (self, ...) Table.insert(self.joins.inner, {...}) return self end,
-	joinInner = function (self, ...) Table.insert(self.joins.inner, {...}) return self end,
+	-- TODO: Make it protected
+	joinInternalProcess = function (self, joinType, joinTable, condition, fields)
+		local table  = joinTable
+		if "table" == type(table) then
+			table = next(table)
+		end
+		-- Condition
+		if "table" == type(condition) then
+			condition = self.db:processPlaceholders (unpack(condition))
+		end
+		Table.insert(joinType, {joinTable, condition})
+		-- Fields
+		if fields then
+			local k, v
+			for k, v in pairs(fields) do
+				if "number" ~= type(k) then
+					self.fieldsVal[k] = table.."."..v
+				else
+					Table.insert(self.fieldsVal, table.."."..v)
+				end
+			end
+		else
+			Table.insert(self.fieldsVal, table..".*")
+		end
+	end,
+	join = function (self, ...)
+		return self:joinInner(...)
+	end,
+	joinInner = function (self, ...)
+		self:joinInternalProcess(self.joins.inner, ...)
+		return self
+	end,
 	joinOuter = function (self, ...) Table.insert(self.joins.outer, {...}) return self end,
 	joinLeft = function (self, ...) Table.insert(self.joins.left, {...}) return self end,
 	joinRight = function (self, ...) Table.insert(self.joins.right, {...}) return self end,
@@ -390,6 +420,7 @@ return Object:extend{
 		end
 		return cur
 	end,
+	getLastInsertId = Object.abstractMethod,
 	getError = function (self) return self.error end,
 	select = function (self, ...) return self.Select:new(self, ...) end,
 	selectRow = function (self, ...) return self.SelectRow:new(self, ...) end,

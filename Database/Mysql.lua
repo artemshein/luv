@@ -1,5 +1,5 @@
 local Driver, LuaSql, String, Table = require"Database.Driver", require"luasql.mysql", require"String", require"Table"
-local Debug, io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack = require"Debug", io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack
+local Debug, io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next = require"Debug", io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next
 
 module(...)
 
@@ -11,6 +11,7 @@ local Select = Driver.Select:extend{
 			"SELECT "
 			..self.db:constructFields(self.fieldsVal)
 			..self.db:constructFrom(self.tables)
+			..self.db:constructJoins(self.joins)
 			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
 			..self.db:constructOrder(self.conditions.order)
 			..self.db:constructLimit(self.conditions.limit)
@@ -148,6 +149,13 @@ return Driver:extend{
 			Driver.Exception:new("Could not connect to "..host.."!"):throw()
 		end
 	end,
+	getLastInsertId = function (self)
+		local res = self:query("SELECT LAST_INSERT_ID() AS `i`;")
+		if not res then
+			return nil
+		end
+		return tonumber(res.i)
+	end,
 	processPlaceholder = function (self, placeholder, value)
 		if placeholder == "?" then
 			return "'"..String.gsub(tostring(value), "'", "\\'").."'"
@@ -169,7 +177,11 @@ return Driver:extend{
 					return val
 				elseif String.find(val, ".", 1, true) then
 					local before, after = String.split(val, ".")
-					return self:processPlaceholder("?#", before).."."..self:processPlaceholder("?#", after)
+					if "*" == after then
+						return self:processPlaceholder("?#", before)..".*"
+					else
+						return self:processPlaceholder("?#", before).."."..self:processPlaceholder("?#", after)
+					end
 				else
 					return "`"..String.gsub(val, "`", "``").."`"
 				end
@@ -377,5 +389,22 @@ return Driver:extend{
 			end
 		end
 		return " "..Table.join(res, " ")
+	end,
+	constructJoins = function (self, joins)
+		local res, k, v, table = {}
+		for k, v in pairs(joins.inner) do
+			if "table" == type(v[1]) then
+				local name, table = next(v[1])
+				Table.insert(res, self:processPlaceholders("JOIN ?# AS ?# ON "..v[2], table, name))
+			else
+				Table.insert(res, self:processPlaceholders("JOIN ?# ON "..v[2], v[1]))
+			end
+		end
+		res = Table.join(res, " ")
+		if "" ~= res then
+			return " "..res
+		else
+			return ""
+		end
 	end
 }

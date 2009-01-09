@@ -76,7 +76,7 @@ return TestCase:extend{
 
 		local max = Student:new{name="Max"}
 		self.assertEquals(max.name, "Max")
-		self.assertFalse(max:insert())
+		self.assertThrows(function() max:insert() end) -- Student without group throws
 		-- Group
 		local g581 = Group:new(581)
 		self.assertEquals(g581.number, 581)
@@ -108,21 +108,29 @@ return TestCase:extend{
 		self.assertEquals(g581.students:count(), 3)
 		g372.students:add(john, max)
 		self.assertEquals(g372.students:count(), 3)
-		self.assertEquals(g372.students:all():filter{name="Max"}:count(), 1)
+		self.assertEquals(g372.students:filter{name="Max"}:count(), 1)
 		self.assertEquals(g372.students:all():filter{name__exact="Max"}:count(), 1)
-		self.assertEquals(g372.students:all():filter{name__beginswith="Ma"}:count(), 1)
-		self.assertEquals(g372.students:all():filter{name__endswith="hn"}:count(), 1)
-		self.assertEquals(g372.students:all():filter{name__contains="a"}:count(), 1)
-		self.assertEquals(g372.students:all():filter"Max":count(), 1)
+		self.assertEquals(g372.students:filter{name__beginswith="Ma"}:count(), 1)
+		self.assertEquals(g372.students:filter{name__endswith="hn"}:count(), 1)
+		self.assertEquals(g372.students:filter{name__contains="a"}:count(), 1)
+		self.assertEquals(g372.students:filter"Max":count(), 1)
 		self.assertEquals(g372.students:all():filter{name__in={"Max", "John", "Mary"}}:count(), 2)
-		self.assertEquals(g372.students:all():exclude"Max":count(), 2)
-		self.assertEquals(g372.students:all():exclude{name__in={"Max", "John", "Fil"}}:count(), 1)
+		self.assertEquals(g372.students:exclude"Max":count(), 2)
+		self.assertEquals(g372.students:exclude{name__in={"Max", "John", "Fil"}}:count(), 1)
 		self.assertEquals(g581.students:count(), 1)
 
 		self.assertEquals(g372.students:all().Max.group, g372)
 		self.assertEquals(g372.students:all().John.group, g372)
 		self.assertEquals(g372.students:all().Peter.group, g372)
 		self.assertNil(g372.students:all().Kevin)
+		-- Can not remove references with required restriction
+		self.assertThrows(function() g372.students:remove() end)
+		g372.students:update{group=g581}
+		self.assertEquals(g372.students:count(), 0)
+		self.assertEquals(g581.students:count(), 4)
+		g581.students:filter{name__in={"Max", "John", "Peter"}}:update{group=g372}
+		self.assertEquals(g372.students:count(), 3)
+		self.assertEquals(g581.students:count(), 1)
 
 		self.assertTrue(g372.students:delete())
 		self.assertEquals(g372.students:count(), 0)
@@ -133,4 +141,27 @@ return TestCase:extend{
 		Student:dropTables()
 		Group:dropTables()
 	end,
+	testT02 = function (self)
+		local Article, Category = require"Tests.TestModels.T02Article", require"Tests.TestModels.T02Category"
+		local db = Factory:connect(self.validDsn)
+		Article:setDb(db)
+		Category:setDb(db)
+		Article:dropTables()
+		Category:dropTables()
+		Article:createTables()
+		Category:createTables()
+		-- Add categories
+		local tech, net = Category:create{title="Tech"}, Category:create{title="Net"}
+		self.assertEquals(tech.title, "Tech")
+		self.assertTrue(tech.articles:isEmpty())
+		self.assertEquals(net.title, "Net")
+		self.assertTrue(net.articles:isEmpty())
+		-- Add articles
+		-- Throws because categories is required field
+		self.assertThrows(function() Article:create{title="A"} end)
+		local a = Article:create{title="A", categories={tech}}
+
+		Article:dropTables()
+		Category:dropTables()
+	end
 }

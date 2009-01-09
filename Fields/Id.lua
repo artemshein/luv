@@ -5,8 +5,10 @@ module(...)
 return Int:extend{
 	__tag = "Fields.Id",
 
-	init = function (self, params)
-		Int.init(self, params)
-		self.pk = true
+	setParams = function (self, params)
+		params = params or {}
+		params.pk = true
+		Int.setParams(self, params)
+		return self
 	end
 }

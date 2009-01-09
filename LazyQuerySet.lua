@@ -1,4 +1,4 @@
-local tonumber, pairs, type, rawget, getmetatable = tonumber, pairs, type, rawget, getmetatable
+local require, tonumber, pairs, type, rawget, getmetatable = require, tonumber, pairs, type, rawget, getmetatable
 local Table, String, Object, Exception, Debug = require"Table", require"String", require"ProtOo", require"Exception", require"Debug"
 
 module(...)
@@ -6,12 +6,13 @@ module(...)
 return Object:extend{
 	__tag = "LazyQuerySet",
 
-	init = function (self, model)
+	init = function (self, model, func)
 		self.model = model
 		self.db = model:getDb()
 		self.evaluated = false
 		self.filters = {}
 		self.excludes = {}
+		self.initFunc = func
 		getmetatable(self).__index = function (self, field)
 			local res = self.parent[field]
 			if res then
@@ -95,11 +96,13 @@ return Object:extend{
 	end,
 	count = function (self)
 		local s = self.db:selectCell("COUNT(*)"):from(self.model:getTableName())
+		if self.initFunc then self:initFunc(s) end
 		self:applyFiltersAndExcludes(s)
 		return tonumber(s:exec())
 	end,
 	delete = function (self)
 		local s = self.db:delete():from(self.model:getTableName())
+		if self.initFunc then self:initFunc(s) end
 		self:applyFiltersAndExcludes(s)
 		return s:exec()
 	end,
@@ -119,5 +122,20 @@ return Object:extend{
 			self:evaluate()
 		end
 		return pairs(self.values)
+	end,
+	update = function (self, set)
+		local s = self.db:update(self.model:getTableName())
+		if self.initFunc then self:initFunc(s) end
+		self:applyFiltersAndExcludes(s)
+		local k, v, val
+		for k, v in pairs(set) do
+			if type(v) == "table" and v.isKindOf and v:isKindOf(require"Models.Model") then
+				val = v:getPk():getValue()
+			else
+				val = v
+			end
+			s:set("?#="..self.model:getFieldPlaceholder(self.model:getField(k)), k, val)
+		end
+		s:exec()
 	end
 }

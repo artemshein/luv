@@ -2,16 +2,16 @@ local Field, Length, Regexp = require"Fields.Field", require"Validators.Length",
 
 module(...)
 
-local Char = Field:extend{
+return Field:extend{
 	__tag = "Fields.Char",
-	
-	init = function (self, params)
+
+	setParams = function (self, params)
 		params = params or {}
-		self:setParams(params)
-		self.validators = {length = Length:new(params.minLength or 0, params.maxLength or 255)}
+		Field.setParams(self, params)
 		if params.regexp then
 			self.validators.regexp = Regexp:new(params.regexp)
 		end
+		self.validators.length = Length:new(params.minLength or 0, params.maxLength or 255)
 	end,
 	getMinLength = function (self)
 		return self.validators.length:getMinLength()
@@ -20,5 +20,3 @@ local Char = Field:extend{
 		return self.validators.length:getMaxLength()
 	end
 }
-
-return Char
