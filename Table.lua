@@ -1,5 +1,5 @@
 local Table = table or {}
-local pairs = pairs
+local pairs, next = pairs, next
 
 module(...)
 
@@ -52,7 +52,7 @@ Table.size = function (tbl)
 end
 
 Table.isEmpty = function (tbl)
-	return Table.size(tbl) == 0
+	return nil == next(tbl)
 end
 
 return Table

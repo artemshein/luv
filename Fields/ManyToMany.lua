@@ -1,5 +1,5 @@
 local type, pairs = type, pairs
-local Reference, QuerySet = require"Fields.Reference", require"LazyQuerySet"
+local Table, Reference, QuerySet = require"Table", require"Fields.Reference", require"LazyQuerySet"
 local Debug = require"Debug"
 
 module(...)
@@ -49,6 +49,39 @@ return Reference:extend{
 	end,
 	dropTable = function (self)
 		return self:getContainer():getDb():dropTable(self:getTableName()):exec()
+	end,
+	insert = function (self)
+		if self.value then
+			local container, refModel = self:getContainer(), self:getRefModel()
+			if not container:getPk():getValue() then
+				Exception:new"Primary key value must be set first!":throw()
+			end
+			if not Table.isEmpty(self.value) then
+				local s, _, v = container:getDb():insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
+				for _, v in pairs(self.value) do
+					s:values(container:getPk():getValue(), v:getPk():getValue())
+				end
+				s:exec()
+			end
+			self.value = nil
+		end
+	end,
+	update = function (self)
+		if self.value then
+			local container, refModel = self:getContainer(), self:getRefModel()
+			if not container:getPk():getValue() then
+				Exception:new"Primary key value must be set first!":throw()
+			end
+			container:getDb():delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
+			if not Table.isEmpty(self.value) then
+				local s, _, v = container:getDb():insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
+				for _, v in pairs(self.value) do
+					s:values(container:getPk():getValue(), v:getPk():getValue())
+				end
+				s:exec()
+			end
+			self.value = nil
+		end
 	end,
 	getValue = function (self)
 		return self

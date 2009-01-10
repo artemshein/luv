@@ -160,6 +160,23 @@ return TestCase:extend{
 		-- Throws because categories is required field
 		self.assertThrows(function() Article:create{title="A"} end)
 		local a = Article:create{title="A", categories={tech}}
+		self.assertEquals(a.categories:all()[1], tech)
+		local b = Article:create{title="B", categories={tech, net}}
+		self.assertEquals(b.categories:count(), 2)
+		self.assertEquals(tech.articles:count(), 2)
+		self.assertEquals(net.articles:count(), 1)
+		a.categories = {net}
+		a:save()
+		self.assertEquals(tech.articles:count(), 1)
+		self.assertEquals(net.articles:count(), 2)
+		a.categories = {tech, net}
+		a:save()
+		self.assertEquals(tech.articles:count(), 2)
+		self.assertEquals(net.articles:count(), 2)
+		tech.articles = {}
+		tech:save()
+		self.assertEquals(tech.articles:count(), 0)
+		self.assertEquals(net.articles:count(), 2)
 
 		Article:dropTables()
 		Category:dropTables()

@@ -165,6 +165,12 @@ return Struct:extend{
 		if pk:isKindOf(Id) then
 			pk:setValue(self.db:getLastInsertId())
 		end
+		-- Save references
+		for k, v in pairs(self.fields) do
+			if v:isKindOf(ManyToMany) then
+				v:insert()
+			end
+		end
 		return self
 	end,
 	update = function (self)
@@ -188,7 +194,12 @@ return Struct:extend{
 				end
 			end
 		end
-		return updateRow:exec()
+		updateRow:exec()
+		for k, v in pairs(self.fields) do
+			if v:isKindOf(ManyToMany) then
+				v:update()
+			end
+		end
 	end,
 	save = function (self)
 		local pkName = self:getPkName()
