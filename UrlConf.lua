@@ -1,11 +1,11 @@
-local Object, Cgi, Exception = require"ProtOo", require"Cgi", require"Exception"
+local Object, Exception = require"ProtOo", require"Exception"
 local pairs, string, dump, table, dofile, type, io = pairs, string, dump, table, dofile, type, io
 
 module(...)
 
 local UrlConf = Object:extend{
-	init = function (self)
-		self.uri = Cgi.REQUEST_URI
+	init = function (self, wsApi)
+		self.uri = wsApi:getRequestHeader("REQUEST_URI")
 		local queryPos = string.find(self.uri, "?")
 		if queryPos then
 			self.uri = string.sub(self.uri, 1, queryPos-1)

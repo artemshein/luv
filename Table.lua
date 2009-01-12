@@ -1,9 +1,9 @@
 local Table = table or {}
-local pairs, next = pairs, next
+local pairs, next, type = pairs, next, type
 
 module(...)
 
-function Table.find (tbl, val)
+Table.find = function (tbl, val)
 	for k, v in pairs(tbl) do
 		if val == v then
 			return true
@@ -12,7 +12,7 @@ function Table.find (tbl, val)
 	return false
 end
 
-function Table.removeValue (tbl, val)
+Table.removeValue = function (tbl, val)
 	for k, v in pairs(tbl) do
 		if val == v then
 			tbl[k] = nil
@@ -22,11 +22,30 @@ function Table.removeValue (tbl, val)
 	return false
 end
 
-function Table.copy (tbl)
+Table.copy = function (tbl)
 	local res, k, v = {}
 	for k, v in pairs(tbl) do
 		res[k] = v
 	end
+	return res
+end
+
+Table.deepCopy = function (tbl, seen)
+	local res, k, v = {}
+	seen = seen or {}
+	seen[tbl] = res
+	for k, v in pairs(tbl) do
+		if "table" == type(v) then
+			if seen[v] then
+				res[k] = seen[v]
+			else
+				res[k] = Table.deepCopy(v, seen)
+			end
+		else
+			res[k] = v
+		end
+	end
+	seen[tbl] = nil
 	return res
 end
 

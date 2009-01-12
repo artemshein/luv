@@ -7,22 +7,12 @@ local expect = CheckTypes.expect
 CheckTypes.expect = function (value, valType)
 	if type(valType) == "string" then
 		return expect(value, valType)
-	elseif type(value) == "table" and value:isKindOf(valType) then
+	elseif type(value) == "table" and value.isKindOf and value:isKindOf(valType) then
 		return true
 	else
 		error("Given object has not expected type! "..debug.traceback())
 	end
 end
-
-local abstractMethod = function ()
-	error("Method must be implemented first! "..debug.traceback())
-end
-
-local maskedMethod = function ()
-	error("Method not founded! "..debug.traceback())
-end
-
-local singleton = function (self) return self end
 
 local clone = function (obj, tbl)
 	tbl = tbl or {}
@@ -49,6 +39,8 @@ local clone = function (obj, tbl)
 	return tbl
 end
 
+local abstractMethod = function () error("Method must be implemented first! "..debug.traceback()) end
+
 return {
 	__tag = "Object",
 
@@ -73,6 +65,7 @@ return {
 		return false
 	end,
 	abstractMethod = abstractMethod,
-	maskedMethod = maskedMethod,
-	checkTypes = CheckTypes.checkTypes
+	maskedMethod = function () error("Method not founded! "..debug.traceback()) end,
+	checkTypes = CheckTypes.checkTypes,
+	singleton = function (self) return self end
 }

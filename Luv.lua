@@ -1,5 +1,5 @@
 local pairs, require = pairs, require
-local Object, Exception = require"ProtOo", require"Exception"
+local Object, Exception, Version = require"ProtOo", require"Exception", require"Version"
 
 module(...)
 
@@ -44,10 +44,12 @@ end
 return Object:extend{
 	__tag = "Luv",
 
+	version = Version:new(0, 2, 0, "dev"),
+
 	-- Init
-	init = function (self)
-		self.cgi = require"Cgi":new()
-		self.urlconf = require"UrlConf":new()
+	init = function (self, wsApi)
+		self.wsApi = wsApi
+		self.urlconf = require"UrlConf":new(wsApi)
 	end,
 	getDsn = function (self) return self.dsn end,
 	setDsn = function (self, dsn)

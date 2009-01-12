@@ -14,12 +14,13 @@ Luv requirements:
 - mod_rewrite (Apache, LightTPD) or something similar on your web-server
 for CGI;
 - LuaSQL (www.keplerproject.org/luasql/) with mysql driver for MySQL support.
+- LuaSocket for SCGI.
 
 Luv includes:
 - Table, String and Debug extensions;
 - Prototype-based OOP;
 - Exceptions;
-- CGI lib;
+- CGI, SCGI;
 - Unit-testing libs;
 - "Tamplier" template engine written in pure Lua;
 - Fields (with Validators), Models & Forms;
@@ -42,6 +43,7 @@ Version 0.2dev [IN PROGRESS]
 + createTables and dropTables model methods.
 + insert, update, save and create model methods.
 + createModels, dropModels Luv methods.
++ Web-server API, standalone application-web-server using sockets, SCGI.
 
 Version 0.1dev [DONE]
 --------------

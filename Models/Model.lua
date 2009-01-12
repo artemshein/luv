@@ -15,6 +15,9 @@ end
 return Struct:extend{
 	__tag = "Models.Model",
 
+	__tostring = function (self)
+		return tostring(self:getPk():getValue())
+	end,
 	extend = function (self, ...)
 		local new = Struct.extend(self, ...)
 		-- Init fields
