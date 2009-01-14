@@ -16,7 +16,7 @@ local TestProtOo = TestCase:extend{
 		self.assertEquals(obj.a, 10)
 		obj.a = 20
 		self.assertEquals(obj.a, 20)
-		local obj2 = A:new()
+		local obj2 = A()
 		self.assertEquals(obj2.a, 10)
 		self.assertEquals(obj.a, 20)
 	end,

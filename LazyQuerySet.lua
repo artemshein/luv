@@ -70,7 +70,7 @@ return Object:extend{
 				elseif op == "contains" then
 					Table.insert(filTbl, self.db:processPlaceholders("?# LIKE ?", name, "%"..v.."%"))
 				else
-					Exception:new("Operation "..op.." not supported!"):throw()
+					Exception("Operation "..op.." not supported!"):throw()
 				end
 			else
 				Table.insert(filTbl, self.db:processPlaceholders("?#="..self.model:getFieldPlaceholder(self.model:getField(k)), k, v))
@@ -95,7 +95,7 @@ return Object:extend{
 		return s
 	end,
 	count = function (self)
-		local s = self.db:selectCell("COUNT(*)"):from(self.model:getTableName())
+		local s = self.db:selectCell"COUNT(*)":from(self.model:getTableName())
 		if self.initFunc then self:initFunc(s) end
 		self:applyFiltersAndExcludes(s)
 		return tonumber(s:exec())
@@ -113,7 +113,7 @@ return Object:extend{
 		local _, v, obj = {}
 		self.values = {}
 		for _, v in pairs(s:exec()) do
-			obj = self.model:new(v)
+			obj = self.model(v)
 			self.values[obj:getPk():getValue()] = obj
 		end
 	end,

@@ -3,7 +3,7 @@ local string, tostring = string, tostring
 
 module(...)
 
-local Regexp = Validator:extend{
+return Validator:extend{
 	__tag = "Validators.Regexp",
 	
 	init = function (self, regexp)
@@ -16,5 +16,3 @@ local Regexp = Validator:extend{
 		return true
 	end
 }
-
-return Regexp

@@ -14,12 +14,16 @@ CheckTypes.expect = function (value, valType)
 	end
 end
 
+local call = function (obj, ...)
+	return obj:new(...)
+end
+
 local clone = function (obj, tbl)
 	tbl = tbl or {}
 	tbl.parent = obj
 	local mt = getmetatable(obj)
 	if not mt then
-		mt = {__index = obj}
+		mt = {__index = obj, __call = call}
 	else
 		mt = Table.copy(mt)
 	end

@@ -2,7 +2,7 @@ local Object = require"ProtOo"
 
 module(...)
 
-local Templater = Object:extend{
+return Object:extend{
 	__tag = "Templaters.Templater",
 	
 	init = function (self, templatesDir)
@@ -13,7 +13,5 @@ local Templater = Object:extend{
 	fetchString = abstractMethod,
 	displayString = abstractMethod,
 	assign = abstractMethod,
-	clear = abstractMethod,
+	clear = abstractMethod
 }
-
-return Templater

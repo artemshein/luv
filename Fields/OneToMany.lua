@@ -8,7 +8,7 @@ local getKeysForObjects = function (self, ...)
 	for i = 1, select("#", ...) do
 		local obj = select(i, ...)
 		if type(obj) ~= "table" or not obj.isKindOf or not obj:isKindOf(self:getRefModel()) then
-			Exception:new("Instance of "..self:getRef().." required!"):throw()
+			Exception("Instance of "..self:getRef().." required!"):throw()
 		end
 		Table.insert(objKeys, obj:getPk():getValue())
 	end
@@ -28,14 +28,14 @@ return Reference:extend{
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local refFieldName = refModel:getReferenceField(require"Fields.ManyToOne", container)
 		if not refFieldName then
-			Exception:new"Backwards reference field not founded!":throw()
+			Exception"Backwards reference field not founded!":throw()
 		end
 		local relationFieldName = refModel:getField(refFieldName):getRelationField() or container:getPkName()
 		local relationField = container:getField(relationFieldName)
 		if not relationField:getValue() then
-			Exception:new"Relation field value must be set!":throw()
+			Exception"Relation field value must be set!":throw()
 		end
-		return QuerySet:new(refModel):filter{[refFieldName]=relationField:getValue()}
+		return QuerySet(refModel):filter{[refFieldName]=relationField:getValue()}
 	end,
 	filter = function (self, ...)
 		return self:all():filter(...)
@@ -59,12 +59,12 @@ return Reference:extend{
 		local refModel, model = self:getRefModel(), self:getContainer()
 		local toFieldName = refModel:getReferenceField(require"Fields.ManyToOne", model)
 		if not toFieldName then
-			Exception:new"Backwards reference field not founded!":throw()
+			Exception"Backwards reference field not founded!":throw()
 		end
 		local toFieldRelationFieldName = refModel:getField(toFieldName):getRelationField() or model:getPkName()
 		local toFieldRelationField = model:getField(toFieldRelationFieldName)
 		if not toFieldRelationField:getValue() then
-			Exception:new"Relation field value must be set!":throw()
+			Exception"Relation field value must be set!":throw()
 		end
 		local container = self:getContainer()
 		local update, i = container:getDb():update(self:getRefModel():getTableName())
@@ -76,7 +76,7 @@ return Reference:extend{
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local toFieldName = refModel:getReferenceField(require"Fields.ManyToOne", container)
 		if refModel:getField(toFieldName):isRequired() then
-			Exception:new"Can't remove references with required property(you should delete it or set another value instead)!":throw()
+			Exception"Can't remove references with required property(you should delete it or set another value instead)!":throw()
 		end
 		return self:all():update{[toFieldName] = nil}
 	end

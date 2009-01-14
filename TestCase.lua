@@ -3,22 +3,22 @@ local unpack, setfenv, pairs, type, ipairs, io, os, table, string, try = unpack,
 
 module(...)
 
-local TestCase = Object:extend{
+return Object:extend{
 
 	Exception = Exception:extend{},
 
-	assertTrue = function (test) if not test then Exception:new"assertTrue failed":throw() end end,
-	assertFalse = function (test) if test then Exception:new"assertFalse failed":throw() end end,
-	assertEquals = function (first, second) if first ~= second then Exception:new"assertEquals failed":throw() end end,
-	assertNotEquals = function (first, second) if first == second then Exception:new"assertNotEquals failed":throw() end end,
-	assertNil = function (val) if val ~= nil then Exception:new"assertNil failed":throw() end end,
-	assertNotNil = function (val) if val == nil then Exception:new"assertNotNil failed":throw() end end,
+	assertTrue = function (test) if not test then Exception"assertTrue failed":throw() end end,
+	assertFalse = function (test) if test then Exception"assertFalse failed":throw() end end,
+	assertEquals = function (first, second) if first ~= second then Exception"assertEquals failed":throw() end end,
+	assertNotEquals = function (first, second) if first == second then Exception"assertNotEquals failed":throw() end end,
+	assertNil = function (val) if val ~= nil then Exception"assertNil failed":throw() end end,
+	assertNotNil = function (val) if val == nil then Exception"assertNotNil failed":throw() end end,
 	assertThrows = function (func, ...)
 		local args = {...}
 		try(function()
 			func(unpack(args))
 		end):elseDo(function()
-			Exception:new"assertThrows failed":throw()
+			Exception"assertThrows failed":throw()
 		end)
 	end,
 	assertNotThrows = function (func, ...)
@@ -58,5 +58,3 @@ local TestCase = Object:extend{
 		return stat.total == 0 or (stat.total ~= 0 and stat.failed == 0)
 	end
 }
-
-return TestCase

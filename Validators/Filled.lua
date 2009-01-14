@@ -3,7 +3,7 @@ local type = type
 
 module(...)
 
-local Filled = Validator:extend{
+return Validator:extend{
 	__tag = "Validators.Filled",
 	
 	init = function (self) return self end,
@@ -16,5 +16,3 @@ local Filled = Validator:extend{
 		return false
 	end
 }
-
-return Filled

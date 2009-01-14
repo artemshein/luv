@@ -10,7 +10,7 @@ return Object:extend{
 
 	init = function (self, params)
 		if self.parent == require(CLASS) then
-			Exception:new"Can not instantiate abstract class!":throw()
+			Exception"Can not instantiate abstract class!":throw()
 		end
 		self.validators = {}
 		self:setParams(params)
@@ -33,7 +33,7 @@ return Object:extend{
 		self.unique = params.unique or false
 		self.required = params.required or false
 		if self.required then
-			self.validators.filled = Filled:new()
+			self.validators.filled = Filled()
 		end
 		self.htmlWidget = params.htmlWidget
 		self.defaultValue = params.defaultValue

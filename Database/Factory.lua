@@ -3,7 +3,7 @@ local require, ipairs, Debug = require, ipairs, require"Debug"
 
 module(...)
 
-local Factory = Object:extend{
+return Object:extend{
 	__tag = "Database.Factory",
 	Exception = Exception:extend{},
 	
@@ -20,9 +20,6 @@ local Factory = Object:extend{
 				params[key] = val
 			end
 		end
-		local db = require("Database."..String.capitalize(driver))
-		return db:new(host, login, pass, database, port, params)
+		return require("Database."..String.capitalize(driver))(host, login, pass, database, port, params)
 	end
 }
-
-return Factory

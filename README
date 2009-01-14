@@ -13,8 +13,10 @@ Luv:
 Luv requirements:
 - mod_rewrite (Apache, LightTPD) or something similar on your web-server
 for CGI;
+- datafilter (http://www.daizucms.org/lua/library/datafilter) for MD5 & SHA1
+passwords hashing;
 - LuaSQL (www.keplerproject.org/luasql/) with mysql driver for MySQL support.
-- LuaSocket for SCGI.
+- (optional) LuaSocket for SCGI.
 
 Luv includes:
 - Table, String and Debug extensions;

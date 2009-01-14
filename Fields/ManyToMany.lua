@@ -12,7 +12,7 @@ return Reference:extend{
 			local refModel, _, v = self:getRefModel()
 			for _, v in pairs(value) do
 				if not v:isKindOf(refModel) then
-					Exception:new"Table of field references instances required!":throw()
+					Exception"Table of field references instances required!":throw()
 				end
 			end
 		end
@@ -54,7 +54,7 @@ return Reference:extend{
 		if self.value then
 			local container, refModel = self:getContainer(), self:getRefModel()
 			if not container:getPk():getValue() then
-				Exception:new"Primary key value must be set first!":throw()
+				Exception"Primary key value must be set first!":throw()
 			end
 			if not Table.isEmpty(self.value) then
 				local s, _, v = container:getDb():insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
@@ -70,7 +70,7 @@ return Reference:extend{
 		if self.value then
 			local container, refModel = self:getContainer(), self:getRefModel()
 			if not container:getPk():getValue() then
-				Exception:new"Primary key value must be set first!":throw()
+				Exception"Primary key value must be set first!":throw()
 			end
 			container:getDb():delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
 			if not Table.isEmpty(self.value) then
@@ -90,9 +90,9 @@ return Reference:extend{
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local pkName = container:getPkName()
 		if not container:getField(pkName):getValue() then
-			Exception:new"Primary key must be set first!":throw()
+			Exception"Primary key must be set first!":throw()
 		end
-		return QuerySet:new(self:getRefModel(), function (qs, s)
+		return QuerySet(self:getRefModel(), function (qs, s)
 			s:join({refTable=self:getTableName()}, {"?#.?# = ?#.?#", "refTable", qs.model:getTableName(), qs.model:getTableName(), qs.model:getPkName()}, {})
 			s:where("?#.?#="..qs.model:getFieldPlaceholder(container:getField(pkName)), "refTable", container:getTableName(), container:getField(pkName):getValue())
 		end)

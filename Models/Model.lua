@@ -34,16 +34,16 @@ return Struct:extend{
 			end
 		end
 		if Table.isEmpty(new.fields) then
-			Exception:new"Model must have at least one field!":throw()
+			Exception"Model must have at least one field!":throw()
 		end
 		if not hasPk then
-			new.fields.id = Id:new()
+			new.fields.id = Id()
 		end
 		return new
 	end,
 	init = function (self, values)
 		if not self.fields then
-			Exception:new"Abstract model can't be created (extend it first)!":throw()
+			Exception"Abstract model can't be created (extend it first)!":throw()
 		end
 		local k, v, fields = nil, nil, {}
 		for k, v in pairs(self.fields) do
@@ -114,7 +114,7 @@ return Struct:extend{
 		elseif field:isKindOf(ManyToOne) then
 			return "?n"
 		else
-			Exception:new"Unsupported field type!":throw()
+			Exception"Unsupported field type!":throw()
 		end
 	end,
 	find = function (self, what)
@@ -143,7 +143,7 @@ return Struct:extend{
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:validate() then
-			Exception:new"Validation error!":throw()
+			Exception"Validation error!":throw()
 		end
 		local insert = self:getDb():insertRow():into(self:getTableName())
 		local k, v
@@ -178,7 +178,7 @@ return Struct:extend{
 	end,
 	update = function (self)
 		if not self:validate() then
-			Exception:new"Validation error!":throw()
+			Exception"Validation error!":throw()
 		end
 		local updateRow = self:getDb():updateRow(self:getTableName())
 		local pkName, k, v = self:getPkName()
@@ -214,7 +214,7 @@ return Struct:extend{
 		end
 	end,
 	create = function (self, ...)
-		local obj = self:new(...)
+		local obj = self(...)
 		if not obj:insert() then
 			return nil
 		end
@@ -228,7 +228,7 @@ return Struct:extend{
 		if self.tableName then
 			return self.tableName
 		else
-			Exception:new"Table name required!":throw()
+			Exception"Table name required!":throw()
 		end
 	end,
 	setTableName = function (self, tableName) self.tableName = tableName return self end,
@@ -253,7 +253,7 @@ return Struct:extend{
 		elseif field:isKindOf(ManyToOne) then
 			return self:getFieldTypeSql(field:getRefModel():getPk())
 		else
-			Exception:new"Unsupported field type!":throw()
+			Exception"Unsupported field type!":throw()
 		end
 	end,
 	createTables = function (self)

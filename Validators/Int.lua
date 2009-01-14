@@ -3,7 +3,7 @@ local type, tonumber, Debug = type, tonumber, require"Debug"
 
 module(...)
 
-local Int = Validator:extend{
+return Validator:extend{
 	__tag = "Validators.Int",
 	
 	init = function (self) return self end,
@@ -19,5 +19,3 @@ local Int = Validator:extend{
 		return false
 	end
 }
-
-return Int

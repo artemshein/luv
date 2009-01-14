@@ -2,7 +2,7 @@ local Object = require"ProtOo"
 
 module(...)
 
-local Version = Object:extend{
+return Object:extend{
 	minor = 0,
 	patch = 0,
 	state = "stable",
@@ -35,5 +35,3 @@ local Version = Object:extend{
 		return res
 	end
 }
-
-return Version

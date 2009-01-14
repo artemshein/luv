@@ -9,7 +9,7 @@ local UnitTest = Object:extend{
 	run = function (self)
 		local testModule
 		if not self.tests then
-			Exception:new"No tests are defined!":throw()
+			Exception"No tests are defined!":throw()
 		end
 		local res, total, failed, time = nil, 0, 0, os.clock()
 		for _, test in pairs(self.tests) do

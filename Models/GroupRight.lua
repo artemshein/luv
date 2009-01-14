@@ -5,8 +5,8 @@ module(...)
 return Model:extend{
 	__tag = "Models.GroupRight",
 
-	model = Char:new(),
-	action = Char:new(),
-	description = Char:new{maxLength = 0},
-	groups = ManyToMany:new"Models.UserGroup"
+	model = Char(),
+	action = Char(),
+	description = Char{maxLength = 0},
+	groups = ManyToMany"Models.UserGroup"
 }

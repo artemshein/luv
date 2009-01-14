@@ -6,6 +6,8 @@ local AllTest = UnitTest:extend{
 	tests = {
 		-- Base functional
 		"Tests.Self", "Tests.String", "Tests.Table", "Tests.CheckTypes", "Tests.ProtOo", "Tests.Version",
+		-- Crypt
+		"Tests.Crypt.Md5", "Tests.Crypt.Sha1",
 		-- Template engines
 		"Tests.Templaters.Tamplier",
 		-- Database

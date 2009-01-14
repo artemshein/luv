@@ -9,9 +9,9 @@ return TestCase:extend{
 	validDsn = "mysql://test:test@localhost/test",
 
 	testSimple = function (self)
-		local u = User:new()
+		local u = User()
 		self.assertTrue(u:getField"group":getRefModel():isKindOf(UserGroup))
-		local g = UserGroup:new()
+		local g = UserGroup()
 		self.assertNotThrows(function () u.group = 15 end)
 		self.assertThrows(function () u.group = "abcd" end)
 		self.assertThrows(function () u.group = u end)

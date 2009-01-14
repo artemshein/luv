@@ -146,7 +146,7 @@ return Driver:extend{
 		local mysql = LuaSql.mysql()
 		self.connection = mysql:connect(database, login, pass, host, port)
 		if not self.connection then
-			Driver.Exception:new("Could not connect to "..host.."!"):throw()
+			Driver.Exception("Could not connect to "..host.."!"):throw()
 		end
 	end,
 	getLastInsertId = function (self)
@@ -161,7 +161,7 @@ return Driver:extend{
 			return "'"..String.gsub(tostring(value), "'", "\\'").."'"
 		elseif placeholder == "?d" then
 			local num = tonumber(value)
-			if not num then Driver.Exception:new"Not a valid number given!":throw() end
+			if not num then Driver.Exception"Not a valid number given!":throw() end
 			return tostring(num)
 		elseif placeholder == "?#" then
 			if type(value) == "table" then
@@ -223,12 +223,12 @@ return Driver:extend{
 				elseif type(v) == "string" then
 					res = res.."="..self:processPlaceholder("?", v)
 				else
-					Driver.Exception:new"Invalid value type!":throw()
+					Driver.Exception"Invalid value type!":throw()
 				end
 			end
 			return res
 		end
-		Driver.Exception:new("Invalid placeholder \""..placeholder.."\"!"):throw()
+		Driver.Exception("Invalid placeholder \""..placeholder.."\"!"):throw()
 	end,
 	constructFields = function (self, fields)
 		local k, v, res = nil, nil, {}
@@ -338,7 +338,7 @@ return Driver:extend{
 				elseif type(options.default) == "number" then
 					fld = fld..self:processPlaceholder("?d", options.default)
 				else
-					Driver.Exception:new("Unsupported default option type \""..type(options.default).."\"!"):throw()
+					Driver.Exception("Unsupported default option type \""..type(options.default).."\"!"):throw()
 				end
 			end
 			Table.insert(res, fld)
@@ -385,7 +385,7 @@ return Driver:extend{
 			elseif k == "engine" then
 				Table.insert(res, "ENGINE = "..v)
 			else
-				Exception:new("Unsupported option "..k.."!"):throw()
+				Exception("Unsupported option "..k.."!"):throw()
 			end
 		end
 		return " "..Table.join(res, " ")

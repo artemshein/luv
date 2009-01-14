@@ -3,7 +3,7 @@ local type, tostring, tonumber = type, tostring, tonumber
 
 module(...)
 
-local Value = Validator:extend{
+return Validator:extend{
 	__tag = "Validators.Value",
 	
 	init = function (self, value)
@@ -20,5 +20,3 @@ local Value = Validator:extend{
 		return false
 	end
 }
-
-return Value

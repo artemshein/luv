@@ -3,7 +3,7 @@ local io, dump, os = io, dump, os
 
 module(...)
 
-File = Object:extend{
+return Object:extend{
 	Exception = Exception:extend{},
 	
 	init = function (self, filename)
@@ -13,7 +13,7 @@ File = Object:extend{
 	openForReading = function (self)
 		file, err = io.open(self.filename)
 		if not file then
-			Exception:new(err):throw()
+			Exception(err):throw()
 		end
 		self.handle = file
 		self.mode = "read"
@@ -23,7 +23,7 @@ File = Object:extend{
 	openForWriting = function (self)
 		file, err = io.open(self.filename, "w")
 		if not file then
-			Exception:new(err):throw()
+			Exception(err):throw()
 		end
 		self.handle = file
 		self.mode = "write"
@@ -32,14 +32,14 @@ File = Object:extend{
 	
 	read = function (self, ...)
 		if not self.handle then
-			Exception:new"File must be opened first!":throw()
+			Exception"File must be opened first!":throw()
 		end
 		return self.handle:read(...)
 	end,
 	
 	write = function (self, ...)
 		if (not self.handle) or self.mode ~= "write" then
-			Exception:new"File must be opened in write mode!":throw()
+			Exception"File must be opened in write mode!":throw()
 		end
 		self.handle:write(...)
 		return self
@@ -56,5 +56,3 @@ File = Object:extend{
 		return os.remove(self.filename)
 	end
 }
-
-return File

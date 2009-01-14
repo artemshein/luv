@@ -3,7 +3,7 @@ local io, string, loadstring, dump, setfenv, type, pairs = io, string, loadstrin
 
 module(...)
 
-local Tamplier = Templater:extend{
+return Templater:extend{
 	__tag = "Templaters.Tamplier",
 	
 	init = function (self, ...)
@@ -36,7 +36,7 @@ local Tamplier = Templater:extend{
 		res = "local s = [===["..string.gsub(res, "%%}", "\ns = s..[===[").."]===]\nreturn s"
 		local func, err = loadstring(res)
 		if not func then
-			Exception:new(err):throw()
+			Exception(err):throw()
 		end
 		setfenv(func, self.internal)
 		return func()
@@ -59,5 +59,3 @@ local Tamplier = Templater:extend{
 		io.write(self:fetch(template))
 	end
 }
-
-return Tamplier

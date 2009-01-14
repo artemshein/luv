@@ -15,9 +15,9 @@ return Reference:extend{
 	end,
 	setValue = function (self, value)
 		if type(value) == "table" and not value:isKindOf(self:getRefModel()) then
-			Exception:new("Instance of "..self.ref.." or nil required!"):throw()
+			Exception("Instance of "..self.ref.." or nil required!"):throw()
 		elseif value ~= nil and type(value) ~= "table" and not self:getRefModel():getPk():validate(value) then
-			Exception:new"Invalid field value!":throw()
+			Exception"Invalid field value!":throw()
 		end
 		return Reference.setValue(self, value)
 	end,

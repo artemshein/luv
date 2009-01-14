@@ -2,10 +2,8 @@ local Object = require"ProtOo"
 
 module(...)
 
-local Validator = Object:extend{
+return Object:extend{
 	__tag = "Validators.Validator",
 	
-	validate = Object.abstractMethod,
+	validate = Object.abstractMethod
 }
-
-return Validator

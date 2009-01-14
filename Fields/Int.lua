@@ -8,7 +8,7 @@ return Field:extend{
 
 	init = function (self, params)
 		Field.init(self, params)
-		self.validators.int = Int:new()
+		self.validators.int = Int()
 	end,
 	setValue = function (self, value)
 		self.value = tonumber(value)

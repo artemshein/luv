@@ -3,7 +3,7 @@ local pairs, string, dump, table, dofile, type, io = pairs, string, dump, table,
 
 module(...)
 
-local UrlConf = Object:extend{
+return Object:extend{
 	init = function (self, wsApi)
 		self.uri = wsApi:getRequestHeader("REQUEST_URI")
 		local queryPos = string.find(self.uri, "?")
@@ -31,7 +31,7 @@ local UrlConf = Object:extend{
 				elseif type(script) == "function" then
 					script(self)
 				else
-					Exception:new"Invalid action!":throw()
+					Exception"Invalid action!":throw()
 				end
 				return true
 			end
@@ -39,5 +39,3 @@ local UrlConf = Object:extend{
 		return false
 	end
 }
-
-return UrlConf

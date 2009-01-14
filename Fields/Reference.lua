@@ -10,17 +10,17 @@ return Field:extend{
 
 	init = function (self, ...)
 		if self.parent == require(CLASS) then
-			Exception:new"Instantiate of abstract class is not allowed!":throw()
+			Exception"Instantiate of abstract class is not allowed!":throw()
 		end
 		Field.init(self, ...)
 	end,
 	setParams = function (self, params)
 		if type(params) == "table" then
-			self.ref = params.references or Exception:new"References required!":throw()
+			self.ref = params.references or Exception"References required!":throw()
 			Field.setParams(self, params)
 			self.relationField = params.relationField
 		else
-			self.ref = params or Exception:new"References required!":throw()
+			self.ref = params or Exception"References required!":throw()
 		end
 	end,
 	getRelationField = function (self) return self.relationField end,
@@ -32,7 +32,7 @@ return Field:extend{
 	getRefModel = function (self)
 		if not self.refModel then
 			if not self.ref then
-				Exception:new"References required!":throw()
+				Exception"References required!":throw()
 			end
 			self.refModel = require(self.ref)
 		end
