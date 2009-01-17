@@ -1,8 +1,8 @@
-local Reference = require"Fields.Reference"
+local Fields = from"Luv":import"Fields"
 
 module(...)
 
-return Reference:extend{
+return Fields.Reference:extend{
 	__tag = "Fields.OneToOne",
 
 	init = function (self, params)
@@ -21,6 +21,9 @@ return Reference:extend{
 			end
 		end
 		return self.tableName
+	end,
+	createBackLink = function (self)
+		return Fields.OneToOne{references=self:getContainer()}
 	end,
 	createTable = function (self)
 		local c = self:getContainer():getDb():createTable(self:getTableName())

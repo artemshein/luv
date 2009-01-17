@@ -1,4 +1,4 @@
-local Debug = require"Debug"
+local Debug = require"Luv.Debug"
 local string, table, unpack, select = string, table, unpack, select
 
 module(...)

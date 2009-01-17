@@ -1,28 +1,28 @@
-local UnitTest = require"UnitTest"
+local UnitTest = require"Luv.UnitTest"
 
 module(...)
 
-local AllTest = UnitTest:extend{
+return UnitTest:extend{
+	__tag = ...,
+
 	tests = {
 		-- Base functional
-		"Tests.Self", "Tests.String", "Tests.Table", "Tests.CheckTypes", "Tests.ProtOo", "Tests.Version",
+		"Luv.Tests.Self", "Luv.Tests.String", "Luv.Tests.Table", "Luv.Tests.CheckTypes", "Luv.Tests.Object", "Luv.Tests.Version",
 		-- Crypt
-		"Tests.Crypt.Md5", "Tests.Crypt.Sha1",
+		"Luv.Tests.Crypt",
 		-- Template engines
-		"Tests.Templaters.Tamplier",
+		"Luv.Tests.Templater.Tamplier",
 		-- Database
-		"Tests.Database.Factory", "Tests.Database.Driver", "Tests.Database.Mysql",
+		"Luv.Tests.Db", "Luv.Tests.Db.Mysql",
 		-- Validators
-		"Tests.Validators.Filled", "Tests.Validators.Length", "Tests.Validators.Value", "Tests.Validators.Int", "Tests.Validators.Regexp",
+		"Luv.Tests.Validators",
 		-- Fields
-		"Tests.Fields.Field", "Tests.Fields.Char", "Tests.Fields.Login", "Tests.Fields.ManyToOne",
+		"Luv.Tests.Fields",
 		-- Widgets ()
 		--"Tests.Widgets.InputField",
 		-- QuerySet
-		"Tests.QuerySet",
+		"Luv.Tests.QuerySet",
 		-- Models
-		"Tests.Models.Model", "Tests.Models.User", "Tests.Models.UserGroup", "Tests.Models.GroupRight"
+		"Luv.Tests.Model"
 	}
 }
-
-return AllTest

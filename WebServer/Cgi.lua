@@ -1,17 +1,17 @@
-local WsApi, Exception, String, Debug = require"WebServer.Api", require"Exception", require"String", require"Debug"
 local io, os, table, pairs = io, os, table, pairs
+local Ws, Exception, String = from"Luv":import("WebServer", "Exception", "String")
 
 module(...)
 
 local write = io.write
 
-local Cgi = WsApi:extend{
-	__tag = "WebServer.Cgi",
+local Cgi = Ws.Api:extend{
+	__tag = ...,
 
 	responseHeaders = {},
 	headersAlreadySent = false,
 
-	new = WsApi.singleton,
+	new = Ws.Api.singleton,
 	getRequestHeader = function (self, header)
 		return os.getenv(header)
 	end,
@@ -26,7 +26,7 @@ local Cgi = WsApi:extend{
 	end,
 	setResponseHeader = function (self, header, value)
 		if self.headerAlreadySent then
-			self.Exception:new"Headers already sent!":throw()
+			Ws.Exception"Headers already sent!":throw()
 		end
 		self.responseHeaders[header] = value
 	end,

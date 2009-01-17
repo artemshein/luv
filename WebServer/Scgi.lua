@@ -1,12 +1,12 @@
 local io, pairs, tonumber, error, select, tostring = io, pairs, tonumber, error, select, tostring
-local Object, Debug, Socket, String, Table = require"ProtOo", require"Debug", require"socket.core", require"String", require"Table"
+local Object, Debug, Socket, String, Table = require"Luv.ProtOo", require"Luv.Debug", require"socket.core", require"Luv.String", require"Luv.Table"
 
 module(...)
 
 local write = io.write
 
 return Object:extend{
-	__tag = "WebServer.Scgi",
+	__tag = ...,
 
 	init = function (self, client)
 		local ch = client:receive(1)

@@ -1,21 +1,21 @@
-local Object, Exception = require"ProtOo", require"Exception"
+local Object, Exception = from"Luv":import("Object", "Exception")
 local pairs, string, dump, table, dofile, type, io = pairs, string, dump, table, dofile, type, io
 
 module(...)
 
 return Object:extend{
+	__tag = ...,
+
 	init = function (self, wsApi)
-		self.uri = wsApi:getRequestHeader("REQUEST_URI")
+		self.uri = wsApi:getRequestHeader("REQUEST_URI") or ""
 		local queryPos = string.find(self.uri, "?")
 		if queryPos then
 			self.uri = string.sub(self.uri, 1, queryPos-1)
 		end
 	end,
-	
 	capture = function (self, pos)
 		return self.captures[pos]
 	end,
-	
 	dispatch = function (self, urls)
 		for expr, script in pairs(urls) do
 			local res = {string.find(self.uri, expr)}

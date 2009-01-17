@@ -1,11 +1,12 @@
-local Object, Exception = require"ProtOo", require"Exception"
 local unpack, setfenv, pairs, type, ipairs, io, os, table, string, try = unpack, setfenv, pairs, type, ipairs, io, os, table, string, try
+local Object, Exception = from"Luv":import("Object", "Exception")
 
 module(...)
 
 return Object:extend{
+	__tag = ...,
 
-	Exception = Exception:extend{},
+	Exception = Exception:extend{__tag = .....".Exception"},
 
 	assertTrue = function (test) if not test then Exception"assertTrue failed":throw() end end,
 	assertFalse = function (test) if test then Exception"assertFalse failed":throw() end end,

@@ -1,12 +1,12 @@
 local pairs, require, type, tostring, io, unpack = pairs, require, type, tostring, io, unpack
-local Table, Object, Model, Exception = require"Table", require"ProtOo", require"Models.Model", require"Exception"
+local Table, Object, Model, Exception = from"Luv":import("Table", "Object", "Db.Model", "Exception")
 
 module(...)
 
-local args = {...}
+local CLASS = ...
 
 return Object:extend{
-	__tag = "QuerySet",
+	__tag = ...,
 
 	init = function (self, values)
 		self.values = {}
@@ -14,7 +14,7 @@ return Object:extend{
 			return
 		end
 		if type(values) ~= "table" then
-			Exception:new"Table required!":throw()
+			Exception"Table required!":throw()
 		end
 		local _, v
 		for _, v in pairs(values) do
@@ -32,7 +32,7 @@ return Object:extend{
 	end,
 	append = function (self, value)
 		if not value:isKindOf(Model) then
-			Exception:new"Instance of Model required!":throw()
+			Exception"Instance of Model required!":throw()
 		end
 		Table.insert(self.values, value)
 	end,
@@ -40,16 +40,16 @@ return Object:extend{
 		return pairs(self.values)
 	end,
 	__add = function (self, value)
-		local res = require(unpack(args)):new(self.values)
+		local res = require(CLASS)(self.values)
 		if value:isKindOf(Model) then
 			res:append(value)
-		elseif value:isKindOf(require(unpack(args))) then
+		elseif value:isKindOf(require(CLASS)) then
 			local _, v
 			for _, v in value:pairs() do
 				res:append(v)
 			end
 		else
-			Exception:new"Instance of QuerySet or Model required!":throw()
+			Exception"Instance of QuerySet or Model required!":throw()
 		end
 		return res
 	end

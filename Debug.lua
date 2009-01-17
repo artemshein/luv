@@ -1,25 +1,18 @@
-local Debug, Table = debug or {}, require"Table"
+local Debug, Table = debug or {}, require"Luv.Table"
 
 module(..., package.seeall)
--- Creates two global functions: a function that traces function calls
--- and returns, and another function to turn it off.
---
--- Usage:
--- require(calltrace)
--- Trace() -- Turns on tracing.
--- Untrace() -- Turns off tracing.
--- The current depth of the stack (nil when not tracing):
+
+-- trace & untrace are stolen from book and should be removed or rewrited in future
+
 local Depth
--- Returns a string naming the function at StackLvl; this string will
--- include the functions current line number if WithLineNum is true. A
--- sensible string will be returned even if a name or line numbers
--- cant be found.
+
 local function GetInfo(StackLvl, WithLineNum)
-	-- StackLvl is reckoned from the callers level:
 	StackLvl = StackLvl + 1
 	local Ret
 	local Info = Debug.getinfo(StackLvl, "nlS")
-	if Info then
+	if not Info then
+		Ret = "nowhere"
+	else
 		local Name, What, LineNum, ShortSrc = Info.name, Info.what, Info.currentline, Info.short_src
 		if What == "tail" then
 			Ret = "overwritten stack frame"
@@ -34,7 +27,6 @@ local function GetInfo(StackLvl, WithLineNum)
 			if Name == "C function" then
 				Ret = Name
 			else
-				-- Only use real line numbers:
 				LineNum = LineNum >= 1 and LineNum
 				if WithLineNum and LineNum then
 					Ret = Name .. " (" .. ShortSrc .. ", line " .. LineNum .. ")"
@@ -43,21 +35,16 @@ local function GetInfo(StackLvl, WithLineNum)
 				end
 			end
 		end
-	else
-		-- Below the bottom of the stack:
-		Ret = "nowhere"
 	end
 	return Ret
 end
--- Returns a string of N spaces:
+
 local function Indent(N)
 	return string.rep(" ", N)
 end
--- The hook function set by Trace:
+
 local function Hook(Event)
-	-- Info for the running function being called or returned from:
 	local Running = GetInfo(2)
-	-- Info for the function that called that function:
 	local Caller = GetInfo(3, true)
 	if Event == "call" then
 		Depth = Depth + 1
@@ -73,25 +60,20 @@ local function Hook(Event)
 		Depth = Depth - 1
 	end
 end
--- Sets a hook function that prints (to stderr) a trace of function
--- calls and returns:
+
 function Debug.trace()
-	if not Depth then
-		-- Before setting the hook, make an iterator that calls
-		-- Debug.getinfo repeatedly in search of the bottom of the stack:
-		Depth = 1
-		for Info in function() return Debug.getinfo(Depth, "n") end	do
-			Depth = Depth + 1
-		end
-		-- Don’t count the iterator itself or the empty frame counted at
-		-- the end of the loop:
-		Depth = Depth - 2
-		Debug.sethook(Hook, "cr")
-	else
-		-- Do nothing if Trace() is called twice.
+	if Depth then
+		return
 	end
+
+	Depth = 1
+	for Info in function() return Debug.getinfo(Depth, "n") end	do
+		Depth = Depth + 1
+	end
+	Depth = Depth - 2
+	Debug.sethook(Hook, "cr")
 end
--- Unsets the hook function set by Trace:
+
 function Debug.untrace()
 	Debug.sethook()
 	Depth = nil

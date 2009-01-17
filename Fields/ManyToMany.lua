@@ -1,11 +1,10 @@
 local type, pairs = type, pairs
-local Table, Reference, QuerySet = require"Table", require"Fields.Reference", require"LazyQuerySet"
-local Debug = require"Debug"
+local Table, Exception, Fields, QuerySet, Debug = from"Luv":import("Table", "Exception", "Fields", "LazyQuerySet", "Debug")
 
 module(...)
 
-return Reference:extend{
-	__tag = "Fields.ManyToMany",
+return Fields.Reference:extend{
+	__tag = .....".ManyToMany",
 
 	setValue = function (self, value)
 		if "table" == type(value) then
@@ -20,11 +19,11 @@ return Reference:extend{
 	end,
 	getTableName = function (self)
 		if not self.tableName then
-			local t1, t2 = self:getContainer():getTableName(), self:getRefModel():getTableName()
-			if t1 > t2 then
-				self.tableName = "m2m_"..t1.."_"..t2
+			local t1, t2 = self:getContainer():getLabelMany(), self:getRefModel():getLabelMany()
+			if t1 < t2 then
+				self.tableName = t1.."2"..t2
 			else
-				self.tableName = "m2m_"..t2.."_"..t1
+				self.tableName = t2.."2"..t1
 			end
 			local role = self:getRole()
 			if role then
@@ -33,9 +32,12 @@ return Reference:extend{
 		end
 		return self.tableName
 	end,
+	createBackLink = function (self)
+		return Fields.ManyToMany{references=self:getContainer()}
+	end,
 	createTable = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
-		local c = container:getDb():createTable(self:getTableName())
+		local c = container:getDb():CreateTable(self:getTableName())
 		local containerTableName = container:getTableName()
 		local containerPkName = container:getPkName()
 		local refTableName = refModel:getTableName()
@@ -48,7 +50,7 @@ return Reference:extend{
 		return c:exec()
 	end,
 	dropTable = function (self)
-		return self:getContainer():getDb():dropTable(self:getTableName()):exec()
+		return self:getContainer():getDb():DropTable(self:getTableName()):exec()
 	end,
 	insert = function (self)
 		if self.value then
@@ -57,7 +59,7 @@ return Reference:extend{
 				Exception"Primary key value must be set first!":throw()
 			end
 			if not Table.isEmpty(self.value) then
-				local s, _, v = container:getDb():insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
+				local s, _, v = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
 				for _, v in pairs(self.value) do
 					s:values(container:getPk():getValue(), v:getPk():getValue())
 				end
@@ -72,9 +74,9 @@ return Reference:extend{
 			if not container:getPk():getValue() then
 				Exception"Primary key value must be set first!":throw()
 			end
-			container:getDb():delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
+			container:getDb():Delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
 			if not Table.isEmpty(self.value) then
-				local s, _, v = container:getDb():insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
+				local s, _, v = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
 				for _, v in pairs(self.value) do
 					s:values(container:getPk():getValue(), v:getPk():getValue())
 				end

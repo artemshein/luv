@@ -1,8 +1,10 @@
-local Object = require"ProtOo"
+local Object = require"Luv.Object"
 
 module(...)
 
 return Object:extend{
+	__tag = ...,
+
 	minor = 0,
 	patch = 0,
 	state = "stable",

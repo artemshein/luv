@@ -1,9 +1,11 @@
-local TestCase, CheckTypes = require"TestCase", require"CheckTypes"
+local TestCase, CheckTypes = require"Luv.TestCase", require"Luv.CheckTypes"
 local checkTypes, type, tostring, tonumber, io = CheckTypes.checkTypes, type, tostring, tonumber, io
 
 module(...)
 
-local CheckTypesTest = TestCase:extend{
+return TestCase:extend{
+	__tag = ...,
+
 	testSimple = function (self)
 		local a = checkTypes("number", function (num) return num+1 end, "number")
 		self.assertThrows(function () a("abc") end)
@@ -47,5 +49,3 @@ local CheckTypesTest = TestCase:extend{
 		self.assertThrows(function () a("not a number") end)
 	end
 }
-
-return CheckTypesTest

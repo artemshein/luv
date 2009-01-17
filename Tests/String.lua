@@ -1,9 +1,11 @@
-local TestCase, String = require"TestCase", require"String"
+local TestCase, String = require"Luv.TestCase", require"Luv.String"
 local io = io
 
 module(...)
 
-local StringTest = TestCase:extend{
+return TestCase:extend{
+	__tag = ...,
+
 	testSlice = function (self)
 		self.assertEquals(String.slice("1234567890", 1), "1234567890")
 		self.assertEquals(String.slice("1234567890", -1), "0")
@@ -57,5 +59,3 @@ local StringTest = TestCase:extend{
 		self.assertEquals(String.capitalize("z"), "Z")
 	end
 }
-
-return StringTest

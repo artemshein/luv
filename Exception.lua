@@ -1,10 +1,10 @@
-local Object = require"ProtOo"
+local Object = require"Luv.Object"
 local debug, type, error, pcall, _G = debug, type, error, pcall, _G
 
 module(...)
 
 local ExceptionResult = Object:extend{
-	__tag = "ExceptionResult",
+	__tag = .....".ExceptionResult",
 	
 	raised = false,
 	
@@ -44,11 +44,11 @@ local ExceptionResult = Object:extend{
 }
 
 _G.try = function (...)
-	return ExceptionResult:new(pcall(...))
+	return ExceptionResult(pcall(...))
 end
 
 return Object:extend{
-	__tag = "Exception",
+	__tag = ...,
 
 	init = function (self, message)
 		self.message = message

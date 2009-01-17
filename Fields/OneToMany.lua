@@ -1,5 +1,5 @@
-local require, Debug, tonumber, select, type, getmetatable = require, require"Debug", tonumber, select, type, getmetatable
-local Table, Reference, Exception, QuerySet = require"Table", require"Fields.Reference", require"Exception", require"LazyQuerySet"
+local require, tonumber, select, type, getmetatable = require, tonumber, select, type, getmetatable
+local Table, Fields, Exception, QuerySet, Debug = from"Luv":import("Table", "Fields", "Exception", "LazyQuerySet", "Debug")
 
 module(...)
 
@@ -15,8 +15,8 @@ local getKeysForObjects = function (self, ...)
 	return objKeys
 end
 
-return Reference:extend{
-	__tag = "Fields.OneToMany",
+return Fields.Reference:extend{
+	__tag = ...,
 
 	getTableName = function (self)
 		return self:getRefModel():getTableName()
@@ -26,11 +26,11 @@ return Reference:extend{
 	end,
 	all = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
-		local refFieldName = refModel:getReferenceField(require"Fields.ManyToOne", container)
+		local refFieldName = refModel:getReferenceField(Fields.ManyToOne, container)
 		if not refFieldName then
 			Exception"Backwards reference field not founded!":throw()
 		end
-		local relationFieldName = refModel:getField(refFieldName):getRelationField() or container:getPkName()
+		local relationFieldName = refModel:getField(refFieldName):getToField() or container:getPkName()
 		local relationField = container:getField(relationFieldName)
 		if not relationField:getValue() then
 			Exception"Relation field value must be set!":throw()
@@ -57,24 +57,24 @@ return Reference:extend{
 	end,
 	add = function (self, ...)
 		local refModel, model = self:getRefModel(), self:getContainer()
-		local toFieldName = refModel:getReferenceField(require"Fields.ManyToOne", model)
+		local toFieldName = refModel:getReferenceField(Fields.ManyToOne, model)
 		if not toFieldName then
 			Exception"Backwards reference field not founded!":throw()
 		end
-		local toFieldRelationFieldName = refModel:getField(toFieldName):getRelationField() or model:getPkName()
+		local toFieldRelationFieldName = refModel:getField(toFieldName):getToField() or model:getPkName()
 		local toFieldRelationField = model:getField(toFieldRelationFieldName)
 		if not toFieldRelationField:getValue() then
 			Exception"Relation field value must be set!":throw()
 		end
 		local container = self:getContainer()
-		local update, i = container:getDb():update(self:getRefModel():getTableName())
+		local update, i = container:getDb():Update(self:getRefModel():getTableName())
 		update:set("?#="..container:getFieldPlaceholder(refModel:getField(toFieldName)), toFieldName, toFieldRelationField:getValue())
 		local refPkName = self:getRefModel():getPkName()
 		update:where("?# IN (?a)", refPkName, getKeysForObjects(self, ...)):exec()
 	end,
 	remove = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
-		local toFieldName = refModel:getReferenceField(require"Fields.ManyToOne", container)
+		local toFieldName = refModel:getReferenceField(Fields.ManyToOne, container)
 		if refModel:getField(toFieldName):isRequired() then
 			Exception"Can't remove references with required property(you should delete it or set another value instead)!":throw()
 		end

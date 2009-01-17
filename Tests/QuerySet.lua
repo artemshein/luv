@@ -1,23 +1,23 @@
-local TestCase, QuerySet, Model, Int = require"TestCase", require"QuerySet", require"Models.Model", require"Fields.Int"
-local Debug = require"Debug"
+local TestCase, QuerySet, Model, Fields, Debug = from"Luv":import("TestCase", "QuerySet", "Db.Model", "Fields", "Debug")
 
 module(...)
 
 return TestCase:extend{
-	__tag = "Tests.QuerySet",
+	__tag = ...,
 
 	testSimple = function (self)
-		local q = QuerySet:new()
+		local q = QuerySet()
 		self.assertTrue(q:isEmpty())
 		self.assertEquals(#q, 0)
 		self.assertThrows(function () q.append(10) end)
 		local M = Model:extend{
-			num = Int:new()
+			label = "test", labelMany = "tests",
+			num = Fields.Int()
 		}
-		local q = QuerySet:new{M:new(), M:new(), M:new()}
+		local q = QuerySet{M(), M(), M()}
 		self.assertFalse(q:isEmpty())
 		self.assertEquals(q:size(), 3)
-		local q2 = q + QuerySet:new{M:new(), M:new()}
+		local q2 = q + QuerySet{M(), M()}
 		self.assertNotEquals(q, q2)
 		self.assertEquals(q2:size(), 5)
 	end

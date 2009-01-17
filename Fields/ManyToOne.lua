@@ -1,17 +1,17 @@
-local require, Debug, type, io = require, require"Debug", type, io
-local Reference, Exception = require"Fields.Reference", require"Exception"
+local require, type, io = require, type, io
+local Fields, Exception, Debug = from"Luv":import("Fields", "Exception", "Debug")
 
 module(...)
 
-return Reference:extend{
-	__tag = "Fields.ManyToOne",
+return Fields.Reference:extend{
+	__tag = .....".ManyToOne",
 
 	getValue = function (self)
 		local valType = type(self.value)
 		if valType ~= nil and valType ~= "table" then
 			self:setValue(self:getRefModel():find(self.value))
 		end
-		return Reference.getValue(self)
+		return Fields.Reference.getValue(self)
 	end,
 	setValue = function (self, value)
 		if type(value) == "table" and not value:isKindOf(self:getRefModel()) then
@@ -19,9 +19,12 @@ return Reference:extend{
 		elseif value ~= nil and type(value) ~= "table" and not self:getRefModel():getPk():validate(value) then
 			Exception"Invalid field value!":throw()
 		end
-		return Reference.setValue(self, value)
+		return Fields.Reference.setValue(self, value)
 	end,
 	getTableName = function (self)
 		return self:getRefModel():getTableName()
+	end,
+	createBackLink = function (self)
+		return Fields.OneToMany{references=self:getContainer()}
 	end
 }

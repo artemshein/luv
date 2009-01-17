@@ -1,8 +1,10 @@
-local TestCase = require"TestCase"
+local TestCase = require"Luv.TestCase"
 
 module(...)
 
-local SelfTest = TestCase:extend{
+return TestCase:extend{
+	__tag = ...,
+
 	testAsserts = function (self) self.assertTrue(true) self.assertFalse(false) self.assertEquals(1, 1) self.assertNotEquals(1, 2) self.assertNil(nil) self.assertNotNil({}) end,
 	testThrows = function (self)
 		self.assertThrows(self.assertTrue, false)
@@ -19,5 +21,3 @@ local SelfTest = TestCase:extend{
 		self.assertEquals(self.a, 10)
 	end,
 }
-
-return SelfTest

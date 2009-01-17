@@ -1,10 +1,10 @@
-local Object, Debug, Exception = require"ProtOo", require"Debug", require"Exception"
 local getmetatable, setmetatable, rawget, rawset, io, pairs, dump, debug = getmetatable, setmetatable, rawget, rawset, io, pairs, dump, debug
+local Object, Debug, Exception = from"Luv":import("Object", "Debug", "Exception")
 
 module(...)
 
 return Object:extend{
-	__tag = "Struct",
+	__tag = ...,
 
 	__index = function (self, field)
 		local res = rawget(self, "fields")

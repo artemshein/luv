@@ -1,10 +1,10 @@
 local require, tonumber, pairs, type, rawget, getmetatable = require, tonumber, pairs, type, rawget, getmetatable
-local Table, String, Object, Exception, Debug = require"Table", require"String", require"ProtOo", require"Exception", require"Debug"
+local Table, String, Object, Exception, Debug, Model = from"Luv":import("Table", "String", "Object", "Exception", "Debug", "Db.Model")
 
 module(...)
 
 return Object:extend{
-	__tag = "LazyQuerySet",
+	__tag = ...,
 
 	init = function (self, model, func)
 		self.model = model
@@ -95,20 +95,20 @@ return Object:extend{
 		return s
 	end,
 	count = function (self)
-		local s = self.db:selectCell"COUNT(*)":from(self.model:getTableName())
+		local s = self.db:SelectCell"COUNT(*)":from(self.model:getTableName())
 		if self.initFunc then self:initFunc(s) end
 		self:applyFiltersAndExcludes(s)
 		return tonumber(s:exec())
 	end,
 	delete = function (self)
-		local s = self.db:delete():from(self.model:getTableName())
+		local s = self.db:Delete():from(self.model:getTableName())
 		if self.initFunc then self:initFunc(s) end
 		self:applyFiltersAndExcludes(s)
 		return s:exec()
 	end,
 	evaluate = function (self)
 		self.evaluated = true
-		local s = self.db:select():from(self.model:getTableName())
+		local s = self.db:Select():from(self.model:getTableName())
 		self:applyFiltersAndExcludes(s)
 		local _, v, obj = {}
 		self.values = {}
@@ -124,12 +124,12 @@ return Object:extend{
 		return pairs(self.values)
 	end,
 	update = function (self, set)
-		local s = self.db:update(self.model:getTableName())
+		local s = self.db:Update(self.model:getTableName())
 		if self.initFunc then self:initFunc(s) end
 		self:applyFiltersAndExcludes(s)
 		local k, v, val
 		for k, v in pairs(set) do
-			if type(v) == "table" and v.isKindOf and v:isKindOf(require"Models.Model") then
+			if type(v) == "table" and v.isKindOf and v:isKindOf(Model) then
 				val = v:getPk():getValue()
 			else
 				val = v

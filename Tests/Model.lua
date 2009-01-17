@@ -1,19 +1,84 @@
-local TestCase, Model, Char, Debug, Factory = require"TestCase", require"Models.Model", require"Fields.Char", require"Debug", require"Database.Factory"
-local getmetatable, io, require = getmetatable, io, require
+local Db, Fields, TestCase = from"Luv":import("Db", "Fields", "TestCase")
 
 module(...)
 
-return TestCase:extend{
-	__tag = "Tests.Models.Model",
+-- ManyToOne
 
-	validDsn = "mysql://test:test@localhost/test",
+local T01Group = Db.Model:extend{
+	__tag = .....".T01Group",
+
+	label = "group", labelMany = "groups",
+
+	number = Fields.Int{pk = true}
+}
+
+local T01Student = Db.Model:extend{
+	__tag = .....".T01Student",
+
+	label = "student", labelMany = "students",
+
+	name = Fields.Char{pk = true},
+	group = Fields.ManyToOne{references=T01Group, required=true, relatedName="students"}
+}
+
+-- ManyToMany
+
+local T02Category = Db.Model:extend{
+	__tag = .....".T02Category",
+
+	label = "category", labelMany = "categories",
+
+	title = Fields.Char{required=true}
+}
+
+local T02Article = Db.Model:extend{
+	__tag = .....".T02Article",
+
+	label = "article", labelMany = "articles",
+
+	title = Fields.Char{required=true},
+	categories = Fields.ManyToMany{references=T02Category, required=true, relatedName="articles"}
+}
+
+-- OneToOne
+
+local T03Man = Db.Model:extend{
+	__tag = .....".T03Man",
+
+	label = "man", labelMany = "men",
+
+	name = Fields.Char{required = true}
+}
+
+local T03Student = Db.Model:extend{
+	__tag = .....".T03Student",
+
+	label = "student", labelMany = "students",
+
+	man = Fields.OneToOne{references=T03Man, primaryKey=true, relatedName="student"},
+	group = Fields.Int{required = true}
+}
+--[[
+local T04Man = Model:extend{
+	__tag = .....".T01Man",
+
+	name = Char{primaryKey = true},
+	friends = ManyToMany"self"
+}]]
+
+local validDsn = "mysql://test:test@localhost/test"
+
+return TestCase:extend{
+	__tag = ...,
+
+	validDsn = validDsn,
 
 	setUp = function (self)
-		self.A = Model:extend{
-			__tag = "Models.TestA",
-			fields = {title = Char()}
+		self.A = Db.Model:extend{
+			label = "a", labelMany = "as",
+			fields = {title = Fields.Char()}
 		}
-		self.A:setDb(Factory:connect(self.validDsn))
+		self.A:setDb(Db.Factory:connect(self.validDsn))
 		self.A:dropTables()
 		self.A:createTables()
 	end,
@@ -22,12 +87,12 @@ return TestCase:extend{
 		self.A = nil
 	end,
 	testAbstract = function (self)
-		self.assertThrows(function () Model() end)
+		self.assertThrows(function () Db.Model() end)
 	end,
 	testBasic = function (self)
-		local Test = Model:extend{
-			__tag = "Models.Test",
-			test = Char{minLength = 4, maxLength = 6}
+		local Test = Db.Model:extend{
+			label = "a", labelMany = "as",
+			test = Fields.Char{minLength = 4, maxLength = 6}
 		}
 		local t = Test()
 		t.test = "123"
@@ -64,8 +129,8 @@ return TestCase:extend{
 		self.assertTrue(b.title, "cde")
 	end,
 	testT01 = function (self)
-		local Student, Group = require"Tests.TestModels.T01Student", require"Tests.TestModels.T01Group"
-		local db = Factory:connect(self.validDsn)
+		local Student, Group = T01Student, T01Group
+		local db = Db.Factory:connect(self.validDsn)
 		Student:setDb(db)
 		Group:setDb(db)
 		Student:dropTables()
@@ -142,8 +207,8 @@ return TestCase:extend{
 		Group:dropTables()
 	end,
 	testT02 = function (self)
-		local Article, Category = require"Tests.TestModels.T02Article", require"Tests.TestModels.T02Category"
-		local db = Factory:connect(self.validDsn)
+		local Article, Category = T02Article, T02Category
+		local db = Db.Factory:connect(self.validDsn)
 		Article:setDb(db)
 		Category:setDb(db)
 		Article:dropTables()
@@ -152,6 +217,8 @@ return TestCase:extend{
 		Category:createTables()
 		-- Add categories
 		local tech, net = Category:create{title="Tech"}, Category:create{title="Net"}
+		self.assertTrue(tech:isKindOf(Category))
+		self.assertTrue(net:isKindOf(Category))
 		self.assertEquals(tech.title, "Tech")
 		self.assertTrue(tech.articles:isEmpty())
 		self.assertEquals(net.title, "Net")
