@@ -32,18 +32,22 @@ Luv includes:
 	- MySQL only in this version;
 	- placeholders;
 	- DBMS agnostic interface;
+	- Models with relations;
 - ... will be much more soon ...
 
 What's new
 ==========
 
-Version 0.2dev [IN PROGRESS]
+Version 0.3alpha [IN PROGRESS]
+----------------
+
+Version 0.2dev [DONE]
 --------------
 + Constraint fields (ManyToOne, OneToMany, ManyToMany, OneToOne);
 + User, UserGroup, GroupRight models for auth module.
 + Id field (default primary key field).
 + createTables and dropTables model methods.
-+ insert, update, save and create model methods.
++ insert, update, save, delete and create model methods.
 + createModels, dropModels Luv methods.
 + Web-server API, standalone application-web-server using sockets, SCGI.
 
@@ -72,7 +76,6 @@ Version 1.0 [Q4 2009 - Q1 2010]
 
 Version 0.5
 -----------
-- SCGI or FastCGI application-server.
 - Cacher with Memcached support.
 
 Version 0.4
@@ -82,9 +85,5 @@ Version 0.4
 Version 0.3 [jan-feb 2009]
 -----------
 - Forms and Managers (Models to Forms binding).
-
-Version 0.2 [jan 2009]
------------
-- Models functional (with relations).
 
 Artyom Shein <temiy@aisys.ru>, 2008

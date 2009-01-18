@@ -1,4 +1,4 @@
-local Db, Fields, TestCase = from"Luv":import("Db", "Fields", "TestCase")
+local Db, Fields, TestCase, Debug = from"Luv":import("Db", "Fields", "TestCase", "Debug")
 
 module(...)
 
@@ -9,7 +9,7 @@ local T01Group = Db.Model:extend{
 
 	label = "group", labelMany = "groups",
 
-	number = Fields.Int{pk = true}
+	number = Fields.Int{pk=true}
 }
 
 local T01Student = Db.Model:extend{
@@ -47,7 +47,7 @@ local T03Man = Db.Model:extend{
 
 	label = "man", labelMany = "men",
 
-	name = Fields.Char{required = true}
+	name = Fields.Char{pk=true}
 }
 
 local T03Student = Db.Model:extend{
@@ -55,8 +55,8 @@ local T03Student = Db.Model:extend{
 
 	label = "student", labelMany = "students",
 
-	man = Fields.OneToOne{references=T03Man, primaryKey=true, relatedName="student"},
-	group = Fields.Int{required = true}
+	man = Fields.OneToOne{references=T03Man, pk=true, relatedName="student"},
+	group = Fields.Int{required=true}
 }
 --[[
 local T04Man = Model:extend{
@@ -247,5 +247,34 @@ return TestCase:extend{
 
 		Article:dropTables()
 		Category:dropTables()
-	end
+	end,
+	testT03 = function (self)
+		local Man, Student = T03Man, T03Student
+		local db = Db.Factory:connect(self.validDsn)
+		Man:setDb(db)
+		Student:setDb(db)
+		Student:dropTables()
+		Man:dropTables()
+		Man:createTables()
+		Student:createTables()
+		--
+		local m1 = Man:create{name="John"}
+		self.assertTrue(m1:isKindOf(Man))
+		self.assertNil(m1.student)
+		local s1 = Student:create{man=m1, group=122}
+		self.assertTrue(s1:isKindOf(Student))
+		self.assertEquals(s1.group, 122)
+		self.assertEquals(s1.man.name, "John")
+		self.assertEquals(s1.man, m1)
+		m1 = Man:find"John"
+		self.assertEquals(m1.student, s1)
+		--
+		m1.student:delete()
+		m1 = Man:find"John"
+		self.assertNil(m1.student)
+		s1 = Student:find(m1)
+		self.assertNil(s1)
+		Student:dropTables()
+		Man:dropTables()
+		end
 }

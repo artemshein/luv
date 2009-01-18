@@ -59,7 +59,7 @@ end
 local Core = Object:extend{
 	__tag = .....".Core",
 
-	version = Version(0, 2, 0, "dev"),
+	version = Version(0, 3, 0, "dev"),
 
 	-- Init
 	init = function (self, wsApi)

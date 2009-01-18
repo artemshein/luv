@@ -19,9 +19,6 @@ return Fields.Field:extend{
 			if not params.references then Exception"References required!":throw() end
 			if "table" == type(params.references) then
 				self.refModel = params.references
-				if not self.refModel:getField(self:getRelatedName()) then
-					-- TODO!
-				end
 			else
 				self.ref = params.references
 			end

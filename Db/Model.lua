@@ -134,7 +134,7 @@ return Struct:extend{
 			return "?"
 		elseif field:isKindOf(Fields.Int) then
 			return "?d"
-		elseif field:isKindOf(Fields.ManyToOne) then
+		elseif field:isKindOf(Fields.ManyToOne) or field:isKindOf(Fields.OneToOne) then
 			return "?n"
 		else
 			Exception"Unsupported field type!":throw()
@@ -171,11 +171,11 @@ return Struct:extend{
 		local insert = self:getDb():InsertRow():into(self:getTableName())
 		local k, v
 		for k, v in pairs(self.fields) do
-			if not v:isKindOf(Fields.ManyToMany) and not v:isKindOf(Fields.OneToOne) and not v:isKindOf(Fields.OneToMany) then
-				if v:isKindOf(Fields.ManyToOne) then
+			if not v:isKindOf(Fields.ManyToMany) and not (v:isKindOf(Fields.OneToOne) and v:isBackLink()) and not v:isKindOf(Fields.OneToMany) then
+				if v:isKindOf(Fields.ManyToOne) or v:isKindOf(Fields.OneToOne) then
 					local val = v:getValue()
 					if val then
-						val = val:getPk():getValue()
+						val = val:getField(v:getToField() or val:getPkName()):getValue()
 					end
 					insert:set("?#="..self:getFieldPlaceholder(v), k, val)
 				else
@@ -208,11 +208,11 @@ return Struct:extend{
 		local pk = self:getField(pkName)
 		updateRow:where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())
 		for k, v in pairs(self.fields) do
-			if not v:isKindOf(Fields.ManyToMany) and not v:isKindOf(Fields.OneToOne) and not v:isKindOf(Fields.OneToMany) and not v:isPk() then
-				if v:isKindOf(Fields.ManyToOne) then
+			if not v:isKindOf(Fields.ManyToMany) and not (v:isKindOf(Fields.OneToOne) and v:isBackLink()) and not v:isKindOf(Fields.OneToMany) and not v:isPk() then
+				if v:isKindOf(Fields.ManyToOne) or v:isKindOf(Fields.OneToOne) then
 					local val = v:getValue()
 					if val then
-						val = val:getPk():getValue()
+						val = val:getField(v:getToField() or val:getPkName()):getValue()
 					end
 					updateRow:set("?#="..self:getFieldPlaceholder(v), k, val)
 				else
@@ -235,6 +235,11 @@ return Struct:extend{
 		else
 			return self:update()
 		end
+	end,
+	delete = function (self)
+		local pkName = self:getPkName()
+		local pk = self:getField(pkName)
+		return self:getDb():DeleteRow():from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec()
 	end,
 	create = function (self, ...)
 		local obj = self(...)
@@ -273,8 +278,8 @@ return Struct:extend{
 			end
 		elseif field:isKindOf(Fields.Int) then
 			return "INTEGER"
-		elseif field:isKindOf(Fields.ManyToOne) then
-			return self:getFieldTypeSql(field:getRefModel():getPk())
+		elseif field:isKindOf(Fields.ManyToOne) or field:isKindOf(Fields.OneToOne) then
+			return self:getFieldTypeSql(field:getRefModel():getField(field:getToField() or field:getRefModel():getPkName()))
 		else
 			Exception"Unsupported field type!":throw()
 		end
@@ -284,7 +289,7 @@ return Struct:extend{
 		-- Fields
 		local _, k, v, hasPk = nil, nil, false
 		for k, v in pairs(self.fields) do
-			if not v:isKindOf(Fields.OneToMany) and not v:isKindOf(Fields.ManyToMany) and not v:isKindOf(Fields.OneToOne) then
+			if not v:isKindOf(Fields.OneToMany) and not v:isKindOf(Fields.ManyToMany) and not (v:isKindOf(Fields.OneToOne) and v:isBackLink()) then
 				hasPk = hasPk or v:isPk()
 				c:field(k, self:getFieldTypeSql(v), {
 					primaryKey = v:isPk(),
@@ -292,9 +297,9 @@ return Struct:extend{
 					null = not v:isRequired(),
 					serial = v:isKindOf(Fields.Id)
 				})
-				if v:isKindOf(Fields.ManyToOne) then
+				if v:isKindOf(Fields.ManyToOne) or v:isKindOf(Fields.OneToOne) then
 					local onDelete
-					if v:isRequired() then
+					if v:isRequired() or v:isPk() then
 						onDelete = "CASCADE"
 					else
 						onDelete = "SET NULL"
@@ -308,7 +313,7 @@ return Struct:extend{
 		end
 		-- Create references tables
 		for _, v in pairs(self.fields) do
-			if v:isKindOf(Fields.ManyToMany) or v:isKindOf(Fields.OneToOne) then
+			if v:isKindOf(Fields.ManyToMany) then
 				v:createTable()
 			end
 		end
@@ -316,7 +321,7 @@ return Struct:extend{
 	dropTables = function (self)
 		local _, v
 		for _, v in pairs(self.fields) do
-			if v:isKindOf(Fields.ManyToMany) or v:isKindOf(Fields.OneToOne) then
+			if v:isKindOf(Fields.ManyToMany) then
 				v:dropTable()
 			end
 		end
