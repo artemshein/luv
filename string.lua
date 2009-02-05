@@ -17,6 +17,13 @@ string.beginsWith = function (str, beg)
 	return true
 end
 
+string.endsWith = function (str, search)
+	if string.slice(str, -string.len(search)) ~= search then
+		return false
+	end
+	return true
+end
+
 string.split = function (str, ...)
 	local res, tail, i, len = {}, str, 1, select("#", ...)
 	for i = 1, len do

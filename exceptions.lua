@@ -52,7 +52,7 @@ local Exception = Object:extend{
 		self.trace = debug.traceback("", 3)
 	end,
 	throw = function (self) error(self) end,
-	__tostring = function (self) return self.message end
+	__tostring = function (self) return self.message.." "..self.trace end
 }
 
 return {

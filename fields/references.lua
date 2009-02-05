@@ -7,11 +7,15 @@ local MODULE = ...
 
 local Reference = fields.Field:extend{
 	__tag = .....".Reference",
-	init = function (self, ...)
+	init = function (self, params)
 		if self.parent.parent == fields.Field then
 			Exception"Instantiate of abstract class is not allowed!":throw()
 		end
-		fields.Field.init(self, ...)
+		local Model = require "luv.db.models".Model
+		if ("table" == type(params) and params.isObject and params:isKindOf(Model)) or "string" == type(params) then
+			params = {references = params}
+		end
+		fields.Field.init(self, params)
 	end,
 	setParams = function (self, params)
 		if type(params) == "table" then

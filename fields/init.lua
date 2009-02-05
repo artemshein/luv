@@ -1,5 +1,5 @@
 local pairs, tonumber = pairs, tonumber
-local Object, Validators, Widget, widgets = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets"
+local Object, validators, Widget, widgets = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets"
 
 module(...)
 
@@ -33,7 +33,7 @@ local Field = Object:extend{
 		self.required = params.required or false
 		self.label = params.label
 		if self.required then
-			self.validators.filled = Validators.Filled()
+			self.validators.filled = validators.Filled()
 		end
 		self.widget = params.widget or widgets.TextInput
 		self.defaultValue = params.defaultValue
@@ -74,9 +74,9 @@ local Char = Field:extend{
 		params.widget = params.widget or widgets.TextInput
 		Field.setParams(self, params)
 		if params.regexp then
-			self.validators.regexp = Validators.Regexp(params.regexp)
+			self.validators.regexp = validators.Regexp(params.regexp)
 		end
-		self.validators.length = Validators.Length(params.minLength or 0, params.maxLength or 255)
+		self.validators.length = validators.Length(params.minLength or 0, params.maxLength or 255)
 	end,
 	getMinLength = function (self)
 		return self.validators.length:getMinLength()
@@ -90,7 +90,7 @@ local Int = Field:extend{
 	__tag = .....".Int",
 	init = function (self, params)
 		Field.init(self, params)
-		self.validators.int = Validators.Int()
+		self.validators.int = validators.Int()
 	end,
 	setValue = function (self, value)
 		self.value = tonumber(value)
@@ -120,10 +120,28 @@ local Id = Int:extend{
 	end
 }
 
+local Button = Char:extend{
+	__tag = .....".Button",
+	init = function (self, params)
+		params.widget = params.widget or widgets.Button
+		Char.init(self, params)
+	end
+}
+
+local Submit = Button:extend{
+	__tag = .....".Submit",
+	init = function (self, params)
+		params.widget = params.widget or widgets.SubmitButton
+		Button.init(self, params)
+	end
+}
+
 return {
 	Field = Field,
 	Char = Char,
 	Int = Int,
 	Login = Login,
-	Id = Id
+	Id = Id,
+	Button = Button,
+	Submit = Submit
 }

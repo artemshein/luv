@@ -1,11 +1,13 @@
-local io, os = io, os
+require "luv.string"
+local io, os, string = io, os, string
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
 
 module(...)
 
-return Object:extend{
-	__tag = ...,
-	Exception = Exception:extend{__tag = .....".Exception"},
+local Exception = Exception:extend{__tag = .....".Exception"}
+
+local File = Object:extend{
+	__tag = .....".File",
 	init = function (self, filename)
 		self.filename = filename
 	end,
@@ -26,6 +28,17 @@ return Object:extend{
 		self.handle = file
 		self.mode = "write"
 		return self
+	end,
+	isExists = function (self)
+		if self.handle then
+			return true
+		end
+		local res = io.open(self.filename)
+		if res then
+			io.close(res)
+			return true
+		end
+		return false
 	end,
 	read = function (self, ...)
 		if not self.handle then
@@ -49,4 +62,29 @@ return Object:extend{
 	delete = function (self)
 		return os.remove(self.filename)
 	end
+}
+
+local Dir = Object:extend{
+	__tag = .....".Dir",
+	init = function (self, name)
+		self:setName(name)
+	end,
+	getName = function (self) return self.name end,
+	setName = function (self, name)
+		self.name = name
+		if not (string.endsWith(self.name, "/") or string.endsWith(self.name, "\\")) then
+			self.name = self.name.."/"
+		end
+	end,
+	create = function (self)
+		os.execute("mkdir "..self:getName())
+	end,
+	delete = function (self)
+		os.execute("rm -r "..self:getName())
+	end
+}
+
+return {
+	File = File,
+	Dir = Dir
 }

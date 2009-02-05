@@ -1,5 +1,6 @@
-require"luv.string"
-local io, os, string, pairs = io, os, string, pairs
+require "luv.debug"
+require "luv.string"
+local io, os, string, pairs, debug, ipairs, tonumber = io, os, string, pairs, debug, ipairs, tonumber
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
 
 module(...)
@@ -10,22 +11,43 @@ local Api = Object:extend{
 	__tag = .....".Api",
 	getRequestHeader = Object.abstractMethod,
 	getResponseHeader = Object.abstractMethod,
-	setResponseHeader = Object.abstractMethod
+	setResponseHeader = Object.abstractMethod,
+	getCookie = Object.abstractMethod,
+	setCookie = Object.abstractMethod,
+	getCookies = Object.abstractMethod
 }
 
-local write = io.write
+local urlDecode = function (url)
+	return string.gsub(url, "%%(..)", function (s)
+		local zero, A = string.byte("0"), string.byte("A")
+		local i, j = string.byte(s, 1, 2)
+		if i > A then i = i - A + 10 else i = i - zero end
+		if j > A then j = j - A + 10 else j = j - zero end
+		return string.char(i*16+j)
+	end)
+end
 
 local Cgi = Api:extend{
 	__tag = .....".Cgi",
 	responseHeaders = {},
 	headersAlreadySent = false,
+	cookies = {},
+	get = {},
+	post = {},
 	new = function (self)
-		io.write = function (...)
-			if not self.headersAlreadySent then self:sendHeaders() end
-			write(...)
+		if not self.write then
+			self.write = io.write
+			io.write = function (...)
+				if not self.headersAlreadySent then self:sendHeaders() end
+				self.write(...)
+			end
+			self:parseCookies()
+			self:parseGetData()
+			self:parsePostData()
 		end
 		return self
 	end,
+	-- Headers
 	getRequestHeader = function (self, header)
 		return os.getenv(header)
 	end,
@@ -39,13 +61,86 @@ local Cgi = Api:extend{
 		return nil
 	end,
 	setResponseHeader = function (self, header, value)
-		if self.headerAlreadySent then
-			Exception"Headers already sent!":throw()
+		if self.headersAlreadySent then
+			Exception "Can't change response headers. Headers already sent!":throw()
 		end
 		self.responseHeaders[header] = value
+		return self
+	end,
+	-- Get
+	getGet = function (self, key) return self.get[key] end,
+	setGet = function (self, key, value) self.get[key] = value return self end,
+	getGetData = function (self) return self.get end,
+	parseGetData = function (self)
+		local _, data = string.split(self:getRequestHeader "REQUEST_URI", "?")
+		if data then
+			data = string.explode(data, "&")
+			local v
+			for _, v in ipairs(data) do
+				local key, val = string.split(v, "=")
+				self.get[key] = urlDecode(val)
+			end
+		end
+	end,
+	-- Post
+	getPost = function (self, key) return self.post[key] end,
+	setPost = function (self, key, value) self.post[key] = value return self end,
+	getPostData = function (self) return self.post end,
+	parsePostData = function (self)
+		if self:getRequestHeader "REQUEST_METHOD" ~= "POST" then
+			return
+		end
+		if "application/x-www-form-urlencoded" == self:getRequestHeader "CONTENT_TYPE" then
+			local data = io.read(tonumber(self:getRequestHeader "CONTENT_LENGTH"))
+			data = string.explode(data, "&")
+			local _, v
+			for _, v in ipairs(data) do
+				local key, val = string.split(v, "=")
+				self.post[key] = val
+			end
+		else
+			Exception "Not implemented!":throw()
+		end
+	end,
+	-- Cookies
+	parseCookies = function (self)
+		local cookieString = self:getRequestHeader "HTTP_COOKIE"
+		if not cookieString then
+			return nil
+		end
+		local cookies = string.explode(cookieString, "&")
+		local _, v
+		for _, v in ipairs(cookies) do
+			local name, value = string.split(v, "=")
+			self.cookies[name] = value
+		end
+	end,
+	getCookie = function (self, name)
+		return self.cookies[name]
+	end,
+	setCookie = function (self, name, value, expires, domain, path)
+		if not name then
+			Exception "Name required!":throw()
+		end
+		local cookie = name.."="
+		self.cookies[name] = value
+		if value then cookie = cookie..value end
+		if expires then
+			cookie = cookie..";expires="..expires
+		end
+		if domain then
+			cookie = cookie..";domain="..domain --or self:getRequestHeader "SERVER_NAME") -- SERVER_NAME is should or must be?
+		end
+		if path then
+			cookie = cookie..";path="..path
+		end
+		self:setResponseHeader("Set-Cookie", cookie)
+	end,
+	getCookies = function (self)
+		return self.cookies
 	end,
 	sendHeaders = function (self)
-		io.write = write
+		io.write = self.write
 		if not self:getResponseHeader("Content-type") then
 			self:setResponseHeader("Content-type", "text/html")
 		end

@@ -1,6 +1,7 @@
-require"luv.table"
+require "luv.table"
 local require, rawset, type, pairs, table = require, rawset, type, pairs, table
-local Struct, fields, Exception, Model = require"luv".Struct, require"luv.fields", require"luv.exceptions".Exception, require"luv.db.models".Model
+local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"
+local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
 
 module(...)
 
@@ -32,7 +33,7 @@ local Form = Struct:extend{
 		end
 		self.Meta = self.Meta or {}
 		if not self.Meta.widget then
-			self.Meta.widget = require"luv.forms.widgets".TableForm
+			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
 		end
 		local k, v
 		for k, v in pairs(self.fields) do
@@ -52,7 +53,8 @@ local Form = Struct:extend{
 	setId = function (self, id) self.Meta.id = id return self end,
 	getWidget = function (self) return self.Meta.widget end,
 	setWidget = function (self, widget) self.Meta.widget = widget return self end,
-	asHtml = function (self) return self.Meta.widget:render(self) end
+	asHtml = function (self) return self.Meta.widget:render(self) end,
+	__tostring = function (self) return self:asHtml() end
 }
 
 local ModelForm = Form:extend{

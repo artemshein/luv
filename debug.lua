@@ -1,5 +1,5 @@
 require"luv.table"
-local debug, table, type, io = debug, table, type, io
+local debug, table, type, io, rawget, tostring, pairs, getmetatable = debug, table, type, io, rawget, tostring, pairs, getmetatable
 
 module(...)
 
@@ -27,7 +27,7 @@ debug.dump = function (obj, depth, tab, seen)
 		if table.find(seen, obj) then
 			io.write" RECURSION"
 		elseif 0 ~= depth then
-			Table.insert(seen, obj)
+			table.insert(seen, obj)
 			io.write"{\n"
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do

@@ -1,9 +1,9 @@
 require"luv.table"
 require"luv.string"
 require"luv.debug"
-local pairs, require, select, unpack, string, table, debug, type, rawget, rawset = pairs, require, select, unpack, string, table, debug, type, rawget, rawset
+local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io
 local _G = _G
-local oop, exceptions, utils = require"luv.oop", require"luv.exceptions", require"luv.utils"
+local oop, exceptions, utils, sessions, fs = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 
 module(...)
@@ -46,44 +46,6 @@ local function createModel (db, modelName, models)
 	end
 end
 
-local Core = Object:extend{
-	__tag = .....".Core",
-	version = Version(0, 3, 0, "dev"),
-	-- Init
-	init = function (self, wsApi)
-		self.wsApi = wsApi
-		self.urlconf = require"luv".UrlConf(wsApi)
-	end,
-	getDsn = function (self) return self.dsn end,
-	setDsn = function (self, dsn)
-		self.dsn = dsn
-		self.db = require"luv.db".Factory(dsn)
-		return self
-	end,
-	getDb = function (self) return self.db end,
-	-- URL conf
-	dispatch = function (self, urlconf) return self.urlconf:dispatch(urlconf) end,
-	-- Models
-	iterateModels = function (self, modelsList, iterator)
-		local modelsList = modelsList or {}
-		local models, result, _, k, v = {}, true
-		for _, v in pairs(modelsList) do
-			models[v] = true
-		end
-		for k, _ in pairs(models) do
-			models[k] = false
-			iterator(self.db, k, models)
-		end
-		--return result
-	end,
-	dropModels = function (self, modelsList)
-		return self:iterateModels(modelsList, dropModel)
-	end,
-	createModels = function (self, modelsList)
-		return self:iterateModels(modelsList, createModel)
-	end
-}
-
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf",
 	init = function (self, wsApi)
@@ -117,6 +79,80 @@ local UrlConf = Object:extend{
 			end
 		end
 		return false
+	end
+}
+
+local Core = Object:extend{
+	__tag = .....".Core",
+	version = Version(0, 3, 0, "dev"),
+	-- Init
+	init = function (self, wsApi)
+		-- Init random seed
+		local seed, i, str = os.time(), nil, tostring(tostring(self))
+		for i = 1, string.len(str) do
+			seed = seed + string.byte(str, i)
+		end
+		math.randomseed(seed)
+		--
+		self.wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version)):setResponseHeader("Content-type", "text/html;charset=utf8")
+		self.urlconf = UrlConf(wsApi)
+		self.templater = require "luv.templaters.tamplier" ("templates/")
+		self.session = sessions.Session(self.wsApi, sessions.SessionFile("/var/www/sessions/"))
+	end,
+	getDsn = function (self) return self.dsn end,
+	setDsn = function (self, dsn)
+		self.dsn = dsn
+		self.db = require "luv.db".Factory(dsn)
+		return self
+	end,
+	getDb = function (self) return self.db end,
+	-- Web-server
+	getRequestHeader = function (self, ...) return self.wsApi:getRequestHeader(...) end,
+	setResponseHeader = function (self, ...) self.wsApi:setResponseHeader(...) return self end,
+	getGet = function (self, name) return self.wsApi:getGet(name) end,
+	getGetData = function (self) return self.wsApi:getGetData() end,
+	getPost = function (self, name) return self.wsApi:getPost(name) end,
+	getPostData = function (self) return self.wsApi:getPostData() end,
+	getCookie = function (self, name) return self.wsApi:getCookie(name) end,
+	setCookie = function (self, ...) self.wsApi:setCookie(...) return self end,
+	getCookies = function (self) return self.wsApi:getCookies() end,
+	getSession = function (self) return self.session end,
+	setSession = function (self, session) self.session = session return self end,
+	-- URL conf
+	dispatch = function (self, urlconf) return self.urlconf:dispatch(urlconf) end,
+	-- Models
+	iterateModels = function (self, modelsList, iterator)
+		local modelsList = modelsList or {}
+		local models, result, _, k, v = {}, true
+		for _, v in pairs(modelsList) do
+			models[v] = true
+		end
+		for k, _ in pairs(models) do
+			models[k] = false
+			iterator(self.db, k, models)
+		end
+		--return result
+	end,
+	dropModels = function (self, modelsList)
+		return self:iterateModels(modelsList, dropModel)
+	end,
+	createModels = function (self, modelsList)
+		return self:iterateModels(modelsList, createModel)
+	end,
+	-- Templater
+	addTemplatesDir = function (self, templatesDir)
+		self.templater:addTemplatesDir(templatesDir)
+		return self
+	end,
+	assign = function (self, ...)
+		self.templater:assign(...)
+		return self
+	end,
+	fetch = function (self, template)
+		return self.templater:fetch(template)
+	end,
+	display = function (self, template)
+		return self.templater:display(template)
 	end
 }
 

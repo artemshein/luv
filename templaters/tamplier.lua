@@ -1,22 +1,26 @@
-local io, string, loadstring, dump, setfenv, type, pairs = io, string, loadstring, dump, setfenv, type, pairs
-local Templater, File = require"luv.templaters".Api, require"luv.file"
+local io, string, loadstring, dump, setfenv, type, pairs, table = io, string, loadstring, dump, setfenv, type, pairs, table
+local Templater, fs, Exception = require"luv.templaters".Api, require"luv.fs", require"luv.exceptions".Exception
+local File = fs.File
 
 module(...)
 
 return Templater:extend{
 	__tag = ...,
 	init = function (self, ...)
-		self.parent:init(...)
+		Templater.init(self, ...)
 		self.internal = {
 			includedFiles = {},
 			include = function (file)
 				local includedFiles = self.internal.includedFiles
 				if not includedFiles[file] then
-					includedFiles[file] = File:new(file):openForReading():read"*a"
+					includedFiles[file] = File(file):openForReading():read"*a"
 				end
 				return self:compileString(includedFiles[file])
 			end
 		}
+	end,
+	addTemplatesDir = function (self, dir)
+		table.insert(self.templatesDirs, dir)
 	end,
 	assign = function (self, var, value)
 		if type(var) == "table" then
@@ -47,10 +51,16 @@ return Templater:extend{
 		io.write(self:fetchString(str))
 	end,
 	fetch = function (self, template)
-		local template = File:new(self.templatesDir..template)
-		local contents = template:openForReading():read("*a")
-		template:close()
-		return self:compileString(contents)
+		local _, v
+		for _, v in pairs(self.templatesDirs) do
+			local tpl = File(v..template)
+			if tpl:isExists() then
+				local contents = tpl:openForReading():read("*a")
+				tpl:close()
+				return self:compileString(contents)
+			end
+		end
+		Exception("Template "..template.." not found!"):throw()
 	end,
 	display = function (self, template)
 		io.write(self:fetch(template))

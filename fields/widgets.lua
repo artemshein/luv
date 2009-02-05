@@ -7,7 +7,7 @@ local Input = Widget:extend{
 	__tag = .....".Input",
 	tail = "",
 	render = function (self, name, field)
-		return [[<input type="]]..self.type..[[" name="]]..html.escape(name)..[[" id="]]..html.escape(field:getId())..[[" value="]]..html.escape(tostring(field:getValue() or ""))..[["]]..self.tail..[[ />]]
+		return [[<input type="]]..self.type..[[" name="]]..html.escape(name)..[[" id="]]..html.escape(field:getId())..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..self.tail..[[ />]]
 	end
 }
 
@@ -25,7 +25,19 @@ local HiddenInput = TextInput:extend{
 	type = "hidden"
 }
 
+local Button = Input:extend{
+	__tag = .....".Button",
+	type = "button"
+}
+
+local SubmitButton = Button:extend{
+	__tag = .....".SubmitButton",
+	type = "submit"
+}
+
 return {
 	TextInput = TextInput,
-	HiddenInput = HiddenInput
+	HiddenInput = HiddenInput,
+	Button = Button,
+	SubmitButton = SubmitButton
 }
