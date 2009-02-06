@@ -61,6 +61,7 @@ local Model = Struct:extend{
 		return new
 	end,
 	init = function (self, values)
+		Struct.init(self, values)
 		if not self.fields then
 			Exception"Abstract model can't be created (extend it first)!":throw()
 		end
@@ -120,7 +121,7 @@ local Model = Struct:extend{
 		return nil
 	end,
 	getDb = function (self) return self.db end,
-	setDb = function (self, db) self.db = db return self end,
+	setDb = function (self, db) rawset(self, "db", db) return self end,
 	getLabel = function (self) return self.Meta.label end,
 	getLabelMany = function (self) return self.Meta.labelMany end,
 	-- Find
@@ -163,7 +164,7 @@ local Model = Struct:extend{
 	end,
 	-- Save, insert, update, create
 	insert = function (self)
-		if not self:validate() then
+		if not self:isValid() then
 			Exception"Validation error!":throw()
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
@@ -198,7 +199,7 @@ local Model = Struct:extend{
 		return self
 	end,
 	update = function (self)
-		if not self:validate() then
+		if not self:isValid() then
 			Exception"Validation error!":throw()
 		end
 		local updateRow = self:getDb():UpdateRow(self:getTableName())
@@ -262,7 +263,7 @@ local Model = Struct:extend{
 		local models, _, v = {}
 		for _, v in pairs(self.fields) do
 			if v:isKindOf(references.OneToMany) then
-				Table.insert(models, v:getRef())
+				table.insert(models, v:getRef())
 			end
 		end
 		return models

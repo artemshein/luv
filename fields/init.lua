@@ -1,4 +1,4 @@
-local pairs, tonumber = pairs, tonumber
+local pairs, tonumber, ipairs, table = pairs, tonumber, ipairs, table
 local Object, validators, Widget, widgets = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets"
 
 module(...)
@@ -12,6 +12,7 @@ local Field = Object:extend{
 			Exception"Can not instantiate abstract class!":throw()
 		end
 		self.validators = {}
+		self.errors = {}
 		self:setParams(params)
 	end,
 	clone = function (self)
@@ -49,14 +50,23 @@ local Field = Object:extend{
 	setValue = function (self, value) self.value = value return self end,
 	getDefaultValue = function (self) return self.defaultValue end,
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
-	validate = function (self, value)
+	addError = function (self, error) table.insert(self.errors, error) return self end,
+	addErrors = function (self, errors)
+		local i, v for i, v in ipairs(errors) do table.insert(self.errors, v) end
+		return self
+	end,
+	setErrors = function (self, errors) self.errors = errors return self end,
+	getErrors = function (self) return self.errors end,
+	isValid = function (self, value)
 		local value = value or self.value
+		self:setErrors{}
 		if not self.validators then
 			return true
 		end
 		local _, val
 		for _, val in pairs(self.validators) do
-			if not val:validate(value) then
+			if not val:isValid(value) then
+				self:addErrors(val:getErrors())
 				return false
 			end
 		end

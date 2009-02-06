@@ -25,6 +25,11 @@ local HiddenInput = TextInput:extend{
 	type = "hidden"
 }
 
+local PasswordInput = TextInput:extend{
+	__tag = .....".PasswordInput",
+	type = "password"
+}
+
 local Button = Input:extend{
 	__tag = .....".Button",
 	type = "button"
@@ -38,6 +43,7 @@ local SubmitButton = Button:extend{
 return {
 	TextInput = TextInput,
 	HiddenInput = HiddenInput,
+	PasswordInput = PasswordInput,
 	Button = Button,
 	SubmitButton = SubmitButton
 }

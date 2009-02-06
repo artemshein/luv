@@ -402,6 +402,7 @@ local Driver = Object:extend{
 		self.logger(rawSql)
 		if not cur then
 			self.error = error
+			return nil
 		end
 		return cur:fetch({}, "a")
 	end,

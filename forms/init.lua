@@ -1,5 +1,5 @@
 require "luv.table"
-local require, rawset, type, pairs, table = require, rawset, type, pairs, table
+local require, rawset, type, pairs, ipairs, table, io = require, rawset, type, pairs, ipairs, table, io
 local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"
 local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
 
@@ -28,12 +28,16 @@ local Form = Struct:extend{
 		return new
 	end,
 	init = function (self, values)
+		Struct.init(self, values)
 		if not self.fields then
 			Exception"Abstract Form can't be created!":throw()
 		end
 		self.Meta = self.Meta or {}
 		if not self.Meta.widget then
 			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
+		end
+		if not self.Meta.fields then
+			Exception "Meta.fields required!":throw()
 		end
 		local k, v
 		for k, v in pairs(self.fields) do
@@ -53,6 +57,20 @@ local Form = Struct:extend{
 	setId = function (self, id) self.Meta.id = id return self end,
 	getWidget = function (self) return self.Meta.widget end,
 	setWidget = function (self, widget) self.Meta.widget = widget return self end,
+	getFields = function (self) return self.Meta.fields end,
+	isSubmitted = function (self, value)
+		local _, v
+		for _, v in ipairs(self:getFields()) do
+			local f = self:getField(v)
+			if f:isKindOf(fields.Submit) then
+				local fVal = f:getValue()
+				if ((value and (value == fVal)) or not value) and fVal == f:getDefaultValue() then
+					return fVal
+				end
+			end
+		end
+		return false
+	end,
 	asHtml = function (self) return self.Meta.widget:render(self) end,
 	__tostring = function (self) return self:asHtml() end
 }

@@ -1,3 +1,5 @@
+require "luv.debug"
+local string, debug = string, debug
 local Object = require"luv.oop".Object
 local Filter = require"datafilter"
 
@@ -35,5 +37,14 @@ local Sha1 = Hash:extend{
 
 return {
 	Md5 = Md5,
-	Sha1 = Sha1
+	Sha1 = Sha1,
+	hash = function (method, data)
+		method = string.lower(method)
+		if method == "md5" then
+			return Md5(data)
+		elseif method == "sha1" then
+			return Sha1(data)
+		end
+		Exception "Unsupported hashing algorithm!":throw()
+	end
 }

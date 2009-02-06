@@ -1,4 +1,4 @@
-Luv 0.2dev
+Luv 0.3dev
 ==========
 
 Luv is Lua (lua.org) MVC web-framework. Luv is open-source and completely
@@ -12,14 +12,14 @@ Luv:
 
 Luv requirements:
 - mod_rewrite (Apache, LightTPD) or something similar on your web-server
-for CGI;
+for CGI support;
 - datafilter (http://www.daizucms.org/lua/library/datafilter) for MD5 & SHA1
 passwords hashing;
 - LuaSQL (www.keplerproject.org/luasql/) with mysql driver for MySQL support.
-- (optional) LuaSocket for SCGI.
+- LuaSocket for SCGI support.
 
 Luv includes:
-- Table, String and Debug extensions;
+- table, string and debug extensions;
 - Prototype-based OOP;
 - Exceptions;
 - CGI, SCGI;
@@ -38,8 +38,13 @@ Luv includes:
 What's new
 ==========
 
-Version 0.3alpha [IN PROGRESS]
-----------------
+Version 0.3dev [IN PROGRESS]
+--------------
++ Sessions support (only files for now).
++ Form & ModelForm with buttons.
++ CGI GET, POST and cookies support.
++ Contrib.auth package for authorisation and users, groups and rights
+management.
 
 Version 0.2dev [DONE]
 --------------
@@ -74,15 +79,16 @@ Version 1.0 [Q4 2009 - Q1 2010]
 - Full auto-admin site.
 - Much more...
 
-Version 0.5
+Version 0.5alpha
 -----------
 - Cacher with Memcached support.
 
-Version 0.4
+Version 0.4alpha [mar 2009]
 -----------
 - Basic auto-admin site.
+- i18n with Gettext.
 
-Version 0.3 [jan-feb 2009]
+Version 0.3dev [feb 2009]
 -----------
 - Forms and Managers (Models to Forms binding).
 

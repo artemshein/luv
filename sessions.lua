@@ -37,7 +37,6 @@ end
 
 local sessionSet = function (self, key, value)
 	self.data[key] = value
-	self.storage:write(self.id, "return "..serialize(self.data))
 end
 
 local Session = Object:extend{
@@ -60,7 +59,9 @@ local Session = Object:extend{
 	getId = function (self) return self.id end,
 	getCookieName = function (self) return self.cookieName end,
 	setCookieName = function (self, name) rawset(self, "cookieName", name) return self end,
-	getData = function (self) return self.data end
+	getData = function (self) return self.data end,
+	setData = function (self, data) self.data = data self:save() end,
+	save = function (self) self.storage:write(self.id, "return "..serialize(self.data)) end
 }
 
 local SessionFile = Object:extend{

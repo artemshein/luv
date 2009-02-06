@@ -1,6 +1,6 @@
 require"luv.debug"
 require"luv.table"
-local string, table, unpack, select, debug = string, table, unpack, select, debug
+local string, table, unpack, select, debug, error = string, table, unpack, select, debug, error
 
 module(...)
 

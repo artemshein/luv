@@ -1,7 +1,7 @@
 require"luv.table"
 require"luv.string"
 require"luv.debug"
-local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io
+local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs
 local _G = _G
 local oop, exceptions, utils, sessions, fs = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
@@ -9,7 +9,7 @@ local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Versi
 module(...)
 
 local function dropModel (db, modelName, models)
-	local model = require(modelName)
+	local model = (type(modelName) == "string" and require(modelName)) or modelName
 	model:setDb(db)
 	-- Drop constraints
 	local constraintModels, _, v = model:getConstraintModels()
@@ -28,7 +28,7 @@ local function dropModel (db, modelName, models)
 end
 
 local function createModel (db, modelName, models)
-	local model = require(modelName)
+	local model = (type(modelName) == "string" and require(modelName)) or modelName
 	model:setDb(db)
 	-- Create self
 	if not model:createTables() then
@@ -58,26 +58,33 @@ local UrlConf = Object:extend{
 	capture = function (self, pos)
 		return self.captures[pos]
 	end,
+	execute = function (self, action)
+		if type(action) == "string" then
+			dofile(action)
+		elseif type(action) == "function" then
+			action(self)
+		else
+			Exception "Invalid action!":throw()
+		end
+	end,
 	dispatch = function (self, urls)
 		for expr, script in pairs(urls) do
-			local res = {string.find(self.uri, expr)}
-			if nil ~= res[1] then
-				self.uri = string.sub(self.uri, res[2]+1)
-				self.captures = {}
-				local i = 3
-				for i = 3, #res do
-					table.insert(self.captures, res[i])
+			if "string" == type(expr) then
+				local res = {string.find(self.uri, expr)}
+				if nil ~= res[1] then
+					self.uri = string.sub(self.uri, res[2]+1)
+					self.captures = {}
+					local i = 3
+					for i = 3, #res do
+						table.insert(self.captures, res[i])
+					end
+					self:execute(script)
+					return true
 				end
-				if type(script) == "string" then
-					dofile(script)
-				elseif type(script) == "function" then
-					script(self)
-				else
-					Exception"Invalid action!":throw()
-				end
-				return true
 			end
 		end
+		local action = urls[false]
+		if action then self:execute(action) return true end
 		return false
 	end
 }
@@ -86,7 +93,7 @@ local Core = Object:extend{
 	__tag = .....".Core",
 	version = Version(0, 3, 0, "dev"),
 	-- Init
-	init = function (self, wsApi)
+	init = function (self, wsApi, dsn)
 		-- Init random seed
 		local seed, i, str = os.time(), nil, tostring(tostring(self))
 		for i = 1, string.len(str) do
@@ -94,10 +101,13 @@ local Core = Object:extend{
 		end
 		math.randomseed(seed)
 		--
-		self.wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version)):setResponseHeader("Content-type", "text/html;charset=utf8")
+		self.wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
+		--self.wsApi:setResponseHeader("Content-type", "text/html;charset=utf8")
 		self.urlconf = UrlConf(wsApi)
 		self.templater = require "luv.templaters.tamplier" ("templates/")
 		self.session = sessions.Session(self.wsApi, sessions.SessionFile("/var/www/sessions/"))
+		local db, models = require "luv.db", require "luv.db.models"
+		self.db = models.Model:setDb(db.Factory(dsn))
 	end,
 	getDsn = function (self) return self.dsn end,
 	setDsn = function (self, dsn)
@@ -133,11 +143,15 @@ local Core = Object:extend{
 		end
 		--return result
 	end,
-	dropModels = function (self, modelsList)
-		return self:iterateModels(modelsList, dropModel)
+	dropModels = function (self, ...)
+		local i	for i = 1, select("#", ...) do
+			self:iterateModels(select(i, ...), dropModel)
+		end
 	end,
-	createModels = function (self, modelsList)
-		return self:iterateModels(modelsList, createModel)
+	createModels = function (self, ...)
+		local i	for i = 1, select("#", ...) do
+			self:iterateModels(select(i, ...), createModel)
+		end
 	end,
 	-- Templater
 	addTemplatesDir = function (self, templatesDir)
@@ -158,7 +172,11 @@ local Core = Object:extend{
 
 local Struct = Object:extend{
 	__tag = .....".Struct",
+	init = function (self)
+		self.errors = {}
+	end,
 	__index = function (self, field)
+		if field == "pk" then return self:getPk():getValue() end
 		local res = rawget(self, "fields")
 		if res then
 			res = res[field]
@@ -177,15 +195,29 @@ local Struct = Object:extend{
 		end
 		return value
 	end,
-	validate = function (self)
+	isValid = function (self)
 		local k, v
+		self:setErrors{}
 		for k, v in pairs(self.fields) do
-			if not v:validate() then
+			if not v:isValid() then
+				local _, e for _, e in ipairs(v:getErrors()) do
+					local label = v:getLabel()
+					self:addError(string.gsub(e, "%%s", label and string.capitalize(label) or k))
+				end
 				return false
 			end
 		end
 		return true
 	end,
+	addError = function (self, error) table.insert(self.errors, error) return self end,
+	setErrors = function (self, errors) self.errors = errors return self end,
+	addErrors = function (self, errors)
+		local i, v for i, v in ipairs(errors) do
+			table.insert(self.errors, v)
+		end
+	end,
+	getErrors = function (self) return self.errors end,
+	getErrorsCount = function (self) return table.maxn(self.errors) end,
 	getField = function (self, field)
 		if not self.fields then
 			Exception"Fields must be defined first!":throw()

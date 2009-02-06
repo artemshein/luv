@@ -24,20 +24,20 @@ local Char = TestCase:extend{
 		local f = Fields.Char{maxLength = 10}
 		f:setValue("1234567890")
 		self.assertEquals(f:getValue(), "1234567890")
-		self.assertTrue(f:validate())
+		self.assertTrue(f:isValid())
 		f:setValue("12345678901")
-		self.assertFalse(f:validate())
+		self.assertFalse(f:isValid())
 	end,
 	testMinLength = function (self)
 		local f = Fields.Char{minLength = 4, maxLength = 6}
 		f:setValue("123")
-		self.assertFalse(f:validate())
+		self.assertFalse(f:isValid())
 		f:setValue("1234")
-		self.assertTrue(f:validate())
+		self.assertTrue(f:isValid())
 		f:setValue("123456")
-		self.assertTrue(f:validate())
+		self.assertTrue(f:isValid())
 		f:setValue("1234567")
-		self.assertFalse(f:validate())
+		self.assertFalse(f:isValid())
 	end
 }
 
@@ -46,17 +46,17 @@ local Login = TestCase:extend{
 	testSimple = function (self)
 		local l = Fields.Login()
 		l:setValue"admin"
-		self.assertTrue(l:validate())
+		self.assertTrue(l:isValid())
 		l:setValue"not_valid_pass--DROP TABLE"
-		self.assertFalse(l:validate())
+		self.assertFalse(l:isValid())
 		l:setValue"valid_log.in1234"
-		self.assertTrue(l:validate())
+		self.assertTrue(l:isValid())
 		l:setValue""
-		self.assertFalse(l:validate())
+		self.assertFalse(l:isValid())
 		l:setValue"Too_long_login_is_not_valid_too__"
-		self.assertFalse(l:validate())
+		self.assertFalse(l:isValid())
 		l:setValue"$*)&@#^&)$%@(*#$&"
-		self.assertFalse(l:validate())
+		self.assertFalse(l:isValid())
 	end
 }
 

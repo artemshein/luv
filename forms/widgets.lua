@@ -1,5 +1,5 @@
 require "luv.string"
-local pairs, io, string = pairs, io, string
+local ipairs, io, string = ipairs, io, string
 local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
 
 module(...)
@@ -28,25 +28,28 @@ local Form = Widget:extend{
 	end,
 	renderFields = function (self, form)
 		local html = ""
-		local k, v
+		local _, v
 		-- Hidden fields first
-		for k, v in pairs(form:getFields()) do
-			if v:getWidget() and v:getWidget():isKindOf(widgets.HiddenInput) then
-				html = html..self:renderField(k, v)
+		for _, v in ipairs(form:getFields()) do
+			local f = form:getField(v)
+			if f:getWidget() and f:getWidget():isKindOf(widgets.HiddenInput) then
+				html = html..self:renderField(v, f)
 			end
 		end
 		html = html..self.beforeFields
 		-- Then visible fields
-		for k, v in pairs(form:getFields()) do
-			if v:getWidget() and not v:getWidget():isKindOf(widgets.HiddenInput) and not v:getWidget():isKindOf(widgets.Button) then
-				html = html..self.beforeLabel..self:renderLabel(form, k, v)..self.afterLabel..self.beforeField..self:renderField(form, k, v)..self.afterField
+		for _, v in ipairs(form:getFields()) do
+			local f = form:getField(v)
+			if f:getWidget() and not f:getWidget():isKindOf(widgets.HiddenInput) and not f:getWidget():isKindOf(widgets.Button) then
+				html = html..self.beforeLabel..self:renderLabel(form, v, f)..self.afterLabel..self.beforeField..self:renderField(form, v, f)..self.afterField
 			end
 		end
 		-- Buttons
 		html = html..self.beforeLabel..self.afterLabel..self.beforeField
-		for k, v in pairs(form:getFields()) do
-			if v:getWidget() and v:getWidget():isKindOf(widgets.Button) then
-				html = html..self:renderField(form, k, v)
+		for _, v in ipairs(form:getFields()) do
+			local f = form:getField(v)
+			if f:getWidget() and f:getWidget():isKindOf(widgets.Button) then
+				html = html..self:renderField(form, v, f)
 			end
 		end
 		return html..self.afterField..self.afterFields

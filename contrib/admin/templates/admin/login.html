@@ -1,9 +1,23 @@
 <html>
 
-<head><!--meta http-equiv="Content-type: text/html;charset=utf8" /--></head>
+<head>
+	<meta http-equiv="Content-type: text/html;charset=utf8" />
+	<title>Authorisation</title>
+</head>
 
-<h1>Login</h1>
+{% if user then %}
+Hello, {{ user.name }}! <a href="/logout">logout</a>
+{% else %}
+	<h1>Authorisation</h1>
 
-{{ form:asHtml() }}
+	{{ form:asHtml() }}
+
+	{% if form:isSubmitted() and form:getErrorsCount() > 0 then %}
+		<h2>Errors!</h2>
+		{% local index, error for index, error in ipairs(form:getErrors()) do %}
+			{{ error }}<br />
+		{% end %}
+	{% end %}
+{% end %}
 
 </html>

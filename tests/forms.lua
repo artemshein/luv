@@ -14,28 +14,29 @@ local Form = TestCase:extend{
 	__tag = .....".Form",
 	testSimple = function (self)
 		local F = forms.Form:extend{
+			Meta = {fields = {"title", "comments"}},
 			title = fields.Char{required=true},
 			comments = fields.Int()
 		}
 		local f = F()
-		self.assertFalse(f:validate())
+		self.assertFalse(f:isValid())
 		f.title = "abc"
 		self.assertEquals(f.title, "abc")
-		self.assertTrue(f:validate())
+		self.assertTrue(f:isValid())
 	end,
 	testModel = function (self)
 		local F = forms.ModelForm:extend{
 			Meta = {model=TestModel, exclude={"test", "test2"}, fields={"title", "comments"}}
 		}
 		local f = F()
-		self.assertFalse(f:validate())
+		self.assertFalse(f:isValid())
 		f.title = "abc"
 		self.assertEquals(f.title, "abc")
-		self.assertTrue(f:validate())
+		self.assertTrue(f:isValid())
 	end,
 	testInstance = function (self)
 		local F = forms.ModelForm:extend{
-			Meta = {model=TestModel}
+			Meta = {model=TestModel, fields={"title", "comments"}}
 		}
 		local t = TestModel{title="abc", comments=25}
 		local f = F(t)
@@ -44,6 +45,7 @@ local Form = TestCase:extend{
 	end,
 	testWidgets = function (self)
 		local F = forms.Form:extend{
+			Meta = {fields={"abc"}},
 			abc = fields.Char{required=true, label="ABC"}
 		}
 		--io.write(html.escape(F():setAction("/section1/"):setId("form"):asHtml()))

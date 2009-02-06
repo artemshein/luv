@@ -86,9 +86,9 @@ return TestCase:extend{
 		t.test = "123"
 		self.assertEquals(t.test, "123")
 		self.assertEquals(t.test, t:getField"test":getValue())
-		self.assertFalse(t:validate())
+		self.assertFalse(t:isValid())
 		t.test = "1234"
-		self.assertTrue(t:validate())
+		self.assertTrue(t:isValid())
 	end,
 	testFindSimple = function (self)
 		local lastId = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc"):exec()
