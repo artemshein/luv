@@ -140,7 +140,7 @@ local Model = Struct:extend{
 		end
 	end,
 	find = function (self, what)
-		local new = self:new()
+		local new = self()
 		local select = self.db:SelectRow():from(self:getTableName())
 		local _, k, v
 		if type(what) == "table" then

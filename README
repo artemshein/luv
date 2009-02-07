@@ -1,9 +1,9 @@
-Luv 0.3dev
-==========
+Luv 0.3alpha
+============
 
-Luv is Lua (lua.org) MVC web-framework. Luv is open-source and completely
-free for both commercial and non-commercial use. Luv current version has
-a "development" status and not advised to use anywhere.
+Luv is Lua (lua.org) MVC web-framework. Luv is open-source and
+completely free for both commercial and non-commercial use. Luv current
+version has an "alpha" status and not advised to use it on production.
 
 Luv:
 - is much faster then any PHP, Ruby, or Python frameworks;
@@ -13,9 +13,10 @@ Luv:
 Luv requirements:
 - mod_rewrite (Apache, LightTPD) or something similar on your web-server
 for CGI support;
-- datafilter (http://www.daizucms.org/lua/library/datafilter) for MD5 & SHA1
-passwords hashing;
-- LuaSQL (www.keplerproject.org/luasql/) with mysql driver for MySQL support.
+- datafilter (http://www.daizucms.org/lua/library/datafilter) for MD5 &
+SHA1 passwords hashing;
+- LuaSQL (www.keplerproject.org/luasql/) with mysql driver for MySQL
+support.
 - LuaSocket for SCGI support.
 
 Luv includes:
@@ -38,8 +39,8 @@ Luv includes:
 What's new
 ==========
 
-Version 0.3dev [IN PROGRESS]
---------------
+Version 0.3alpha [IN PROGRESS]
+----------------
 + Sessions support (only files for now).
 + Form & ModelForm with buttons.
 + CGI GET, POST and cookies support.
@@ -80,16 +81,61 @@ Version 1.0 [Q4 2009 - Q1 2010]
 - Much more...
 
 Version 0.5alpha
------------
+----------------
 - Cacher with Memcached support.
 
 Version 0.4alpha [mar 2009]
------------
+----------------
 - Basic auto-admin site.
 - i18n with Gettext.
 
-Version 0.3dev [feb 2009]
------------
+Version 0.3alpha [feb 2009]
+----------------
 - Forms and Managers (Models to Forms binding).
 
-Artyom Shein <temiy@aisys.ru>, 2008
+How to install
+==============
+1. You will need Lua 5.1.x.
+For Ubuntu:
+	sudo apt-get install lua5.1
+For Windows:
+	Download Lua from http://luabinaries.luaforge.net/download.html and
+	then install it.
+2. You will also need a web-server with mod_rewrite, CGI or SCGI support
+(for example Apache with mod_rewrite or LightTPD with mod_rewrite).
+3. datafilter library for Lua is required:
+You can get last binaries from
+http://www.daizucms.org/lua/library/datafilter/
+4. Get MySQL 5.x server:
+Ubuntu:
+	sudo apt-get install mysql-server-5.0
+Windows:
+	Download binary from http://dev.mysql.com/downloads/
+4. LuaSQL with MySQL support:
+Ubuntu:
+	sudo apt-get install liblua5.1-sql-mysql-2
+Windows:
+	Download and install binaries from
+	http://luaforge.net/frs/?group_id=12
+5. Copy Luv files to other lua libraries (often /usr/lib/lua/5.1/) into
+luv/ directory (/usr/lib/lua/5.1/luv/).
+6. Configure web-server mod_rewrite:
+LightTPD:
+	Uncomment "mod_rewrite" in server.modules. Add ".lua" to
+	static-file.exclude-extensions and place
+	$HTTP["host"] =~ "your host here" {
+		url.rewrite = ("^(.+)$" => "/index.lua")
+	}
+	somewhere in the config file (lighttpd.conf).
+
+Manual or API reference
+=======================
+There are no manuals or references to Luv for now. First of all you can
+read unittest scripts from tests/ directory for use cases. Second you
+can read Luv sample project code (will be soon). Third you can read
+Django (djangoproject.com) manuals and references. Luv is mostly similar
+with main design ideas with Django. And the last you also can send me
+your questions.
+
+
+Artyom Shein <temiy@aisys.ru>, 2008-2009

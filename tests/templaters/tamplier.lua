@@ -7,7 +7,7 @@ return TestCase:extend{
 	__tag = ...,
 	testFileName = "fgasu2345sfafasdf",
 	setUp = function (self)
-		self.t = Tamplier:new()
+		self.t = Tamplier()
 	end,
 	tearDown = function (self)
 		self.t = nil

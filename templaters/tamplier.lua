@@ -19,9 +19,6 @@ return Templater:extend{
 			end
 		}
 	end,
-	addTemplatesDir = function (self, dir)
-		table.insert(self.templatesDirs, dir)
-	end,
 	assign = function (self, var, value)
 		if type(var) == "table" then
 			for i, v in pairs(var) do
