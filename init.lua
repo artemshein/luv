@@ -3,7 +3,7 @@ require"luv.string"
 require"luv.debug"
 local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs
 local _G = _G
-local oop, exceptions, utils, sessions, fs, ws = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs", require "luv.webservers"
+local oop, exceptions, utils, sessions, fs, ws, sessions = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 
 module(...)
@@ -89,28 +89,11 @@ local UrlConf = Object:extend{
 	end
 }
 
-local Project = Object:extend{
-	__tag = .....".Project",
-	templatesDirs = {},
-	init = function (self, name)
-		self.name = name
-	end,
-	getName = function (self) return self.name end,
-	setName = function (self, name) self.name = name return self end,
-	getTemplatesDirs = function (self) return self.templatesDirs end,
-	addTemplatesDir = function (self, dir) table.insert(self.templatesDirs, dir) return self end,
-	setTemplatesDirs = function (self, dirs) self.templatesDirs = dirs return self end,
-	getWsApi = function (self) return self.wsApi end,
-	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end,
-	getSessionsDirs = function (self) return self.sessionsDirs end,
-	setSessionsDirs = function (self, dirs) self.sessionsDirs = dirs return self end
-}
-
 local Core = Object:extend{
 	__tag = .....".Core",
-	version = Version(0, 3, 0, "dev"),
+	version = Version(0, 3, 0, "alpha"),
 	-- Init
-	init = function (self, project)
+	init = function (self, wsApi)
 		-- Init random seed
 		local seed, i, str = os.time(), nil, tostring(tostring(self))
 		for i = 1, string.len(str) do
@@ -118,12 +101,15 @@ local Core = Object:extend{
 		end
 		math.randomseed(seed)
 		--
-		self.wsApi = (project:getWsApi() or ws.Cgi()):setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
-		--self.wsApi:setResponseHeader("Content-type", "text/html;charset=utf8")
+		self.wsApi = (wsApi or ws.Cgi()):setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
 		self.urlconf = UrlConf(self.wsApi)
-		self.templater = require "luv.templaters.tamplier" (project:getTemplatesDirs())
-		self.session = sessions.Session(self.wsApi, sessions.SessionFile(project:getSessionsDirs()))
 	end,
+	getWsApi = function (self) return self.wsApi end,
+	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end,
+	getTemplater = function (self) return self.templater end,
+	setTemplater = function (self, templater) self.templater = templater return self end,
+	getSession = function (self) return self.session end,
+	setSession = function (self, session) self.session = session return self end,
 	getDsn = function (self) return self.dsn end,
 	setDsn = function (self, dsn)
 		self.dsn = dsn
@@ -264,14 +250,22 @@ local Widget = Object:extend{
 	render = Object.abstractMethod
 }
 
+local init = function (params)
+	local core = Core(params.wsApi)
+	core:setTemplater(require "luv.templaters.tamplier" (params.templatesDirs))
+	core:setSession(sessions.Session(core:getWsApi(), sessions.SessionFile(params.sessionDir)))
+	core:setDsn(params.dsn)
+	return core
+end
+
 return {
 	oop = oop,
 	exceptions = exceptions,
 	util = util,
-	Project = Project,
 	Core = Core,
 	UrlConf = UrlConf,
 	Struct = Struct,
-	Widget = Widget
+	Widget = Widget,
+	init = init
 }
 	

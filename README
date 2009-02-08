@@ -132,10 +132,10 @@ Manual or API reference
 =======================
 There are no manuals or references to Luv for now. First of all you can
 read unittest scripts from tests/ directory for use cases. Second you
-can read Luv sample project code (will be soon). Third you can read
-Django (djangoproject.com) manuals and references. Luv is mostly similar
-with main design ideas with Django. And the last you also can send me
-your questions.
+can read Luv sample project code (http://github.com/temiy/descriptor).
+Third you can read Django (djangoproject.com) manuals and references.
+Luv is mostly similar with main design ideas with Django. And the last
+you also can send me your questions.
 
 
 Artyom Shein <temiy@aisys.ru>, 2008-2009
