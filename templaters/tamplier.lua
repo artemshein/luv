@@ -10,12 +10,21 @@ return Templater:extend{
 		Templater.init(self, ...)
 		self.internal = {
 			includedFiles = {},
-			include = function (file)
+			include = function (file, values)
+				local oldInternal = self.internal
+				if values then
+					oldInternal = table.copy(self.internal)
+					self:assign(values)
+				end
 				local includedFiles = self.internal.includedFiles
 				if not includedFiles[file] then
-					includedFiles[file] = File(file):openForReading():read"*a"
+					includedFiles[file] = self:fetch(file)
 				end
-				return self:compileString(includedFiles[file])
+				local res = self:compileString(includedFiles[file])
+				if values then
+					self.internal = oldInternal
+				end
+				return res
 			end
 		}
 	end,
@@ -43,7 +52,6 @@ return Templater:extend{
 	fetchString = function (self, str)
 		return self:compileString(str)
 	end,
-
 	displayString = function (self, str)
 		io.write(self:fetchString(str))
 	end,

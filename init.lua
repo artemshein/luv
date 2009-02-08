@@ -1,7 +1,7 @@
 require"luv.table"
 require"luv.string"
 require"luv.debug"
-local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs
+local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
 local _G = _G
 local oop, exceptions, utils, sessions, fs, ws, sessions = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
@@ -60,7 +60,7 @@ local UrlConf = Object:extend{
 	end,
 	execute = function (self, action)
 		if type(action) == "string" then
-			dofile(action)
+			self:dispatch(dofile(action))
 		elseif type(action) == "function" then
 			action(self)
 		else
