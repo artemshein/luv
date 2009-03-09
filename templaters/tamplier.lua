@@ -4,6 +4,8 @@ local File = fs.File
 
 module(...)
 
+local cycleCounters = {}
+
 return Templater:extend{
 	__tag = ...,
 	init = function (self, ...)
@@ -25,7 +27,12 @@ return Templater:extend{
 					self.internal = oldInternal
 				end
 				return res
-			end
+			end;
+			cycle = function (index, params)
+				if not cycleCounters[index] then cycleCounters[index] = 0 end
+				cycleCounters[index] = cycleCounters[index] + 1
+				return params[cycleCounters[index] % table.maxn(params) + 1]
+			end;
 		}
 	end,
 	assign = function (self, var, value)

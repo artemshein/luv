@@ -4,8 +4,8 @@ local string = string
 module(...)
 
 local escape = function (str)
-	local repl = {["<"] = "&lt;", [">"] = "&gt;"}
-	return (string.gsub(str, "[<>]", repl))
+	local repl = {["<"] = "&lt;", [">"] = "&gt;", ["\""] = "&quot;"}
+	return (string.gsub(str, "[<>\"]", repl))
 end
 
 return {

@@ -1,5 +1,5 @@
-local pairs, tonumber, ipairs, table = pairs, tonumber, ipairs, table
-local Object, validators, Widget, widgets = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets"
+local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
+local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
 
 module(...)
 
@@ -77,7 +77,7 @@ local Field = Object:extend{
 	asHtml = function (self) return self.widget:render(self) end
 }
 
-local Char = Field:extend{
+local Text = Field:extend{
 	__tag = .....".Char",
 	setParams = function (self, params)
 		params = params or {}
@@ -86,6 +86,7 @@ local Char = Field:extend{
 		if params.regexp then
 			self.validators.regexp = validators.Regexp(params.regexp)
 		end
+		if false == params.maxLength then params.maxLength = 0 end
 		self.validators.length = validators.Length(params.minLength or 0, params.maxLength or 255)
 	end,
 	getMinLength = function (self)
@@ -107,7 +108,7 @@ local Int = Field:extend{
 	end
 }
 
-local Login = Char:extend{
+local Login = Text:extend{
 	__tag = .....".Login",
 	init = function (self, params)
 		params = params or {}
@@ -116,7 +117,7 @@ local Login = Char:extend{
 		params.required = true
 		params.unique = true
 		params.regexp = "^[a-zA-Z0-9_%.%-]+$"
-		Char.init(self, params)
+		Text.init(self, params)
 	end
 }
 
@@ -130,11 +131,11 @@ local Id = Int:extend{
 	end
 }
 
-local Button = Char:extend{
+local Button = Text:extend{
 	__tag = .....".Button",
 	init = function (self, params)
 		params.widget = params.widget or widgets.Button
-		Char.init(self, params)
+		Text.init(self, params)
 	end
 }
 
@@ -146,12 +147,52 @@ local Submit = Button:extend{
 	end
 }
 
+local Datetime = Field:extend{
+	__tag = .....".Datetime";
+	setParams = function (self, params)
+		params = params or {}
+		self:setAutoNow(params.autoNow)
+	end;
+	getAutoNow = function (self) return self.autoNow end;
+	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
+	getDefaultValue = function (self)
+		if self.defaultValue then
+			return self.defaultValue
+		end
+		if self:getAutoNow() then
+			return os.date("%Y-%m-%d %H:%M:%S")
+		end
+		return nil
+	end;
+	getValue = function (self)
+		if not self.value then
+			return self:getDefaultValue()
+		end
+		return self.value
+	end;
+	setValue =  function (self, value)
+		if "string" == type(value) then
+			self.value = os.time{
+				year=tonumber(string.slice(value, 1, 4));
+				month=tonumber(string.slice(value, 6, 7));
+				day=tonumber(string.slice(value, 9, 10));
+				hour=tonumber(string.slice(value, 12, 13));
+				min=tonumber(string.slice(value, 15, 16));
+				sec=tonumber(string.slice(value, 18, 19));
+			}
+		else
+			self.value = value
+		end
+	end;
+}
+
 return {
 	Field = Field,
-	Char = Char,
+	Text = Text,
 	Int = Int,
 	Login = Login,
 	Id = Id,
 	Button = Button,
-	Submit = Submit
+	Submit = Submit;
+	Datetime=Datetime;
 }

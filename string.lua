@@ -61,8 +61,4 @@ string.explode = function (self, ex)
 	return res
 end
 
-string.htmlEscape = function (str)
-	return string.gsub(str, "[\\\"]", {["\""] = "&quot;"})
-end
-
 return string

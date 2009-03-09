@@ -33,7 +33,7 @@ local Model = Struct:extend{
 						if v:isKindOf(references.OneToMany) then
 							v:setRelatedName(k)
 						elseif v:isKindOf(references.ManyToOne) then
-							Exception"Use OneToMany field on related model instead of ManyToOne!":throw()
+							Exception"Use OneToMany field on related model instead of ManyToOne or set relatedName!":throw()
 						elseif v:isKindOf(references.ManyToMany) then
 							v:setRelatedName(self:getLabelMany())
 						else
@@ -55,9 +55,14 @@ local Model = Struct:extend{
 		if not new.Meta then
 			Exception"Meta must be defined!":throw()
 		end
+		if new.Meta.labels then
+			new.Meta.label = new.Meta.labels[1]
+			new.Meta.labelMany = new.Meta.labels[2]
+		end
 		if not new:getLabel() or not new:getLabelMany() then
 			Exception"Label and labelMany must be defined in Meta!":throw()
 		end
+		new.Admin = new.Admin or {}
 		return new
 	end,
 	init = function (self, values)
@@ -124,12 +129,19 @@ local Model = Struct:extend{
 	setDb = function (self, db) rawset(self, "db", db) return self end,
 	getLabel = function (self) return self.Meta.label end,
 	getLabelMany = function (self) return self.Meta.labelMany end,
+	-- Admin
+	getSmallIcon = function (self) return self.Admin.smallIcon end;
+	setSmallIcon = function (self, icon) self.Admin.smallIcon = icon return self end;
+	getBigIcon = function (self) return self.Admin.bigIcon end;
+	setBigIcon = function (self, icon) self.Admin.bigIcon = icon return self end;
+	getCategory = function (self) return self.Admin.category end;
+	setCategory = function (self, category) self.Admin.category = category return self end;
 	-- Find
 	getFieldPlaceholder = function (self, field)
 		if not field:isRequired() then
 			return "?n"
 		end
-		if field:isKindOf(fields.Char) then
+		if field:isKindOf(fields.Text) then
 			return "?"
 		elseif field:isKindOf(fields.Int) then
 			return "?d"
@@ -162,6 +174,9 @@ local Model = Struct:extend{
 		new:setValues(res)
 		return new
 	end,
+	all = function (self)
+		return require "luv.db.models".LazyQuerySet(self)
+	end;
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:isValid() then
@@ -269,7 +284,7 @@ local Model = Struct:extend{
 		return models
 	end,
 	getFieldTypeSql = function (self, field)
-		if field:isKindOf(fields.Char) then
+		if field:isKindOf(fields.Text) then
 			if field:getMaxLength() ~= 0 then
 				return "VARCHAR("..field:getMaxLength()..")"
 			else
@@ -277,6 +292,8 @@ local Model = Struct:extend{
 			end
 		elseif field:isKindOf(fields.Int) then
 			return "INTEGER"
+		elseif field:isKindOf(fields.Datetime) then
+			return "DATETIME"
 		elseif field:isKindOf(references.ManyToOne) or field:isKindOf(references.OneToOne) then
 			return self:getFieldTypeSql(field:getRefModel():getField(field:getToField() or field:getRefModel():getPkName()))
 		else

@@ -1,0 +1,53 @@
+table{border-collapse:collapse;margin:0;width:auto}
+input[type="text"],input[type="password"],select,textarea,input.small,input.standard,input.large,input.big,input.huge{border:solid 1px #AAA;padding:2px 4px;margin:0}
+input[type="button"],input[type="submit"]{margin-right:10px}
+input.small{font-size:14px;width:50px}
+input.standard{width:150px}
+input.large,input.big{width:250px}
+input.huge,textarea{width:400px}
+select{padding:0}
+.required{background:#FFD}
+input.error{background:#FEE !important}
+
+div.pages{border-width:0 1px;padding:12px 10px;font-weight:bold}
+div.pages span{padding: 4px 8px;background:#FA0;margin-left:10px;color:#FFF}
+div.pages a{margin-left:10px;text-decoration:none}
+
+h1{font-family:Cambria,Times New Roman,serif}
+h1 img{vertical-align:middle}
+h2{margin:10px 0 4px 8px}
+
+div.button img{vertical-align:middle}
+
+th {background:none}
+label.required {font-weight:bold;background:none}
+
+#errors{background:#FEE;padding:8px;border:solid 1px #FCC}
+#errors h4{font-weight:bold;font-size:16px;margin:0 0 8px 0}
+
+#userInfo{text-align:right;padding-top:16px}
+#userInfo img{vertical-align:middle}
+
+#modelsList{border:solid 1px #AAA;border-width:0 1px}
+#modelsList, #modelsList li ul{margin:0;padding:0}
+#modelsList, #modelsList li{list-style-type:none}
+#modelsList li h2, #actionsHistory h2, #recordsActions h2{font-size:17px;color:#444;font-family:Calibri;margin:0;background-color:#EEF;padding:4px 10px;border-bottom:solid 1px #AAA}
+#modelsList li ul li{padding:8px 16px;border-bottom:solid 1px #AAA}
+#modelsList div.addButton{float: right}
+#modelsList img{vertical-align:middle;margin-right:2px}
+
+#actionsHistory, #recordsActions{border:solid 1px #AAA;border-top-width:0}
+#actionsHistory ul, #recordsActions ul{margin:0;padding:0}
+#actionsHistory ul li, #recordsActions ul li{list-style-type:none;padding:4px 10px}
+
+#chainMenu{padding:8px 16px;border:solid 1px #AAA;border-top-width:0;background:#EFE;color:#000}
+#chainMenu a{color:#000;font-weight:bold;text-decoration:none}
+
+#records, #records ul{padding:0;margin:0}
+#records ul, #records ul li{list-style-type:none}
+#records ul li ul{padding:0 0 0 20px}
+#records li>div{padding:8px}
+#records table{width:100%}
+#records tr.record td.activeLink{cursor:pointer}
+#records th{padding:8px 10px;background-color:#EEF;border:solid 1px #AAA}
+#records td{border:solid 1px #AAA}

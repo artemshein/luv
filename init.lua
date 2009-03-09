@@ -49,20 +49,26 @@ end
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf",
 	init = function (self, wsApi)
+		self.wsApi = wsApi
 		self.uri = wsApi:getRequestHeader("REQUEST_URI") or ""
 		local queryPos = string.find(self.uri, "?")
 		if queryPos then
 			self.uri = string.sub(self.uri, 1, queryPos-1)
 		end
+		self.baseUri = self.uri
 	end,
-	capture = function (self, pos)
+	getWsApi = function (self) return self.wsApi end;
+	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end;
+	getCapture = function (self, pos)
 		return self.captures[pos]
-	end,
+	end;
+	getUri = function (self) return self.uri end;
+	getBaseUri = function (self) return string.slice(self.baseUri, 1, -string.len(self.uri)-1) end;
 	execute = function (self, action)
 		if type(action) == "string" then
-			self:dispatch(dofile(action))
+			return self:dispatch(dofile(action))
 		elseif type(action) == "function" then
-			action(self)
+			return action(self)
 		else
 			Exception "Invalid action!":throw()
 		end
@@ -78,8 +84,9 @@ local UrlConf = Object:extend{
 					for i = 3, #res do
 						table.insert(self.captures, res[i])
 					end
-					self:execute(script)
-					return true
+					if false ~= self:execute(script) then
+						return true
+					end
 				end
 			end
 		end

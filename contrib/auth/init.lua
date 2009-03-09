@@ -8,30 +8,46 @@ local MODULE = ...
 
 local GroupRight = models.Model:extend{
 	__tag = .....".GroupRight",
-	Meta = {label="group right", labelMany="group rights"},
-	model = fields.Char(),
-	action = fields.Char(),
-	description = fields.Char{maxLength = 0}
+	Meta = {labels={"group right";"group rights"}},
+	Admin = {
+		category = "authorisation";
+		smallIcon = {path="/images/icons/auth/user_accept16.png";width=16;height=16};
+		bigIcon = {path="/images/icons/auth/user_accept48.png";width=48;height=48};
+	};
+	model = fields.Text(),
+	action = fields.Text(),
+	description = fields.Text{maxLength=false}
 }
 
 local UserGroup = models.Model:extend{
 	__tag = .....".UserGroup",
-	Meta = {label="user group", labelMany="user groups"},
-	title = fields.Char{required=true, unique=true},
-	description = fields.Char{maxLength=0},
+	Meta = {labels={"user group", "user groups"}},
+	Admin = {
+		category = "authorisation";
+		smallIcon = {path="/images/icons/auth/users16.png";width=16;height=16};
+		bigIcon = {path="/images/icons/auth/users48.png";width=48;width=48};
+	};
+	title = fields.Text{required=true, unique=true},
+	description = fields.Text{maxLength=false},
 	rights = references.ManyToMany{references=GroupRight, relatedName="groups"},
 }
 
 local User = models.Model:extend{
 	__tag = .....".User",
-	Meta = {label="user", labelMany="users"},
+	Meta = {labels={"user", "users"}};
+	Admin = {
+		category = "authorisation";
+		smallIcon = {path="/images/icons/auth/community_users16.png";width=16;height=16};
+		bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
+	};
 	sessId = "LUV_AUTH",
 	secretSalt = "",
 	-- Fields
 	login = fields.Login{label="login"},
-	name = fields.Char(),
-	passwordHash = fields.Char{required = true},
+	name = fields.Text(),
+	passwordHash = fields.Text{required = true},
 	group = references.ManyToOne{references=UserGroup, relatedName="users"},
+	__tostring = function (self) return tostring(self.name) end;
 	-- Methods
 	getSecretSalt = function (self) return self.secretSalt end,
 	setSecretSalt = function (self, secretSalt) self.secretSalt = secretSalt return self end,
@@ -86,7 +102,7 @@ local LoginForm = forms.Form:extend{
 		fields = {"login", "password", "authorise"}
 	},
 	login = User:getField "login",
-	password = fields.Char{label="password", maxLength=32, minLength=6, widget=widgets.PasswordInput},
+	password = fields.Text{label="password", maxLength=32, minLength=6, widget=widgets.PasswordInput},
 	authorise = fields.Submit{defaultValue="Authorise"}
 }
 

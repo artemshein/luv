@@ -1,0 +1,45 @@
+{{ include("admin/_header.html", {title="AdminSite"}) }}
+
+{{ include "admin/_info.html" }}
+
+<div class="span-24 last">
+	<div class="span-18">
+		<ul id="modelsList">
+		{% local category, models for category, models in pairs(categories) do %}
+			<li>
+				<h2>{{ capitalize(category) }}</h2>
+				<ul>
+				{% local _, model for _, model in pairs(models) do %}
+					{% local name = model:getLabelMany() %}
+					<li class="{{ cycle(0, {"odd";"even"}) }}">
+						<div class="button" style="float:right">
+							<a href="{{ baseUri }}/{{ lower(name) }}/add">
+								<img src="/images/admin/page_add.png" width="16" height="16" alt="Add" />
+							</a>
+							<a href="{{ baseUri }}/{{ lower(name) }}/add">Add</a>
+						</div>
+						{% if model:getSmallIcon() then %}
+							{% local icon = model:getSmallIcon() %}
+							<a href="{{ baseUri }}/{{ lower(name) }}">
+								<img src="{{ icon.path }}" width="{{ icon.width }}" height="{{ icon.height }}" alt="{{ capitalize(name) }}" />
+							</a>
+						{% end %}
+						<a href="{{ baseUri }}/{{ lower(name) }}">{{ capitalize(name) }}</a>
+					</li>
+				{% end %}
+				</ul>
+			</li>
+		{% end %}
+		</ul>
+	</div>
+	<div class="span-6 last">
+		<div id="actionsHistory">
+			<h2>Last actions</h2>
+			<ul>
+				<li>Тут скоро будет список последних выполненых действий.</li>
+			</ul>
+		</div>
+	</div>
+</div>
+
+{{ include "admin/_footer.html" }}
