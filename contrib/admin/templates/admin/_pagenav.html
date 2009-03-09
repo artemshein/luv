@@ -1,0 +1,17 @@
+{% local pages=p.getPagesTotal() %}
+{% if pages > 1 then %}
+	{% local page, count, onPage = p.getPage(), p.getTotal(), p.getOnPage() %}
+	<div class="pages">
+		{% if count > onPage then %}
+			{% local start = page*onPage-onPage %}
+		{% end %}
+	Pages:
+	{% local i for i = 1, pages do %}
+		{% if page == i then %}
+			<span>{{ i }}</span>
+		{% else %}
+			<a href="javascript:void(0)" onclick="{{ func }}({{ i }})">{{ i }}</a>
+		{% end %}
+	{% end %}
+	</div>
+{% end %}

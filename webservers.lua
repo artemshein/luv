@@ -12,9 +12,16 @@ local Api = Object:extend{
 	getRequestHeader = Object.abstractMethod,
 	getResponseHeader = Object.abstractMethod,
 	setResponseHeader = Object.abstractMethod,
+	getGet = Object.abstractMethod;
+	setGet = Object.abstractMethod;
+	getGetData = Object.abstractMethod;
+	getPost = Object.abstractMethod;
+	setPost = Object.abstractMethod;
+	getPostData = Object.abstractMethod;
 	getCookie = Object.abstractMethod,
 	setCookie = Object.abstractMethod,
-	getCookies = Object.abstractMethod
+	getCookies = Object.abstractMethod;
+	sendHeaders = Object.abstractMethod;
 }
 
 local urlDecode = function (url)

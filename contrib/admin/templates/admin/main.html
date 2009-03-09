@@ -11,20 +11,21 @@
 				<ul>
 				{% local _, model for _, model in pairs(models) do %}
 					{% local name = model:getLabelMany() %}
+					{% local modelUrl = baseUri.."/"..model:getPath() %}
 					<li class="{{ cycle(0, {"odd";"even"}) }}">
 						<div class="button" style="float:right">
-							<a href="{{ baseUri }}/{{ lower(name) }}/add">
+							<a href="{{ modelUrl }}/add">
 								<img src="/images/admin/page_add.png" width="16" height="16" alt="Add" />
 							</a>
-							<a href="{{ baseUri }}/{{ lower(name) }}/add">Add</a>
+							<a href="{{ modelUrl }}/add">Add</a>
 						</div>
 						{% if model:getSmallIcon() then %}
 							{% local icon = model:getSmallIcon() %}
-							<a href="{{ baseUri }}/{{ lower(name) }}">
+							<a href="{{ modelUrl }}">
 								<img src="{{ icon.path }}" width="{{ icon.width }}" height="{{ icon.height }}" alt="{{ capitalize(name) }}" />
 							</a>
 						{% end %}
-						<a href="{{ baseUri }}/{{ lower(name) }}">{{ capitalize(name) }}</a>
+						<a href="{{ modelUrl }}">{{ capitalize(name) }}</a>
 					</li>
 				{% end %}
 				</ul>

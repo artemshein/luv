@@ -1,0 +1,75 @@
+{{ include "admin/_header.html" }}
+
+{{ include "admin/_info.html" }}
+
+{% local modelUrl = baseUri.."/"..urlConf:getCapture(1) %}
+
+<div class="span-24 last">
+	<div class="span-18">
+		<div id="chainMenu">
+			<div class="button" style="float:right">
+				<a href="{{ modelUrl }}/add">
+					<img src="/images/admin/page_add.png" width="16" height="16" alt="Add" />
+				</a>
+				<a href="{{ modelUrl }}/add">Add</a>
+			</div>
+			<a href="{{ baseUri }}">&larr; Back to main</a>
+		</div>
+		<div id="records">
+		</div>
+	</div>
+	<div class="span-6 last">
+		<div id="recordsActions">
+			<h2>Actions</h2>
+			<ul>
+				<li><a href="javascript:void(0)" onclick="Dedal.checkMultipleCheckboxesByName('items[]')">Select all</a></li>
+				<li><a href="javascript:void(0)" onclick="Dedal.clearMultipleCheckboxesByName('items[]')">Deselect all</a></li>
+				<li><div class="button" onclick="deleteSelected();">
+					<img src="/images/admin/remove.png" width="16" height="16" alt="" />
+					<a href="javascript:void(0)">Remove selected</a>
+				</div></li>
+			</ul>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript" language="JavaScript">//<![CDATA[
+	function deleteSelected ()
+	{
+		if (!confirm('Confirm deletion?'))
+			return false;
+		$.post(
+			'{{ modelUrl }}/records/delete',
+			Dedal.formValues('items'),
+			function() { window.location = window.location; }
+		);
+	}
+	function toggleNode (id)
+	{
+		var button = $('#buttonFor'+id);
+		var children = $('#childrenFor'+id);
+		if (button.html() == '+')
+			button.html('-');
+		else
+			button.html('+');
+		if (!children.html())
+			children.load(
+				'{{ modelUrl }}/records',
+				{'node': id},
+				function() { children.slideToggle(); }
+			);
+		else
+			children.slideToggle();
+	}
+	function setPage(page)
+	{
+		$.get(
+			'{{ modelUrl }}/records',
+			{'page': page},
+			function (data) { $('#records').html(data); }
+		);
+	}
+	setPage(1);
+//]]></script>
+
+{{ include "admin/_footer.html" }}

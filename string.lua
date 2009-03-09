@@ -61,4 +61,18 @@ string.explode = function (self, ex)
 	return res
 end
 
+--[[
+local urlEncodeChars = {36=true;38;43;44;47;58;59;61;63;64}
+
+string.urlEncode = function (self)
+	local res, _, byte = ""
+	for _, byte in ipairs({string.byte(self, 1, string.len(self))}) do
+		if byte > 31 and byte < 127
+		res = res..
+	end
+	return res
+end]]
+
+string.replace = string.gsub
+
 return string

@@ -1,0 +1,34 @@
+{% if records:count() then %}
+	{% local pageNav = include("admin/_pagenav.html", {func="setPage"}) %}
+	{{ pageNav }}
+	<form id="items">
+	<table><thead>
+		<th></th>
+	{foreach from=$fields item="field"}
+		<th>{$field->getLabel()|capitalize}</th>
+	{/foreach}
+	</thead>
+	{foreach from=$records item="record"}
+		<tr class="record">
+			<td width="10"><input type="checkbox" name="items[]" value="{$record->pk}" /></td>
+		{foreach from=$fields item="field"}
+			{assign var="fieldName" value=$field->getName()}
+			<td class="activeLink" onclick="selectRecord('{$record->pk}')">{$record->$fieldName|escape:"html"}</td>
+		{/foreach}
+		</tr>
+	{/foreach}
+	</table>
+	</form>
+	{$pagenav}
+	<script type="text/javascript" language="JavaScript">//<![CDATA[{literal}
+		function selectRecord (id)
+		{
+			window.location = {/literal}'{$modelUrl}'{literal}+id;
+		}
+		$('#records tr.record')
+		.mouseover(function(){ $(this).css('background', '#FFC'); })
+		.mouseout(function(){ $(this).css('background', '#FFF'); });
+	{/literal}//]]></script>
+{% else %}
+	<div style="padding:10px 20px">No records.</div>
+{% end %}

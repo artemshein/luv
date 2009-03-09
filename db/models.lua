@@ -1,6 +1,6 @@
-require"luv.table"
-require"luv.string"
-require"luv.debug"
+require "luv.table"
+require "luv.string"
+require "luv.debug"
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
 
@@ -136,6 +136,7 @@ local Model = Struct:extend{
 	setBigIcon = function (self, icon) self.Admin.bigIcon = icon return self end;
 	getCategory = function (self) return self.Admin.category end;
 	setCategory = function (self, category) self.Admin.category = category return self end;
+	getPath = function (self) return self.Admin.path or string.replace(string.lower(self:getLabelMany()), " ", "_") end;
 	-- Find
 	getFieldPlaceholder = function (self, field)
 		if not field:isRequired() then
