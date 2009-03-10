@@ -1,34 +1,34 @@
-{% if records:count() then %}
+{% if p:getTotal() then %}
+	{% local modelUrl = baseUri.."/"..urlConf:getCapture(1) %}
 	{% local pageNav = include("admin/_pagenav.html", {func="setPage"}) %}
 	{{ pageNav }}
 	<form id="items">
 	<table><thead>
 		<th></th>
-	{foreach from=$fields item="field"}
-		<th>{$field->getLabel()|capitalize}</th>
-	{/foreach}
+	{% local _, field for _, field in ipairs(fields) do %}
+		<th>{{ capitalize(model:getField(field):getLabel()) }}</th>
+	{% end %}
 	</thead>
-	{foreach from=$records item="record"}
+	{% local record for _, record in p:getPage(page):pairs() do %}
 		<tr class="record">
-			<td width="10"><input type="checkbox" name="items[]" value="{$record->pk}" /></td>
-		{foreach from=$fields item="field"}
-			{assign var="fieldName" value=$field->getName()}
-			<td class="activeLink" onclick="selectRecord('{$record->pk}')">{$record->$fieldName|escape:"html"}</td>
-		{/foreach}
+			<td width="10"><input type="checkbox" name="items[]" value="{{ tostring(record.pk) }}" /></td>
+		{% for _, field in ipairs(fields) do %}
+			<td class="activeLink" onclick="selectRecord('{{ tostring(record.pk) }}')">{{ html.escape(record[field] or "") }}</td>
+		{% end %}
 		</tr>
-	{/foreach}
+	{% end %}
 	</table>
 	</form>
-	{$pagenav}
-	<script type="text/javascript" language="JavaScript">//<![CDATA[{literal}
+	{{ pageNav }}
+	<script type="text/javascript" language="JavaScript">//<![CDATA[
 		function selectRecord (id)
 		{
-			window.location = {/literal}'{$modelUrl}'{literal}+id;
+			window.location = '{{ modelUrl }}/'+id;
 		}
 		$('#records tr.record')
 		.mouseover(function(){ $(this).css('background', '#FFC'); })
 		.mouseout(function(){ $(this).css('background', '#FFF'); });
-	{/literal}//]]></script>
+	//]]></script>
 {% else %}
 	<div style="padding:10px 20px">No records.</div>
 {% end %}

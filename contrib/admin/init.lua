@@ -1,6 +1,6 @@
-local io, ipairs, tostring, pairs, table, tonumber = io, ipairs, tostring, pairs, table, tonumber
-local string = require "luv.string"
-local Object, auth = require "luv.oop".Object, require "luv.contrib.auth"
+require "luv.string"
+local io, ipairs, tostring, pairs, table, tonumber, string = io, ipairs, tostring, pairs, table, tonumber, string
+local Object, auth, models, html = require "luv.oop".Object, require "luv.contrib.auth", require "luv.db.models", require "luv.utils.html"
 
 module(...)
 
@@ -42,12 +42,16 @@ return function (luv, categories)
 				if not model then return false end
 				local page = tonumber(luv:getPost "page") or 1
 				luv:assign{
+					ipairs=ipairs;
 					capitalize=string.capitalize;
 					tostring=tostring;
+					html=html;
 					baseUri=baseUri;
 					user=user;
 					model=model;
-					--records=Paginator(model);
+					page=page;
+					fields=model:getDisplayList();
+					p=models.Paginator(model, 10);
 					urlConf=urlConf;
 					title=string.capitalize(model:getLabelMany());
 				}

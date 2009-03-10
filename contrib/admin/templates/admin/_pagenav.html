@@ -1,6 +1,6 @@
-{% local pages=p.getPagesTotal() %}
+{% local pages = p:getPagesTotal() %}
 {% if pages > 1 then %}
-	{% local page, count, onPage = p.getPage(), p.getTotal(), p.getOnPage() %}
+	{% local count, onPage = p:getTotal(), p:getOnPage() %}
 	<div class="pages">
 		{% if count > onPage then %}
 			{% local start = page*onPage-onPage %}

@@ -46,6 +46,7 @@ local Field = Object:extend{
 	getId = function (self) return self.id end,
 	setId = function (self, id) self.id = id return self end,
 	getLabel = function (self) return self.label end,
+	setLabel = function (self, label) self.label = label return self end;
 	getValue = function (self) return self.value end,
 	setValue = function (self, value) self.value = value return self end,
 	getDefaultValue = function (self) return self.defaultValue end,

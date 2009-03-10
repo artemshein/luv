@@ -1,4 +1,5 @@
-local type, require, pairs, table, select = type, require, pairs, table, select
+require "luv.string"
+local type, require, pairs, table, select, string = type, require, pairs, table, select, string
 local fields, Exception = require"luv.fields", require"luv.exceptions".Exception
 
 module(...)
@@ -66,7 +67,7 @@ local ManyToMany = Reference:extend{
 	end,
 	getTableName = function (self)
 		if not self.tableName then
-			local t1, t2 = self:getContainer():getLabelMany(), self:getRefModel():getLabelMany()
+			local t1, t2 = string.replace(self:getContainer():getLabelMany(), " ", "_"), string.replace(self:getRefModel():getLabelMany(), " ", "_")
 			if t1 < t2 then
 				self.tableName = t1.."2"..t2
 			else

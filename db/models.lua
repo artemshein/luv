@@ -2,6 +2,7 @@ require "luv.table"
 require "luv.string"
 require "luv.debug"
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber
+local math = math
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
 
 module(...)
@@ -27,6 +28,7 @@ local Model = Struct:extend{
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isObject and v:isKindOf(fields.Field) then
 				new.fields[k] = v
+				if not v:getLabel() then v:setLabel(k) end
 				if v:isKindOf(references.Reference) then
 					v:setContainer(new)
 					if not v:getRelatedName() then
@@ -137,6 +139,16 @@ local Model = Struct:extend{
 	getCategory = function (self) return self.Admin.category end;
 	setCategory = function (self, category) self.Admin.category = category return self end;
 	getPath = function (self) return self.Admin.path or string.replace(string.lower(self:getLabelMany()), " ", "_") end;
+	getDisplayList = function (self)
+		if self.Admin.displayList then
+			return self.Admin.displayList
+		end
+		local res, name, field = {}
+		for name, _ in pairs(self:getFields()) do
+			table.insert(res, name)
+		end
+		return res
+	end;
 	-- Find
 	getFieldPlaceholder = function (self, field)
 		if not field:isRequired() then
@@ -266,7 +278,7 @@ local Model = Struct:extend{
 	-- Create and drop
 	getTableName = function (self)
 		if (not self.tableName) then
-			self.tableName = self:getLabel()
+			self.tableName = string.gsub(self:getLabel(), " ", "_")
 		end
 		if self.tableName then
 			return self.tableName
@@ -482,7 +494,24 @@ local LazyQuerySet = Object:extend{
 	end
 }
 
+local Paginator = Object:extend{
+	__tag = .....".Paginator";
+	init = function (self, model, onPage)
+		self.model = model
+		self.onPage = onPage
+		self.total = model:all():count()
+	end;
+	getModel = function (self) return self.model end;
+	getOnPage = function (self) return self.onPage end;
+	getTotal = function (self) return self.total end;
+	getPage = function (self, page)
+		return self.model:all((page-1)*self.onPage, page*self.onPage)
+	end;
+	getPagesTotal = function (self) return math.ceil(self.total/self.onPage) end;
+}
+
 return {
 	Model = Model,
-	LazyQuerySet = LazyQuerySet
+	LazyQuerySet = LazyQuerySet;
+	Paginator=Paginator;
 }

@@ -13,6 +13,7 @@ local GroupRight = models.Model:extend{
 		category = "authorisation";
 		smallIcon = {path="/images/icons/auth/user_accept16.png";width=16;height=16};
 		bigIcon = {path="/images/icons/auth/user_accept48.png";width=48;height=48};
+		displayList = {"model", "action"};
 	};
 	model = fields.Text(),
 	action = fields.Text(),
@@ -26,6 +27,7 @@ local UserGroup = models.Model:extend{
 		category = "authorisation";
 		smallIcon = {path="/images/icons/auth/users16.png";width=16;height=16};
 		bigIcon = {path="/images/icons/auth/users48.png";width=48;width=48};
+		displayList = {"title"};
 	};
 	title = fields.Text{required=true, unique=true},
 	description = fields.Text{maxLength=false},
@@ -39,6 +41,7 @@ local User = models.Model:extend{
 		category = "authorisation";
 		smallIcon = {path="/images/icons/auth/community_users16.png";width=16;height=16};
 		bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
+		displayList = {"login", "name", "group"};
 	};
 	sessId = "LUV_AUTH",
 	secretSalt = "",

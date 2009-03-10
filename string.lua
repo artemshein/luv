@@ -7,6 +7,7 @@ module(...)
 string.slice = string.sub
 
 string.capitalize = function (self)
+	if string.len(self) == 0 then return self end
 	return string.upper(string.slice(self, 1, 1))..string.slice(self, 2)
 end
 
