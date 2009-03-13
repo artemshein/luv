@@ -8,15 +8,16 @@ local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Versi
 
 module(...)
 
-local function dropModel (db, modelName, models)
-	local model = (type(modelName) == "string" and require(modelName)) or modelName
+-- It's very dumbas algo, I know :), I will rewrite it soon
+local function dropModel (model, models)
 	model:setDb(db)
 	-- Drop constraints
 	local constraintModels, _, v = model:getConstraintModels()
-	for _, v in pairs(constraintModels) do
-		if models[v] then
-			models[v] = false
-			dropModel(db, v, models)
+	for _, v in ipairs(constraintModels) do
+		local index = table.find(models, v)
+		if  index then
+			models[index] = nil
+			dropModel(v, models)
 		end
 	end
 	-- Drop self
@@ -27,9 +28,8 @@ local function dropModel (db, modelName, models)
 	end
 end
 
-local function createModel (db, modelName, models)
-	local model = (type(modelName) == "string" and require(modelName)) or modelName
-	model:setDb(db)
+-- It's the same, I know...
+local function createModel (model, models)
 	-- Create self
 	if not model:createTables() then
 		return false
@@ -38,10 +38,11 @@ local function createModel (db, modelName, models)
 	end
 	-- Create constraints
 	local constraintModels, _, v = model:getConstraintModels()
-	for _, v in pairs(constraintModels) do
-		if models[v] then
-			models[v] = false
-			createModel(db, v, models)
+	for _, v in ipairs(constraintModels) do
+		local index = table.find(models, v)
+		if index then
+			models[index] = nil
+			createModel(v, models)
 		end
 	end
 end
@@ -142,25 +143,18 @@ local Core = Object:extend{
 	-- Models
 	iterateModels = function (self, modelsList, iterator)
 		local modelsList = modelsList or {}
-		local models, result, _, k, v = {}, true
-		for _, v in pairs(modelsList) do
-			models[v] = true
-		end
-		for k, _ in pairs(models) do
-			models[k] = false
-			iterator(self.db, k, models)
+		local models, result, k, v = {}, true
+		for k, v in ipairs(modelsList) do
+			modelsList[k] = nil
+			iterator(v, modelsList)
 		end
 		--return result
 	end,
-	dropModels = function (self, ...)
-		local i	for i = 1, select("#", ...) do
-			self:iterateModels(select(i, ...), dropModel)
-		end
+	dropModels = function (self, models)
+		self:iterateModels(table.copy(models), dropModel)
 	end,
-	createModels = function (self, ...)
-		local i	for i = 1, select("#", ...) do
-			self:iterateModels(select(i, ...), createModel)
-		end
+	createModels = function (self, models)
+		self:iterateModels(table.copy(models), createModel)
 	end,
 	-- Templater
 	addTemplatesDir = function (self, templatesDir)
@@ -186,7 +180,7 @@ local Struct = Object:extend{
 	end,
 	__index = function (self, field)
 		if field == "pk" then return self:getPk():getValue() end
-		local res = rawget(self, "fields")
+		local res = rawget(self, "fieldsByName")
 		if res then
 			res = res[field]
 			if res then
@@ -204,14 +198,19 @@ local Struct = Object:extend{
 		end
 		return value
 	end,
+	addField = function (self, name, field)
+		field:setName(name)
+		table.insert(self.fields, field)
+		self.fieldsByName[name] = field
+	end;
 	isValid = function (self)
-		local k, v
+		local _, v
 		self:setErrors{}
-		for k, v in pairs(self.fields) do
+		for _, v in ipairs(self:getFields()) do
 			if not v:isValid() then
 				local _, e for _, e in ipairs(v:getErrors()) do
 					local label = v:getLabel()
-					self:addError(string.gsub(e, "%%s", label and string.capitalize(label) or k))
+					self:addError(string.gsub(e, "%%s", label and string.capitalize(label) or v:getName()))
 				end
 				return false
 			end
@@ -228,25 +227,21 @@ local Struct = Object:extend{
 	getErrors = function (self) return self.errors end,
 	getErrorsCount = function (self) return table.maxn(self.errors) end,
 	getField = function (self, field)
-		if not self.fields then
-			Exception"Fields must be defined first!":throw()
-		end
-		return self.fields[field]
+		return self.fieldsByName[field]
 	end,
-	getFields = function (self)
-		return self.fields
-	end,
+	getFields = function (self) return self.fields end;
+	getFieldsByName = function (self) return self.fieldsByName end;
 	getValues = function (self)
 		local res = {}
 		local k, v
-		for k, v in pairs(self.fields) do
+		for k, v in pairs(self:getFieldsByName()) do
 			res[k] = v:getValue()
 		end
 		return res
 	end,
 	setValues = function (self, values)
 		local k, v
-		for k, v in pairs(self.fields) do
+		for k, v in pairs(self:getFieldsByName()) do
 			v:setValue(values[k])
 		end
 	end

@@ -2,7 +2,7 @@ require "luv.table"
 require "luv.string"
 require "luv.debug"
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber
-local math = math
+local math, ipairs, error = math, ipairs, error
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
 
 module(...)
@@ -17,17 +17,27 @@ end
 
 local Model = Struct:extend{
 	__tag = .....".Model",
+	modelsList = {};
 	__tostring = function (self)
 		return tostring(self:getPk():getValue())
 	end,
+	createBackLinksFieldsFrom = function (self, model)
+		local _, v
+		for _, v in ipairs(model:getReferenceFields(self)) do
+			if not self:getField(v:getRelatedName()) then
+				self:addField(v:getRelatedName(), v:createBackLink())
+			end
+		end
+	end;
 	extend = function (self, ...)
 		local new = Struct.extend(self, ...)
 		-- Init fields
 		rawset(new, "fields", new.fields or {})
+		rawset(new, "fieldsByName", new.fieldsByName or {})
 		local hasPk, k, v = false
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isObject and v:isKindOf(fields.Field) then
-				new.fields[k] = v
+				new:addField(k, v)
 				if not v:getLabel() then v:setLabel(k) end
 				if v:isKindOf(references.Reference) then
 					v:setContainer(new)
@@ -52,8 +62,15 @@ local Model = Struct:extend{
 			Exception"Model must have at least one field!":throw()
 		end
 		if not hasPk then
-			new.fields.id = fields.Id()
+			new:addField("id", fields.Id())
 		end
+		local _
+		for _, v in ipairs(self.modelsList) do
+			new:createBackLinksFieldsFrom(v)
+			v:createBackLinksFieldsFrom(new)
+		end
+		table.insert(self.modelsList, new)
+		-- Meta
 		if not new.Meta then
 			Exception"Meta must be defined!":throw()
 		end
@@ -64,6 +81,7 @@ local Model = Struct:extend{
 		if not new:getLabel() or not new:getLabelMany() then
 			Exception"Label and labelMany must be defined in Meta!":throw()
 		end
+		-- Admin
 		new.Admin = new.Admin or {}
 		return new
 	end,
@@ -72,15 +90,17 @@ local Model = Struct:extend{
 		if not self.fields then
 			Exception"Abstract model can't be created (extend it first)!":throw()
 		end
-		local k, v, fields = nil, nil, {}
-		for k, v in pairs(self.fields) do
+		local k, v, fields, fieldsByName = nil, nil, {}, {}
+		for k, v in pairs(self:getFieldsByName()) do
 			local field = v:clone()
-			fields[k] = field
+			table.insert(fields, field)
+			fieldsByName[k] = field
 			if field:isKindOf(references.Reference) then
 				field:setContainer(self)
 			end
 		end
 		self.fields = fields
+		self.fieldsByName = fieldsByName
 		if values then
 			if type(values) == "table" then
 				self:setValues(values)
@@ -90,6 +110,12 @@ local Model = Struct:extend{
 		end
 		getmetatable(self).__eq = modelsEq
 	end,
+	addField = function (self, name, field)
+		Struct.addField(self, name, field)
+		if field:isKindOf(references.Reference) then
+			field:setContainer(self)
+		end
+	end;
 	clone = function (self)
 		local new, fields = Struct.clone(self), {}
 		local k, v
@@ -100,29 +126,35 @@ local Model = Struct:extend{
 		return new
 	end,
 	getPkName = function (self)
-		local k, v
-		for k, v in pairs(self.fields) do
+		local pk = self:getPk()
+		if not pk then
+			return nil
+		end
+		return pk:getName()
+	end,
+	getPk = function (self)
+		local _, v
+		for _, v in ipairs(self:getFields()) do
 			if v:isPk() then
-				return k
+				return v
 			end
 		end
 		return nil
 	end,
-	addField = function (self, name, field)
-		assert(field:isKindOf(fields.Field), "Field expected!")
-		self.fields[name] = field
-		if field:isKindOf(references.Reference) then
-			field:setContainer(self)
+	getReferenceFields = function (self, model, class)
+		local res, _, v = {}
+		for _, v in ipairs(self:getFields()) do
+			if v:isKindOf(references.Reference) and  (not model or model:isKindOf(v:getRefModel())) and (not class or v:isKindOf(class)) then
+				table.insert(res, v)
+			end
 		end
-	end,
-	getPk = function (self)
-		return self:getField(self:getPkName())
-	end,
-	getReferenceField = function (self, class, model)
-		local k, v
-		for k, v in pairs(self:getFields()) do
-			if v:isKindOf(class) and model:isKindOf(v:getRefModel()) then
-				return k
+		return res
+	end;
+	getReferenceField = function (self, model, class)
+		local _, v
+		for _, v in ipairs(self:getFields()) do
+			if v:isKindOf(references.Reference) and (not class or v:isKindOf(class)) and (not model or model:isKindOf(v:getRefModel())) then
+				return v:getName()
 			end
 		end
 		return nil
@@ -144,7 +176,7 @@ local Model = Struct:extend{
 			return self.Admin.displayList
 		end
 		local res, name, field = {}
-		for name, _ in pairs(self:getFields()) do
+		for name, _ in pairs(self:getFieldsByName()) do
 			table.insert(res, name)
 		end
 		return res
@@ -169,16 +201,15 @@ local Model = Struct:extend{
 		local select = self.db:SelectRow():from(self:getTableName())
 		local _, k, v
 		if type(what) == "table" then
-			for k, v in pairs(self.fields) do
+			for k, v in pairs(self:getFieldsByName()) do
 				local value = what[k]
 				if value then
 					select:where("?#="..self:getFieldPlaceholder(v), k, value)
 				end
 			end
 		else
-			local pkName = self:getPkName()
-			local pk = self:getField(pkName)
-			select:where("?#="..self:getFieldPlaceholder(pk), pkName, what)
+			local pk = self:getPk()
+			select:where("?#="..self:getFieldPlaceholder(pk), pk:getName(), what)
 		end
 		local res = select:exec()
 		if not res then
@@ -196,17 +227,17 @@ local Model = Struct:extend{
 			Exception"Validation error!":throw()
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
-		local k, v
-		for k, v in pairs(self.fields) do
+		local _, v
+		for _, v in ipairs(self:getFields()) do
 			if not v:isKindOf(references.ManyToMany) and not (v:isKindOf(references.OneToOne) and v:isBackLink()) and not v:isKindOf(references.OneToMany) then
 				if v:isKindOf(references.ManyToOne) or v:isKindOf(references.OneToOne) then
 					local val = v:getValue()
 					if val then
 						val = val:getField(v:getToField() or val:getPkName()):getValue()
 					end
-					insert:set("?#="..self:getFieldPlaceholder(v), k, val)
+					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				else
-					insert:set("?#="..self:getFieldPlaceholder(v), k, v:getValue())
+					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), v:getValue())
 				end
 			end
 		end
@@ -219,7 +250,7 @@ local Model = Struct:extend{
 			pk:setValue(self.db:getLastInsertId())
 		end
 		-- Save references
-		for k, v in pairs(self.fields) do
+		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.ManyToMany) then
 				v:insert()
 			end
@@ -231,32 +262,32 @@ local Model = Struct:extend{
 			Exception"Validation error!":throw()
 		end
 		local updateRow = self:getDb():UpdateRow(self:getTableName())
-		local pkName, k, v = self:getPkName()
-		local pk = self:getField(pkName)
+		local pk, _, v = self:getPk()
+		local pkName = pk:getName()
 		updateRow:where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())
-		for k, v in pairs(self.fields) do
+		for _, v in ipairs(self:getFields()) do
 			if not v:isKindOf(references.ManyToMany) and not (v:isKindOf(references.OneToOne) and v:isBackLink()) and not v:isKindOf(references.OneToMany) and not v:isPk() then
 				if v:isKindOf(references.ManyToOne) or v:isKindOf(references.OneToOne) then
 					local val = v:getValue()
 					if val then
 						val = val:getField(v:getToField() or val:getPkName()):getValue()
 					end
-					updateRow:set("?#="..self:getFieldPlaceholder(v), k, val)
+					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				else
-					updateRow:set("?#="..self:getFieldPlaceholder(v), k, v:getValue())
+					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), v:getValue())
 				end
 			end
 		end
 		updateRow:exec()
-		for k, v in pairs(self.fields) do
+		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.ManyToMany) then
 				v:update()
 			end
 		end
 	end,
 	save = function (self)
-		local pkName = self:getPkName()
-		local pk = self:getField(pkName)
+		local pk = self:getPk()
+		local pkName = pk:getName()
 		if not pk:getValue() or not self:getDb():SelectCell(pkName):from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec() then
 			return self:insert()
 		else
@@ -264,8 +295,8 @@ local Model = Struct:extend{
 		end
 	end,
 	delete = function (self)
-		local pkName = self:getPkName()
-		local pk = self:getField(pkName)
+		local pk = self:getPk()
+		local pkName = pk:getName()
 		return self:getDb():DeleteRow():from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec()
 	end,
 	create = function (self, ...)
@@ -289,9 +320,9 @@ local Model = Struct:extend{
 	setTableName = function (self, tableName) self.tableName = tableName return self end,
 	getConstraintModels = function (self)
 		local models, _, v = {}
-		for _, v in pairs(self.fields) do
-			if v:isKindOf(references.OneToMany) then
-				table.insert(models, v:getRef())
+		for _, v in ipairs(self:getFields()) do
+			if v:isKindOf(references.OneToMany) or (v:isKindOf(references.OneToOne) and not v:isBackLink()) then
+				table.insert(models, v:getRefModel())
 			end
 		end
 		return models
@@ -316,11 +347,11 @@ local Model = Struct:extend{
 	createTables = function (self)
 		local c = self.db:CreateTable(self:getTableName())
 		-- Fields
-		local _, k, v, hasPk = nil, nil, false
-		for k, v in pairs(self.fields) do
+		local _, v, hasPk = nil, nil, false
+		for _, v in ipairs(self:getFields()) do
 			if not v:isKindOf(references.OneToMany) and not v:isKindOf(references.ManyToMany) and not (v:isKindOf(references.OneToOne) and v:isBackLink()) then
 				hasPk = hasPk or v:isPk()
-				c:field(k, self:getFieldTypeSql(v), {
+				c:field(v:getName(), self:getFieldTypeSql(v), {
 					primaryKey = v:isPk(),
 					unique = v:isUnique(),
 					null = not v:isRequired(),
@@ -333,7 +364,7 @@ local Model = Struct:extend{
 					else
 						onDelete = "SET NULL"
 					end
-					c:constraint(k, v:getTableName(), v:getRefModel():getPkName(), "CASCADE", onDelete)
+					c:constraint(v:getName(), v:getTableName(), v:getRefModel():getPkName(), "CASCADE", onDelete)
 				end
 			end
 		end
@@ -341,7 +372,7 @@ local Model = Struct:extend{
 			return false
 		end
 		-- Create references tables
-		for _, v in pairs(self.fields) do
+		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.ManyToMany) then
 				v:createTable()
 			end
@@ -349,7 +380,7 @@ local Model = Struct:extend{
 	end,
 	dropTables = function (self)
 		local _, v
-		for _, v in pairs(self.fields) do
+		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.ManyToMany) then
 				v:dropTable()
 			end

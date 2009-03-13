@@ -1,20 +1,19 @@
 require "luv.string"
 local io, ipairs, tostring, pairs, table, tonumber, string = io, ipairs, tostring, pairs, table, tonumber, string
+local debug = debug
 local Object, auth, models, html = require "luv.oop".Object, require "luv.contrib.auth", require "luv.db.models", require "luv.utils.html"
 
 module(...)
 
-return function (luv, categories)
-	local _, model, modelsCategories, modelsList
-	modelsCategories = {}
-	for _, modelsList in ipairs(categories) do
-		for _, model in pairs(modelsList) do
-			local category = model:getCategory() or "not categorised"
-			modelsCategories[category] = modelsCategories[category] or {}
-			table.insert(modelsCategories[category], model)
-		end
+return function (luv, modelsList)
+	local modelsCategories, _, model = {}
+	for _, model in ipairs(modelsList) do
+		local category = model:getCategory() or "not categorised"
+		modelsCategories[category] = modelsCategories[category] or {}
+		table.insert(modelsCategories[category], model)
 	end
 	function findModel (path)
+		local category, models, model
 		for category, models in pairs(modelsCategories) do
 			for _, model in ipairs(models) do
 				if model:getPath() == path then return model end

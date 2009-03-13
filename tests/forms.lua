@@ -5,7 +5,7 @@ local TestCase, forms, fields, Model, html = require"luv.unittest".TestCase, req
 module(...)
 
 local TestModel = Model:extend{
-	title = fields.Char{required=true},
+	title = fields.Text{required=true},
 	comments = fields.Int(),
 	Meta = {label = "test", labelMany = "tests"}
 }
@@ -15,7 +15,7 @@ local Form = TestCase:extend{
 	testSimple = function (self)
 		local F = forms.Form:extend{
 			Meta = {fields = {"title", "comments"}},
-			title = fields.Char{required=true},
+			title = fields.Text{required=true},
 			comments = fields.Int()
 		}
 		local f = F()
@@ -46,7 +46,7 @@ local Form = TestCase:extend{
 	testWidgets = function (self)
 		local F = forms.Form:extend{
 			Meta = {fields={"abc"}},
-			abc = fields.Char{required=true, label="ABC"}
+			abc = fields.Text{required=true, label="ABC"}
 		}
 		--io.write(html.escape(F():setAction("/section1/"):setId("form"):asHtml()))
 		self.assertEquals(

@@ -1,5 +1,5 @@
 require"luv.debug"
-local getmetatable, io, require = getmetatable, io, require
+local getmetatable, io, require, debug = getmetatable, io, require, debug
 local TestCase, Model, fields, references, Factory = require"luv.unittest".TestCase, require"luv.db.models".Model, require"luv.fields", require"luv.fields.references", require"luv.db".Factory
 
 module(...)
@@ -14,7 +14,7 @@ local T01Group = Model:extend{
 
 local T01Student = Model:extend{
 	__tag = .....".T01Student",
-	name = fields.Char{pk = true},
+	name = fields.Text{pk = true},
 	group = references.ManyToOne{references=T01Group, required=true, relatedName="students"},
 	Meta = {label = "student", labelMany = "students"}
 }
@@ -23,13 +23,13 @@ local T01Student = Model:extend{
 
 local T02Category = Model:extend{
 	__tag = .....".T02Category",
-	title = fields.Char{required=true},
+	title = fields.Text{required=true},
 	Meta = {label = "category", labelMany = "categories"}
 }
 
 local T02Article = Model:extend{
 	__tag = .....".T02Article",
-	title = fields.Char{required=true},
+	title = fields.Text{required=true},
 	categories = references.ManyToMany{references=T02Category, required=true, relatedName="articles"},
 	Meta = {label = "article", labelMany = "articles"}
 }
@@ -38,7 +38,7 @@ local T02Article = Model:extend{
 
 local T03Man = Model:extend{
 	__tag = .....".T03Man",
-	name = fields.Char{pk=true},
+	name = fields.Text{pk=true},
 	Meta = {label = "man", labelMany = "men"}
 }
 
@@ -63,7 +63,7 @@ return TestCase:extend{
 	validDsn = validDsn,
 	setUp = function (self)
 		self.A = Model:extend{
-			title = fields.Char(),
+			title = fields.Text(),
 			Meta = {label = "a", labelMany = "as"}
 		}
 		self.A:setDb(Factory(self.validDsn))
@@ -79,7 +79,7 @@ return TestCase:extend{
 	end,
 	testBasic = function (self)
 		local Test = Model:extend{
-			test = fields.Char{minLength = 4, maxLength = 6},
+			test = fields.Text{minLength = 4, maxLength = 6},
 			Meta = {label = "a", labelMany = "as"}
 		}
 		local t = Test()

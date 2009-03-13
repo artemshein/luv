@@ -13,7 +13,7 @@
 		<tr class="record">
 			<td width="10"><input type="checkbox" name="items[]" value="{{ tostring(record.pk) }}" /></td>
 		{% for _, field in ipairs(fields) do %}
-			<td class="activeLink" onclick="selectRecord('{{ tostring(record.pk) }}')">{{ html.escape(record[field] or "") }}</td>
+			<td class="activeLink" onclick="selectRecord('{{ tostring(record.pk) }}')">{{ html.escape(tostring(record[field] or "")) }}</td>
 		{% end %}
 		</tr>
 	{% end %}

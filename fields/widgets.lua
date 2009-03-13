@@ -6,17 +6,17 @@ module(...)
 local Input = Widget:extend{
 	__tag = .....".Input",
 	tail = "",
-	render = function (self, name, field)
-		return [[<input type="]]..self.type..[[" name="]]..html.escape(name)..[[" id="]]..html.escape(field:getId())..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..self.tail..[[ />]]
+	render = function (self, field)
+		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())..[[" id="]]..html.escape(field:getId())..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..self.tail..[[ />]]
 	end
 }
 
 local TextInput = Input:extend{
 	__tag = .....".TextInput",
 	type = "text",
-	render = function (self, name, field)
+	render = function (self, field)
 		self.tail = [[ maxlength="]]..field:getMaxLength()..[["]]
-		return Input.render(self, name, field)
+		return Input.render(self, field)
 	end
 }
 

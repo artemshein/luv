@@ -31,7 +31,8 @@ local UserGroup = models.Model:extend{
 	};
 	title = fields.Text{required=true, unique=true},
 	description = fields.Text{maxLength=false},
-	rights = references.ManyToMany{references=GroupRight, relatedName="groups"},
+	rights = references.ManyToMany{references=GroupRight;relatedName="groups"},
+	__tostring = function (self) return tostring(self.title) end;
 }
 
 local User = models.Model:extend{

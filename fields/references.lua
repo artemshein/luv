@@ -1,5 +1,5 @@
 require "luv.string"
-local type, require, pairs, table, select, string = type, require, pairs, table, select, string
+local type, require, pairs, table, select, string, io = type, require, pairs, table, select, string, io
 local fields, Exception = require"luv.fields", require"luv.exceptions".Exception
 
 module(...)
@@ -19,18 +19,14 @@ local Reference = fields.Field:extend{
 		fields.Field.init(self, params)
 	end,
 	setParams = function (self, params)
-		if type(params) == "table" then
-			self.relatedName = params.relatedName
+		if "table" == type(params)  then
+			self.relatedName = params.relatedName or Exception "related name must be set":throw()
 			self.toField = params.toField
-			if not params.references then Exception"References required!":throw() end
-			if "table" == type(params.references) then
-				self.refModel = params.references
-			else
-				self.ref = params.references
-			end
+			if "table" ~= type(params.references) then Exception "References must be a Model!":throw() end
+			self.refModel = params.references
 			fields.Field.setParams(self, params)
 		else
-			self.ref = params or Exception"References required!":throw()
+			self.refModel = params or Exception"References required!":throw()
 		end
 	end,
 	getRelatedName = function (self) return self.relatedName end,
@@ -38,18 +34,9 @@ local Reference = fields.Field:extend{
 	getToField = function (self) return self.toField end,
 	getContainer = function (self) return self.container end,
 	setContainer = function (self, container) self.container = container return self end,
-	getRef = function (self) return self.ref end,
 	getRole = function (self) return self.role end,
 	setRole = function (self, role) self.role = role return self end,
-	getRefModel = function (self)
-		if not self.refModel then
-			if not self.ref then
-				Exception"References required!":throw()
-			end
-			self.refModel = require(self.ref)
-		end
-		return self.refModel
-	end
+	getRefModel = function (self) return self.refModel end;
 }
 
 local ManyToMany = Reference:extend{
@@ -81,7 +68,7 @@ local ManyToMany = Reference:extend{
 		return self.tableName
 	end,
 	createBackLink = function (self)
-		return require(MODULE).ManyToMany{references=self:getContainer()}
+		return require(MODULE).ManyToMany{references=self:getContainer();relatedName=self:getName()}
 	end,
 	createTable = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
@@ -176,7 +163,7 @@ local ManyToOne = Reference:extend{
 		return self:getRefModel():getTableName()
 	end,
 	createBackLink = function (self)
-		return require(MODULE).OneToMany{references=self:getContainer()}
+		return require(MODULE).OneToMany{references=self:getContainer();relatedName=self:getName()}
 	end
 }
 
@@ -202,7 +189,7 @@ local OneToMany = Reference:extend{
 	end,
 	all = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
-		local refFieldName = refModel:getReferenceField(require(MODULE).ManyToOne, container)
+		local refFieldName = refModel:getReferenceField(container, require(MODULE).ManyToOne)
 		if not refFieldName then
 			Exception"Backwards reference field not founded!":throw()
 		end
@@ -233,7 +220,7 @@ local OneToMany = Reference:extend{
 	end,
 	add = function (self, ...)
 		local refModel, model = self:getRefModel(), self:getContainer()
-		local toFieldName = refModel:getReferenceField(require(MODULE).ManyToOne, model)
+		local toFieldName = refModel:getReferenceField(model, require(MODULE).ManyToOne)
 		if not toFieldName then
 			Exception"Backwards reference field not founded!":throw()
 		end
@@ -255,6 +242,9 @@ local OneToMany = Reference:extend{
 			Exception"Can't remove references with required property(you should delete it or set another value instead)!":throw()
 		end
 		return self:all():update{[toFieldName] = nil}
+	end;
+	createBackLink = function (self)
+		return require(MODULE).ManyToOne{references=self:getContainer();relatedName=self:getName()}
 	end
 }
 
@@ -263,7 +253,7 @@ local OneToOne = Reference:extend{
 	init = function (self, params)
 		params = params or {}
 		self:setParams(params)
-		self.backLink = params.backLink
+		self.backLink = params.backLink or false
 	end,
 	getTableName = function (self)
 		return self:getRefModel():getTableName()
@@ -302,11 +292,11 @@ local OneToOne = Reference:extend{
 		return self.tableName
 	end,]]
 	getBackRefFieldName = function (self)
-		return self:getRefModel():getReferenceField(require(MODULE).OneToOne, self:getContainer())
+		return self:getRefModel():getReferenceField(self:getContainer(), require(MODULE).OneToOne)
 	end,
 	isBackLink = function (self) return self.backLink end,
 	createBackLink = function (self)
-		return require(MODULE).OneToOne{references=self:getContainer(), backLink=true}
+		return require(MODULE).OneToOne{references=self:getContainer();backLink=not self:isBackLink();relatedName=self:getName()}
 	end,
 	--[[
 	createTable = function (self)

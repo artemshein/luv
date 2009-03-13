@@ -12,7 +12,7 @@ local Field = TestCase:extend{
 local Char = TestCase:extend{
 	__tag = .....".Char",
 	testSimple = function (self)
-		local f = Fields.Char()
+		local f = Fields.Text()
 		self.assertFalse(f:isRequired())
 		self.assertFalse(f:isUnique())
 		self.assertFalse(f:isPk())
@@ -21,7 +21,7 @@ local Char = TestCase:extend{
 		self.assertEquals(f:getMaxLength(), 255)
 	end,
 	testMaxLength = function (self)
-		local f = Fields.Char{maxLength = 10}
+		local f = Fields.Text{maxLength = 10}
 		f:setValue("1234567890")
 		self.assertEquals(f:getValue(), "1234567890")
 		self.assertTrue(f:isValid())
@@ -29,7 +29,7 @@ local Char = TestCase:extend{
 		self.assertFalse(f:isValid())
 	end,
 	testMinLength = function (self)
-		local f = Fields.Char{minLength = 4, maxLength = 6}
+		local f = Fields.Text{minLength = 4, maxLength = 6}
 		f:setValue("123")
 		self.assertFalse(f:isValid())
 		f:setValue("1234")
@@ -62,6 +62,6 @@ local Login = TestCase:extend{
 
 return {
 	Field = Field,
-	Char = Char,
+	Text = Text,
 	Login = Login
 }

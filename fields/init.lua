@@ -47,6 +47,8 @@ local Field = Object:extend{
 	setId = function (self, id) self.id = id return self end,
 	getLabel = function (self) return self.label end,
 	setLabel = function (self, label) self.label = label return self end;
+	getName = function (self) return self.name end;
+	setName = function (self, name) self.name = name return self end;
 	getValue = function (self) return self.value end,
 	setValue = function (self, value) self.value = value return self end,
 	getDefaultValue = function (self) return self.defaultValue end,
@@ -79,7 +81,7 @@ local Field = Object:extend{
 }
 
 local Text = Field:extend{
-	__tag = .....".Char",
+	__tag = .....".Text",
 	setParams = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.TextInput

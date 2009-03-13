@@ -1,5 +1,6 @@
 require "luv.string"
-local ipairs, io, string = ipairs, io, string
+require "luv.debug"
+local ipairs, io, string, debug = ipairs, io, string, debug
 local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
 
 module(...)
@@ -14,42 +15,42 @@ local Form = Widget:extend{
 		action = [[ action="]]..(form:getAction() or "")..[["]]
 		return "<form"..id..action..method..">"
 	end,
-	renderLabel = function (self, form, name, field)
+	renderLabel = function (self, form, field)
 		if not field:getLabel() then
 			return ""
 		end
 		if not field:getId() then
 			return string.capitalize(field:getLabel())..":"
 		end
-		return [[<label for="]]..field:getId().."_"..name..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
+		return [[<label for="]]..field:getId().."_"..field:getName()..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
 	end,
-	renderField = function (self, form, name, field)
-		return field:getWidget():render(name, field)
+	renderField = function (self, form, field)
+		return field:getWidget():render(field)
 	end,
 	renderFields = function (self, form)
 		local html = ""
 		local _, v
 		-- Hidden fields first
-		for _, v in ipairs(form:getFields()) do
+		for _, v in ipairs(form:getMetaFields()) do
 			local f = form:getField(v)
 			if f:getWidget() and f:getWidget():isKindOf(widgets.HiddenInput) then
-				html = html..self:renderField(v, f)
+				html = html..self:renderField(f)
 			end
 		end
 		html = html..self.beforeFields
 		-- Then visible fields
-		for _, v in ipairs(form:getFields()) do
+		for _, v in ipairs(form:getMetaFields()) do
 			local f = form:getField(v)
 			if f:getWidget() and not f:getWidget():isKindOf(widgets.HiddenInput) and not f:getWidget():isKindOf(widgets.Button) then
-				html = html..self.beforeLabel..self:renderLabel(form, v, f)..self.afterLabel..self.beforeField..self:renderField(form, v, f)..self.afterField
+				html = html..self.beforeLabel..self:renderLabel(form, f)..self.afterLabel..self.beforeField..self:renderField(form, f)..self.afterField
 			end
 		end
 		-- Buttons
 		html = html..self.beforeLabel..self.afterLabel..self.beforeField
-		for _, v in ipairs(form:getFields()) do
+		for _, v in ipairs(form:getMetaFields()) do
 			local f = form:getField(v)
 			if f:getWidget() and f:getWidget():isKindOf(widgets.Button) then
-				html = html..self:renderField(form, v, f)
+				html = html..self:renderField(form, f)
 			end
 		end
 		return html..self.afterField..self.afterFields

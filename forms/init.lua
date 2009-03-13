@@ -1,6 +1,7 @@
 require "luv.table"
 local require, rawset, type, pairs, ipairs, table, io = require, rawset, type, pairs, ipairs, table, io
 local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"
+local references = require "luv.fields.references"
 local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
 
 module(...)
@@ -11,16 +12,15 @@ local Form = Struct:extend{
 		local new = Struct.extend(self, new)
 		local k, v
 		rawset(new, "fields", {})
+		rawset(new, "fieldsByName", {})
 		-- Copy parent fields
-		if self.fields then
-			for k, v in pairs(self.fields) do
-				new.fields[k] = v:clone()
-			end
+		for k, v in pairs(self:getFieldsByName() or {}) do
+			new:addField(k, v:clone())
 		end
 		-- Add self fields
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isObject and v:isKindOf(fields.Field) then
-				new.fields[k] = v
+				new:addField(k, v)
 				new[k] = nil
 				v:setId(k)
 			end
@@ -39,9 +39,11 @@ local Form = Struct:extend{
 		if not self.Meta.fields then
 			Exception "Meta.fields required!":throw()
 		end
-		local k, v
-		for k, v in pairs(self.fields) do
-			self.fields[k] = v:clone()
+		local fieldsByName, k, v = self:getFieldsByName()
+		rawset(self, "fields", {})
+		rawset(self, "fieldsByName", {})
+		for k, v in pairs(fieldsByName) do
+			self:addField(k, v:clone())
 		end
 		if values then
 			if "table" == type(values) and values.isObject and values:isKindOf(Model) then
@@ -51,20 +53,25 @@ local Form = Struct:extend{
 			end
 		end
 	end,
+	addField = function (self, name, field)
+		Struct.addField(self, name, field)
+		if field:isKindOf(references.Reference) then
+			field:setContainer(self)
+		end
+	end;
+	getMetaFields = function (self) return self.Meta.fields end;
 	getAction = function (self) return self.Meta.action end,
 	setAction = function (self, action) self.Meta.action = action return self end,
 	getId = function (self) return self.Meta.id end,
 	setId = function (self, id) self.Meta.id = id return self end,
 	getWidget = function (self) return self.Meta.widget end,
 	setWidget = function (self, widget) self.Meta.widget = widget return self end,
-	getFields = function (self) return self.Meta.fields end,
 	isSubmitted = function (self, value)
 		local _, v
 		for _, v in ipairs(self:getFields()) do
-			local f = self:getField(v)
-			if f:isKindOf(fields.Submit) then
-				local fVal = f:getValue()
-				if ((value and (value == fVal)) or not value) and fVal == f:getDefaultValue() then
+			if v:isKindOf(fields.Submit) then
+				local fVal = v:getValue()
+				if ((value and (value == fVal)) or not value) and fVal == v:getDefaultValue() then
 					return fVal
 				end
 			end
@@ -85,7 +92,7 @@ local ModelForm = Form:extend{
 			Exception"Meta.model must be defined!":throw()
 		end
 		local k, v
-		for k, v in pairs(new.Meta.model:getFields()) do
+		for k, v in pairs(new.Meta.model:getFieldsByName()) do
 			if (not new.Meta.fields or table.find(new.Meta.fields, k))
 				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k)) then
 				new[k] = v

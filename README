@@ -1,4 +1,4 @@
-Luv 0.3alpha
+Luv 0.4alpha
 ============
 
 Luv is Lua (lua.org) MVC web-framework. Luv is open-source and
@@ -39,13 +39,15 @@ Luv includes:
 What's new
 ==========
 
-Version 0.3alpha [IN PROGRESS]
+Version 0.3alpha [DONE]
 ----------------
 + Sessions support (only files for now).
 + Form & ModelForm with buttons.
 + CGI GET, POST and cookies support.
 + Contrib.auth package for authorisation and users, groups and rights
 management.
++ Automatic reference fields back links for all models.
++ AdminSite basic pages & authorisation.
 
 Version 0.2dev [DONE]
 --------------
@@ -89,10 +91,8 @@ Version 0.4alpha [mar-apr 2009]
 ----------------
 - Basics of AdminSite.
 - i18n with Gettext(?).
-
-Version 0.3alpha [mar 2009]
-----------------
 - Forms and Managers (Models to Forms binding).
+
 
 How to install
 ==============
