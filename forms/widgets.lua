@@ -2,6 +2,9 @@ require "luv.string"
 require "luv.debug"
 local ipairs, io, string, debug = ipairs, io, string, debug
 local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
+local references = require "luv.fields.references"
+local forms, fields, html = require "luv.forms", require "luv.fields", require "luv.utils.html"
+local Exception = require "luv.exceptions".Exception
 
 module(...)
 
@@ -22,32 +25,32 @@ local Form = Widget:extend{
 		if not field:getId() then
 			return string.capitalize(field:getLabel())..":"
 		end
-		return [[<label for="]]..field:getId().."_"..field:getName()..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
+		return [[<label for="]]..html.escape(form:getId()..string.capitalize(field:getId()))..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
 	end,
 	renderField = function (self, form, field)
-		return field:getWidget():render(field)
+		return field:asHtml(form)
 	end,
 	renderFields = function (self, form)
 		local html = ""
 		local _, v
 		-- Hidden fields first
-		for _, v in ipairs(form:getMetaFields()) do
+		for _, v in ipairs(form:getFieldsList()) do
 			local f = form:getField(v)
 			if f:getWidget() and f:getWidget():isKindOf(widgets.HiddenInput) then
-				html = html..self:renderField(f)
+				html = html..self:renderField(form, f)
 			end
 		end
 		html = html..self.beforeFields
 		-- Then visible fields
-		for _, v in ipairs(form:getMetaFields()) do
+		for _, v in ipairs(form:getFieldsList()) do
 			local f = form:getField(v)
-			if f:getWidget() and not f:getWidget():isKindOf(widgets.HiddenInput) and not f:getWidget():isKindOf(widgets.Button) then
+			if not f:isKindOf(references.Reference) and f:getWidget() and not f:getWidget():isKindOf(widgets.HiddenInput) and not f:getWidget():isKindOf(widgets.Button) then
 				html = html..self.beforeLabel..self:renderLabel(form, f)..self.afterLabel..self.beforeField..self:renderField(form, f)..self.afterField
 			end
 		end
 		-- Buttons
 		html = html..self.beforeLabel..self.afterLabel..self.beforeField
-		for _, v in ipairs(form:getMetaFields()) do
+		for _, v in ipairs(form:getFieldsList()) do
 			local f = form:getField(v)
 			if f:getWidget() and f:getWidget():isKindOf(widgets.Button) then
 				html = html..self:renderField(form, f)

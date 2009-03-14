@@ -33,11 +33,11 @@ local Field = Object:extend{
 		self.unique = params.unique or false
 		self.required = params.required or false
 		self.label = params.label
+		self:setWidget(params.widget)
 		if self.required then
 			self.validators.filled = validators.Filled()
 		end
-		self.widget = params.widget or widgets.TextInput
-		self.defaultValue = params.defaultValue
+		self:setDefaultValue(params.defaultValue)
 		return self
 	end,
 	isRequired = function (self) return self.required end,
@@ -77,19 +77,25 @@ local Field = Object:extend{
 	end,
 	getWidget = function (self) return self.widget end,
 	setWidget = function (self, widget) self.widget = widget return self end,
-	asHtml = function (self) return self.widget:render(self) end
+	asHtml = function (self, form) return self.widget:render(self, form) end
 }
 
 local Text = Field:extend{
 	__tag = .....".Text",
 	setParams = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.TextInput
+		if false == params.maxLength then params.maxLength = 0 end
+		if not params.widget then
+			if "number" == type(params.maxLength) and (params.maxLength == 0 or params.maxLength > 65535) then
+				params.widget = widgets.TextArea
+			else
+				params.widget = widgets.TextInput
+			end
+		end
 		Field.setParams(self, params)
 		if params.regexp then
 			self.validators.regexp = validators.Regexp(params.regexp)
 		end
-		if false == params.maxLength then params.maxLength = 0 end
 		self.validators.length = validators.Length(params.minLength or 0, params.maxLength or 255)
 	end,
 	getMinLength = function (self)
@@ -103,12 +109,35 @@ local Text = Field:extend{
 local Int = Field:extend{
 	__tag = .....".Int",
 	init = function (self, params)
+		params = params or {}
+		params.widget = params.widget or widgets.TextInput
 		Field.init(self, params)
 		self.validators.int = validators.Int()
 	end,
 	setValue = function (self, value)
 		self.value = tonumber(value)
-	end
+	end;
+	getMinLength = function (self) return self:isRequired() and 1 or 0 end;
+	getMaxLength = function (self) return 12 end;
+}
+
+local Boolean = Int:extend{
+	__tag = .....".Boolean";
+	init = function (self, params)
+		params = params or {}
+		params.widget = params.widget or widgets.CheckboxInput
+		Int.init(self, params)
+	end;
+	setValue = function (self, value)
+		if "number" == type(value) then
+			self.value = value
+		elseif "nil" == type(value) then
+			self.value = nil
+		else
+			self.value = value and 1 or 0
+		end
+	end;
+	getValue = function (self) if not self.value then return nil end return self.value ~= 0 end;
 }
 
 local Login = Text:extend{
@@ -126,17 +155,21 @@ local Login = Text:extend{
 
 local Id = Int:extend{
 	__tag = .....".Id",
-	setParams = function (self, params)
+	init = function (self, params)
 		params = params or {}
+		params.widget = params.widget or widgets.HiddenInput
 		params.pk = true
-		Int.setParams(self, params)
-		return self
+		Int.init(self, params)
 	end
 }
 
 local Button = Text:extend{
 	__tag = .....".Button",
 	init = function (self, params)
+		params = params or {}
+		if "table" ~= type(params) then
+			params = {defaultValue=params}
+		end
 		params.widget = params.widget or widgets.Button
 		Text.init(self, params)
 	end
@@ -145,6 +178,10 @@ local Button = Text:extend{
 local Submit = Button:extend{
 	__tag = .....".Submit",
 	init = function (self, params)
+		params = params or {}
+		if "table" ~= type(params) then
+			params = {defaultValue=params}
+		end
 		params.widget = params.widget or widgets.SubmitButton
 		Button.init(self, params)
 	end
@@ -193,6 +230,7 @@ return {
 	Field = Field,
 	Text = Text,
 	Int = Int,
+	Boolean=Boolean;
 	Login = Login,
 	Id = Id,
 	Button = Button,

@@ -1,4 +1,5 @@
 require "luv.table"
+local math, tostring = math, tostring
 local require, rawset, type, pairs, ipairs, table, io = require, rawset, type, pairs, ipairs, table, io
 local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"
 local references = require "luv.fields.references"
@@ -36,9 +37,6 @@ local Form = Struct:extend{
 		if not self.Meta.widget then
 			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
 		end
-		if not self.Meta.fields then
-			Exception "Meta.fields required!":throw()
-		end
 		local fieldsByName, k, v = self:getFieldsByName()
 		rawset(self, "fields", {})
 		rawset(self, "fieldsByName", {})
@@ -59,10 +57,14 @@ local Form = Struct:extend{
 			field:setContainer(self)
 		end
 	end;
-	getMetaFields = function (self) return self.Meta.fields end;
 	getAction = function (self) return self.Meta.action end,
 	setAction = function (self, action) self.Meta.action = action return self end,
-	getId = function (self) return self.Meta.id end,
+	getId = function (self)
+		if not self.Meta.id then
+			self:setId("f"..tostring(math.random(2000000000)))
+		end
+		return self.Meta.id
+	end;
 	setId = function (self, id) self.Meta.id = id return self end,
 	getWidget = function (self) return self.Meta.widget end,
 	setWidget = function (self, widget) self.Meta.widget = widget return self end,
@@ -79,7 +81,17 @@ local Form = Struct:extend{
 		return false
 	end,
 	asHtml = function (self) return self.Meta.widget:render(self) end,
-	__tostring = function (self) return self:asHtml() end
+	__tostring = function (self) return self:asHtml() end;
+	getFieldsList = function (self)
+		if self.Meta.fields then
+			return self.Meta.fields
+		end
+		local res, k, v = {}
+		for k, v in pairs(self:getFieldsByName()) do
+			table.insert(res, k)
+		end
+		return res
+	end;
 }
 
 local ModelForm = Form:extend{
@@ -99,7 +111,7 @@ local ModelForm = Form:extend{
 			end
 		end
 		return Form.extend(self, new)
-	end
+	end;
 }
 
 return {

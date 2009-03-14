@@ -363,7 +363,7 @@ local Driver = Object:extend{
 	CreateTable = CreateTable,
 	DropTable = DropTable,
 	logger = function (sql, result)
-		--io.write(sql, "<br />")
+		io.write(sql, "<br />")
 	end,
 	processPlaceholder = Object.abstractMethod,
 	processPlaceholders = function (self, sql, ...)

@@ -47,7 +47,8 @@ local User = models.Model:extend{
 	sessId = "LUV_AUTH",
 	secretSalt = "",
 	-- Fields
-	login = fields.Login{label="login"},
+	isActive = fields.Boolean{defaultValue=true};
+	login = fields.Login(),
 	name = fields.Text(),
 	passwordHash = fields.Text{required = true},
 	group = references.ManyToOne{references=UserGroup, relatedName="users"},

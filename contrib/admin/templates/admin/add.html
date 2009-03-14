@@ -1,0 +1,24 @@
+{{ include "admin/_header.html" }}
+
+{{ include "admin/_info.html" }}
+{% local modelUrl = baseUri.."/"..urlConf:getCapture(1) %}
+<div class="span-24 last">
+	<div id="chainMenu"><a href="{{ baseUri }}">&larr; Back to main</a> | <a href="{{ modelUrl }}">{{ capitalize(model:getLabelMany()) }}</a></div>
+	<h2>Add {{ model:getLabel() }}</h2>
+	{{ include "admin/_errors.html" }}
+	<script type="text/javascript" language="JavaScript">//<![CDATA[
+		function formCallback (errors)
+		{
+			if (errors) showErrors(errors);
+			else
+			{
+				hideErrors();
+				alert('New record was successfully added!');
+				Luv.clearForm('form');
+			}
+		}
+	//]]></script>
+	{{ form }}
+</div>
+
+{{ include "admin/_footer.html" }}

@@ -25,7 +25,7 @@ debug.dump = function (obj, depth, tab, seen)
 			io.write(tostring(obj))
 		end
 		if table.find(seen, obj) then
-			io.write" RECURSION"
+			io.write "[RECURSION]"
 		elseif 0 ~= depth then
 			table.insert(seen, obj)
 			io.write"{\n"

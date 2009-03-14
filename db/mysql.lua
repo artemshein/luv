@@ -150,7 +150,12 @@ local MysqlDriver = Driver:extend{
 		if placeholder == "?" then
 			return "'"..string.gsub(tostring(value), "'", "\\'").."'"
 		elseif placeholder == "?d" then
-			local num = tonumber(value)
+			local num
+			if "boolean" == type(value) then
+				num = value and 1 or 0
+			else
+				num = tonumber(value)
+			end
 			if not num then Driver.Exception"Not a valid number given!":throw() end
 			return tostring(num)
 		elseif placeholder == "?#" then

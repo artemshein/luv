@@ -45,8 +45,8 @@ return Templater:extend{
 		end
 	end,
 	compileString = function (self, str)
-		local res = string.gsub(str, "{{", "]===]..")
-		res = string.gsub(res, "}}", "..[===[")
+		local res = string.gsub(str, "{{", "]===]..tostring(")
+		res = string.gsub(res, "}}", ")..[===[")
 		res = string.gsub(res, "{%%", "]===]\n")
 		res = "local s = [===["..string.gsub(res, "%%}", "\ns = s..[===[").."]===]\nreturn s"
 		local func, err = loadstring(res)

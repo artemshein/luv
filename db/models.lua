@@ -181,6 +181,7 @@ local Model = Struct:extend{
 		end
 		return res
 	end;
+	getAdminForm = function (self) return self.Admin.form end;
 	-- Find
 	getFieldPlaceholder = function (self, field)
 		if not field:isRequired() then
@@ -237,7 +238,11 @@ local Model = Struct:extend{
 					end
 					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				else
-					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), v:getValue())
+					local val = v:getValue()
+					if "nil" == type(val) then
+						val = v:getDefaultValue()
+					end
+					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				end
 			end
 		end
@@ -274,7 +279,11 @@ local Model = Struct:extend{
 					end
 					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				else
-					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), v:getValue())
+					local val = v:getValue()
+					if "nil" == type(val) then
+						val = v:getDefaultValue()
+					end
+					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				end
 			end
 		end
@@ -329,13 +338,15 @@ local Model = Struct:extend{
 	end,
 	getFieldTypeSql = function (self, field)
 		if field:isKindOf(fields.Text) then
-			if field:getMaxLength() ~= 0 then
+			if field:getMaxLength() ~= 0 and field:getMaxLength() < 65535 then
 				return "VARCHAR("..field:getMaxLength()..")"
 			else
 				return "TEXT"
 			end
+		elseif field:isKindOf(fields.Boolean) then
+			return "INT(1)"
 		elseif field:isKindOf(fields.Int) then
-			return "INTEGER"
+			return "INT(4)"
 		elseif field:isKindOf(fields.Datetime) then
 			return "DATETIME"
 		elseif field:isKindOf(references.ManyToOne) or field:isKindOf(references.OneToOne) then

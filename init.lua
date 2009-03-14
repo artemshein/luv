@@ -202,6 +202,7 @@ local Struct = Object:extend{
 		field:setName(name)
 		table.insert(self.fields, field)
 		self.fieldsByName[name] = field
+		return self
 	end;
 	isValid = function (self)
 		local _, v

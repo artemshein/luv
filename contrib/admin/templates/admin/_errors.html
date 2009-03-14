@@ -1,0 +1,12 @@
+<script type="text/javascript" language="JavaScript">//<![CDATA[
+	function showErrors (errors)
+	{
+		$('#errors').html('<h4>Error!</h4>' + errors.replace(/\n/g, '<br />')).show();
+	}
+	function hideErrors ()
+	{
+		$('#errors').hide();
+	}
+//]]></script>
+<div id="errors" style="display:none">
+</div>
