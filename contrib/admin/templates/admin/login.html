@@ -1,18 +1,14 @@
-{{ include("admin/_header.html", {title="Authorisation"}) }}
+{{ include "admin/_header.html" }}
 
-{% if user then %}
-Hello, {{ user.name }}! <a href="/logout">logout</a>
-{% else %}
-	<h1>Authorisation</h1>
+<div class="span-24 last" style="border:#CCC solid 0;border-bottom-width:1px">
+	<h1>{{ capitalize(title) }}</h1>
+</div>
 
-	{{ form:asHtml() }}
-
-	{% if form:isSubmitted() and form:getErrorsCount() > 0 then %}
-		<h2>Errors!</h2>
-		{% local index, error for index, error in ipairs(form:getErrors()) do %}
-			{{ error }}<br />
-		{% end %}
+<div class="span-24 last">
+	{% local _, error for _, error in ipairs(form:getErrors()) do %}
+		{{ error }}
 	{% end %}
-{% end %}
+	{{ form }}
+</div>
 
 {{ include "admin/_footer.html" }}

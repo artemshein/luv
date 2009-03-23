@@ -4,6 +4,7 @@ local require, rawset, type, pairs, ipairs, table, io = require, rawset, type, p
 local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"
 local references = require "luv.fields.references"
 local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
+local widgets = require "luv.fields.widgets"
 
 module(...)
 
@@ -23,7 +24,6 @@ local Form = Struct:extend{
 			if type(v) == "table" and v.isObject and v:isKindOf(fields.Field) then
 				new:addField(k, v)
 				new[k] = nil
-				v:setId(k)
 			end
 		end
 		return new
@@ -51,13 +51,7 @@ local Form = Struct:extend{
 			end
 		end
 	end,
-	addField = function (self, name, field)
-		Struct.addField(self, name, field)
-		if field:isKindOf(references.Reference) then
-			field:setContainer(self)
-		end
-	end;
-	getAction = function (self) return self.Meta.action end,
+	getAction = function (self) return self.Meta.action or "" end,
 	setAction = function (self, action) self.Meta.action = action return self end,
 	getId = function (self)
 		if not self.Meta.id then
@@ -92,11 +86,45 @@ local Form = Struct:extend{
 		end
 		return res
 	end;
+	getHiddenFields = function (self)
+		local res, _, field = {}
+		for _, field in ipairs(self:getFieldsList()) do
+			field = self:getField(field)
+			local widget = field:getWidget()
+			if widget and widget:isKindOf(widgets.Hidden) then
+				table.insert(res, field)
+			end
+		end
+		return res
+	end;
+	getVisibleFields = function (self)
+		local res, _, field = {}
+		for _, field in ipairs(self:getFieldsList()) do
+			field = self:getField(field)
+			local widget = field:getWidget()
+			if widget and not widget:isKindOf(widgets.Hidden) and not widget:isKindOf(widgets.Button) then
+				table.insert(res, field)
+			end
+		end
+		return res
+	end;
+	getButtonFields = function (self)
+		local res, _, field = {}
+		for _, field in ipairs(self:getFieldsList()) do
+			field = self:getField(field)
+			local widget = field:getWidget()
+			if widget and widget:isKindOf(widgets.Button) then
+				table.insert(res, field)
+			end
+		end
+		return res
+	end;
 }
 
 local ModelForm = Form:extend{
 	__tag = .....".ModelForm",
 	extend = function (self, new)
+		new = Form.extend(self, new)
 		if not new.Meta then
 			Exception"Meta must be defined!":throw()
 		end
@@ -107,10 +135,10 @@ local ModelForm = Form:extend{
 		for k, v in pairs(new.Meta.model:getFieldsByName()) do
 			if (not new.Meta.fields or table.find(new.Meta.fields, k))
 				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k)) then
-				new[k] = v
+				new:addField(k, v:clone())
 			end
 		end
-		return Form.extend(self, new)
+		return new
 	end;
 }
 

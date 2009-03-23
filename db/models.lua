@@ -18,13 +18,11 @@ end
 local Model = Struct:extend{
 	__tag = .....".Model",
 	modelsList = {};
-	__tostring = function (self)
-		return tostring(self:getPk():getValue())
-	end,
+	__tostring = function (self) return tostring(self:getPk():getValue()) end,
 	createBackLinksFieldsFrom = function (self, model)
 		local _, v
 		for _, v in ipairs(model:getReferenceFields(self)) do
-			if not self:getField(v:getRelatedName()) then
+			if not self:getField(v:getRelatedName() or Exception("relatedName required for "..v:getName().." field"):throw()) then
 				self:addField(v:getRelatedName(), v:createBackLink())
 			end
 		end
@@ -40,16 +38,15 @@ local Model = Struct:extend{
 				new:addField(k, v)
 				if not v:getLabel() then v:setLabel(k) end
 				if v:isKindOf(references.Reference) then
-					v:setContainer(new)
 					if not v:getRelatedName() then
 						if v:isKindOf(references.OneToMany) then
 							v:setRelatedName(k)
 						elseif v:isKindOf(references.ManyToOne) then
 							Exception"Use OneToMany field on related model instead of ManyToOne or set relatedName!":throw()
 						elseif v:isKindOf(references.ManyToMany) then
-							v:setRelatedName(self:getLabelMany())
+							v:setRelatedName(new:getLabelMany() or Exception"LabelMany required!":throw())
 						else
-							v:setRelatedName(self:getLabel())
+							v:setRelatedName(new:getLabel() or Exception"Label required!":throw())
 						end
 					end
 					v:getRefModel():addField(v:getRelatedName(), v:createBackLink())
@@ -58,30 +55,16 @@ local Model = Struct:extend{
 				hasPk = hasPk or v:isPk()
 			end
 		end
-		if table.isEmpty(new.fields) then
-			Exception"Model must have at least one field!":throw()
+		if not table.isEmpty(new.fields) then
+			if not hasPk then new:addField("id", fields.Id()) end
+			local _
+			for _, v in ipairs(self.modelsList) do
+				new:createBackLinksFieldsFrom(v)
+				v:createBackLinksFieldsFrom(new)
+			end
+			table.insert(self.modelsList, new)
 		end
-		if not hasPk then
-			new:addField("id", fields.Id())
-		end
-		local _
-		for _, v in ipairs(self.modelsList) do
-			new:createBackLinksFieldsFrom(v)
-			v:createBackLinksFieldsFrom(new)
-		end
-		table.insert(self.modelsList, new)
-		-- Meta
-		if not new.Meta then
-			Exception"Meta must be defined!":throw()
-		end
-		if new.Meta.labels then
-			new.Meta.label = new.Meta.labels[1]
-			new.Meta.labelMany = new.Meta.labels[2]
-		end
-		if not new:getLabel() or not new:getLabelMany() then
-			Exception"Label and labelMany must be defined in Meta!":throw()
-		end
-		-- Admin
+		new.Meta = new.Meta or {}
 		new.Admin = new.Admin or {}
 		return new
 	end,
@@ -110,16 +93,10 @@ local Model = Struct:extend{
 		end
 		getmetatable(self).__eq = modelsEq
 	end,
-	addField = function (self, name, field)
-		Struct.addField(self, name, field)
-		if field:isKindOf(references.Reference) then
-			field:setContainer(self)
-		end
-	end;
 	clone = function (self)
 		local new, fields = Struct.clone(self), {}
 		local k, v
-		for k, v in pairs(self.fields) do
+		for k, v in pairs(self:getFieldsByName()) do
 			fields[k] = v:clone()
 		end
 		new.fields = fields
@@ -161,8 +138,8 @@ local Model = Struct:extend{
 	end,
 	getDb = function (self) return self.db end,
 	setDb = function (self, db) rawset(self, "db", db) return self end,
-	getLabel = function (self) return self.Meta.label end,
-	getLabelMany = function (self) return self.Meta.labelMany end,
+	getLabel = function (self) return self.Meta.label or self.Meta.labels[1] end,
+	getLabelMany = function (self) return self.Meta.labelMany or self.Meta.labels[2] end,
 	-- Admin
 	getSmallIcon = function (self) return self.Admin.smallIcon end;
 	setSmallIcon = function (self, icon) self.Admin.smallIcon = icon return self end;
@@ -400,6 +377,76 @@ local Model = Struct:extend{
 	end
 }
 
+local TreeModel = Model:extend{
+	__tag = .....".TreeModel";
+	hasChildren = Model.abstractMethod;
+	getChildren = Model.abstractMethod;
+	getParent = Model.abstractMethod;
+	removeChildren = Model.abstractMethod;
+	addChild = Model.abstractMethod;
+	childrenCount = Model.abstractMethod;
+	findRoot = Model.abstractMethod;
+}
+
+local NestedSetModel = TreeModel:extend{
+	__tag = .....".NestedSetModel";
+	hasChildren = function (self) return self.right-self.left > 1 end;
+	getChildren = function (self)
+		return self:all():filter{left__gte=self.left;right__lte=self.right;level=self.level+1}
+	end;
+	getParent = function (self)
+		if 0 == self.level then
+			return false
+		end
+		return self:find{left__le=self.left;right__ge=self.right;level=self.level-1}
+	end;
+	removeChildren = function (self)
+		if not self:hasChildren() then
+			return true
+		end
+		self.db:beginTransaction()
+		self.db:Delete():from(self:getTableName())
+			:where("?#>?d", "left", self.left)
+			:andWhere("?#<?d", "right", self.right)
+			:exec()
+		self.db:Update(self:getTableName())
+			:set("?#=?#-?d", "left", "left", self.right-self.left-1)
+			:set("?#=?#-?d", "right", "right", self.right-self.left-1)
+			:where("?#>?d", "left", self.right)
+			:exec()
+		self.right = self.left+1
+		if not self:update() then
+			self.db:rollback()
+			return false
+		end
+		self.db:commit()
+		return true
+	end;
+	addChild = function (self, child)
+		if not child:isKindOf(self.parent) then Exception "not valid child class":throw() end
+		child.level = self.level+1
+		child.left = self.left+1
+		child.right = self.left+2
+		self.db:beginTransaction()
+		self.db:Update(self.getTableName())
+			:set("?#=?#+2", "left", "left")
+			:where("?#>?d", "left", self.left)
+			:exec()
+		self.db:Update(self.getTableName())
+			:set("?#=?#+2", "right", "right")
+			:where("?#>?d", "right", self.left)
+			:exec()
+		if not child:insert() then
+			self.db:rollback()
+			return false
+		end
+		self.db:commit()
+		return true
+	end;
+	childrenCount = function (self) return (self.right-self.left-1)/2 end;
+	findRoot = function (self) return self:find{left=1} end;
+}
+
 local LazyQuerySet = Object:extend{
 	__tag = .....".LazyQuerySet",
 	init = function (self, model, func)
@@ -553,7 +600,7 @@ local Paginator = Object:extend{
 }
 
 return {
-	Model = Model,
+	Model = Model;TreeModel=TreeModel;NestedSetModel=NestedSetModel;
 	LazyQuerySet = LazyQuerySet;
 	Paginator=Paginator;
 }

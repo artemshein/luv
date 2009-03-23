@@ -2,7 +2,7 @@ require"luv.table"
 require"luv.string"
 require"luv.debug"
 local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
-local _G = _G
+local _G, error = _G, error
 local oop, exceptions, utils, sessions, fs, ws, sessions = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 
@@ -67,7 +67,8 @@ local UrlConf = Object:extend{
 	getBaseUri = function (self) return string.slice(self.baseUri, 1, -string.len(self.uri)-1) end;
 	execute = function (self, action)
 		if type(action) == "string" then
-			return self:dispatch(dofile(action))
+			local result = dofile(action)
+			return result and self:dispatch(result) or true
 		elseif type(action) == "function" then
 			return action(self)
 		else
@@ -75,23 +76,28 @@ local UrlConf = Object:extend{
 		end
 	end,
 	dispatch = function (self, urls)
-		for expr, script in pairs(urls) do
-			if "string" == type(expr) then
-				local res = {string.find(self.uri, expr)}
+		local _, item, action
+		for _, item in pairs(urls) do
+			if "string" == type(item[1]) then
+				local res = {string.find(self.uri, item[1])}
 				if nil ~= res[1] then
+					local oldUri, oldCaptures = self.uri, self.captures
 					self.uri = string.sub(self.uri, res[2]+1)
 					self.captures = {}
 					local i = 3
 					for i = 3, #res do
 						table.insert(self.captures, res[i])
 					end
-					if false ~= self:execute(script) then
+					if false ~= self:execute(item[2]) then
 						return true
 					end
+					self.uri = oldUri
+					self.captures = oldCaptures
 				end
+			elseif false == item[1] then
+				action = item[2]
 			end
 		end
-		local action = urls[false]
 		if action then self:execute(action) return true end
 		return false
 	end
@@ -199,6 +205,10 @@ local Struct = Object:extend{
 		return value
 	end,
 	addField = function (self, name, field)
+		if not field:isKindOf(require "luv.fields".Field) then
+			Exception "instance of Field expected!":throw()
+		end
+		field:setContainer(self)
 		field:setName(name)
 		table.insert(self.fields, field)
 		self.fieldsByName[name] = field

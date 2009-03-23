@@ -25,8 +25,17 @@ local Form = Widget:extend{
 		if not field:getId() then
 			return string.capitalize(field:getLabel())..":"
 		end
-		return [[<label for="]]..html.escape(form:getId()..string.capitalize(field:getId()))..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
-	end,
+		return [[<label for="]]..html.escape(field:getId())..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
+	end;
+	renderLabelCheckbox = function (self, form, field)
+		if not field:getLabel() then
+			return ""
+		end
+		if not field:getId() then
+			return field:getLabel()
+		end
+		return [[<label for="]]..html.escape(field:getId())..[[">]]..field:getLabel()..[[</label>]]
+	end;
 	renderField = function (self, form, field)
 		return field:asHtml(form)
 	end,
@@ -44,8 +53,12 @@ local Form = Widget:extend{
 		-- Then visible fields
 		for _, v in ipairs(form:getFieldsList()) do
 			local f = form:getField(v)
-			if not f:isKindOf(references.Reference) and f:getWidget() and not f:getWidget():isKindOf(widgets.HiddenInput) and not f:getWidget():isKindOf(widgets.Button) then
-				html = html..self.beforeLabel..self:renderLabel(form, f)..self.afterLabel..self.beforeField..self:renderField(form, f)..self.afterField
+			if f:getWidget() and not f:getWidget():isKindOf(widgets.HiddenInput) and not f:getWidget():isKindOf(widgets.Button) then
+				if f:getWidget():isKindOf(widgets.Checkbox) then
+					html = html..self.beforeLabel..self.afterLabel..self.beforeField..self:renderField(form, f)..self:renderLabelCheckbox(form, f)..self.afterField
+				else
+					html = html..self.beforeLabel..self:renderLabel(form, f)..self.afterLabel..self.beforeField..self:renderField(form, f)..self.afterField
+				end
 			end
 		end
 		-- Buttons

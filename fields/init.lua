@@ -1,3 +1,5 @@
+require "luv.debug"
+local debug, error = debug, error
 local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
 
@@ -40,12 +42,14 @@ local Field = Object:extend{
 		self:setDefaultValue(params.defaultValue)
 		return self
 	end,
+	getContainer = function (self) return self.container end;
+	setContainer = function (self, container) self.container = container return self end;
 	isRequired = function (self) return self.required end,
 	isUnique = function (self) return self.unique end,
 	isPk = function (self) return self.pk end,
-	getId = function (self) return self.id end,
+	getId = function (self) return self.id or self:getContainer():getId()..string.capitalize(self:getName()) end,
 	setId = function (self, id) self.id = id return self end,
-	getLabel = function (self) return self.label end,
+	getLabel = function (self) return self.label or self:getName() end,
 	setLabel = function (self, label) self.label = label return self end;
 	getName = function (self) return self.name end;
 	setName = function (self, name) self.name = name return self end;
@@ -77,7 +81,7 @@ local Field = Object:extend{
 	end,
 	getWidget = function (self) return self.widget end,
 	setWidget = function (self, widget) self.widget = widget return self end,
-	asHtml = function (self, form) return self.widget:render(self, form) end
+	asHtml = function (self, form) return self.widget:render(self, form) end;
 }
 
 local Text = Field:extend{
@@ -106,6 +110,43 @@ local Text = Field:extend{
 	end
 }
 
+local Email = Text:extend{
+	__tag = .....".Email";
+	init = function (self, params)
+		params = params or {}
+		params.maxLength = 255;
+		Text.init(self, params)
+	end;
+}
+
+local Url = Text:extend{
+	__tag = .....".Url";
+	init = function (self, params)
+		params = params or {}
+		params.maxLength = 255;
+		Text.init(self, params)
+	end;
+}
+
+local File = Text:extend{
+	__tag = .....".File";
+	init = function (self, params)
+		params = params or {}
+		params.maxLength = 255;
+		Text.init(self, params)
+	end;
+}
+
+local Phone = Text:extend{
+	__tag = .....".Phone";
+	init = function (self, params)
+		params = params or {}
+		params.minLength = 12
+		params.maxLength = 12
+		Text.init(self, params)
+	end;
+}
+
 local Int = Field:extend{
 	__tag = .....".Int",
 	init = function (self, params)
@@ -125,7 +166,7 @@ local Boolean = Int:extend{
 	__tag = .....".Boolean";
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.CheckboxInput
+		params.widget = params.widget or widgets.Checkbox
 		Int.init(self, params)
 	end;
 	setValue = function (self, value)
@@ -187,6 +228,21 @@ local Submit = Button:extend{
 	end
 }
 
+local Image = Button:extend{
+	__tag = .....".Image";
+	init = function (self, params)
+		params = params or {}
+		if "table" ~= type(params) then
+			params = {src=params}
+		end
+		self:setSrc(params.src)
+		params.widget = params.widget or widgets.ImageButton
+		Button.init(self, params)
+	end;
+	getSrc = function (self) return self.src end;
+	setSrc = function (self, src) self.src = src return self end;
+}
+
 local Datetime = Field:extend{
 	__tag = .....".Datetime";
 	setParams = function (self, params)
@@ -233,7 +289,11 @@ return {
 	Boolean=Boolean;
 	Login = Login,
 	Id = Id,
-	Button = Button,
+	Button = Button;
+	Image = Image;
 	Submit = Submit;
 	Datetime=Datetime;
+	Email=Email;
+	Phone=Phone;
+	Url=Url;File=File;
 }

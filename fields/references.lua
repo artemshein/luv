@@ -1,6 +1,9 @@
 require "luv.string"
+require "luv.debug"
+local debug = debug
 local type, require, pairs, table, select, string, io = type, require, pairs, table, select, string, io
 local fields, Exception = require"luv.fields", require"luv.exceptions".Exception
+local widgets = require "luv.fields.widgets"
 
 module(...)
 
@@ -20,10 +23,10 @@ local Reference = fields.Field:extend{
 	end,
 	setParams = function (self, params)
 		if "table" == type(params)  then
-			self.relatedName = params.relatedName or Exception "related name must be set":throw()
 			self.toField = params.toField
 			if "table" ~= type(params.references) then Exception "References must be a Model!":throw() end
 			self.refModel = params.references
+			self.relatedName = params.relatedName
 			fields.Field.setParams(self, params)
 		else
 			self.refModel = params or Exception"References required!":throw()
@@ -32,8 +35,6 @@ local Reference = fields.Field:extend{
 	getRelatedName = function (self) return self.relatedName end,
 	setRelatedName = function (self, relatedName) self.relatedName = relatedName return self end,
 	getToField = function (self) return self.toField end,
-	getContainer = function (self) return self.container end,
-	setContainer = function (self, container) self.container = container return self end,
 	getRole = function (self) return self.role end,
 	setRole = function (self, role) self.role = role return self end,
 	getRefModel = function (self) return self.refModel end;
@@ -41,6 +42,11 @@ local Reference = fields.Field:extend{
 
 local ManyToMany = Reference:extend{
 	__tag = .....".ManyToMany",
+	init = function (self, params)
+		params = params or {}
+		params.widget = params.widget or widgets.MultipleSelect
+		Reference.init(self, params)
+	end;
 	setValue = function (self, value)
 		if "table" == type(value) then
 			local refModel, _, v = self:getRefModel()
@@ -68,7 +74,7 @@ local ManyToMany = Reference:extend{
 		return self.tableName
 	end,
 	createBackLink = function (self)
-		return require(MODULE).ManyToMany{references=self:getContainer();relatedName=self:getName()}
+		return require(MODULE).ManyToMany{references=self:getContainer();relatedName=self:getName();label=self:getContainer():getLabelMany()}
 	end,
 	createTable = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
@@ -139,11 +145,22 @@ local ManyToMany = Reference:extend{
 	end,
 	isEmpty = function (self)
 		return 0 == self:count()
-	end
+	end;
+	getRelatedName = function (self)
+		if not self.relatedName then
+			self.relatedName = self:getContainer():getLabelMany()
+		end
+		return Reference.getRelatedName(self)
+	end;
 }
 
 local ManyToOne = Reference:extend{
 	__tag = .....".ManyToOne",
+	init = function (self, params)
+		params = params or {}
+		params.widget = params.widget or widgets.Select
+		Reference.init(self, params)
+	end;
 	getValue = function (self)
 		local valType = type(self.value)
 		if valType ~= nil and valType ~= "table" then
@@ -163,8 +180,14 @@ local ManyToOne = Reference:extend{
 		return self:getRefModel():getTableName()
 	end,
 	createBackLink = function (self)
-		return require(MODULE).OneToMany{references=self:getContainer();relatedName=self:getName()}
-	end
+		return require(MODULE).OneToMany{references=self:getContainer();relatedName=self:getName();label=self:getContainer():getLabelMany()}
+	end;
+	getRelatedName = function (self)
+		if not self.relatedName then
+			self.relatedName = self:getContainer():getLabelMany()
+		end
+		return Reference.getRelatedName(self)
+	end;
 }
 
 local getKeysForObjects = function (self, ...)
@@ -181,6 +204,11 @@ end
 
 local OneToMany = Reference:extend{
 	__tag = .....".OneToMany",
+	init = function (self, params)
+		params = params or {}
+		params.widget = params.widget or widgets.MultipleSelect
+		Reference.init(self, params)
+	end;
 	getTableName = function (self)
 		return self:getRefModel():getTableName()
 	end,
@@ -244,15 +272,22 @@ local OneToMany = Reference:extend{
 		return self:all():update{[toFieldName] = nil}
 	end;
 	createBackLink = function (self)
-		return require(MODULE).ManyToOne{references=self:getContainer();relatedName=self:getName()}
-	end
+		return require(MODULE).ManyToOne{references=self:getContainer();relatedName=self:getName();label=self:getContainer():getLabel()}
+	end;
+	getRelatedName = function (self)
+		if not self.relatedName then
+			self.relatedName = self:getContainer():getLabel()
+		end
+		return Reference.getRelatedName(self)
+	end;
 }
 
 local OneToOne = Reference:extend{
 	__tag = .....".OneToOne",
 	init = function (self, params)
 		params = params or {}
-		self:setParams(params)
+		params.widget = params.widget or widgets.Select
+		Reference.init(self, params)
 		self.backLink = params.backLink or false
 	end,
 	getTableName = function (self)
@@ -296,7 +331,7 @@ local OneToOne = Reference:extend{
 	end,
 	isBackLink = function (self) return self.backLink end,
 	createBackLink = function (self)
-		return require(MODULE).OneToOne{references=self:getContainer();backLink=not self:isBackLink();relatedName=self:getName()}
+		return require(MODULE).OneToOne{references=self:getContainer();backLink=not self:isBackLink();relatedName=self:getName();label=self:getContainer():getLabel()}
 	end,
 	--[[
 	createTable = function (self)
@@ -317,6 +352,12 @@ local OneToOne = Reference:extend{
 	dropTable = function (self)
 		return self:getContainer():getDb():DropTable(self:getTableName()):exec()
 	end]]
+	getRelatedName = function (self)
+		if not self.relatedName then
+			self.relatedName = self:getContainer():getLabel()
+		end
+		return Reference.getRelatedName(self)
+	end;
 }
 
 return {

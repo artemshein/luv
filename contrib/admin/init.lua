@@ -12,10 +12,7 @@ local function getFormFor (model)
 	if adminForm then
 		return adminForm
 	end
-	return forms.ModelForm:extend{
-		Meta={model=model};
-		add = fields.Submit "Add";
-	}()
+	return forms.ModelForm:extend{Meta={model=model}}
 end;
 
 return function (luv, modelsList)
@@ -32,22 +29,27 @@ return function (luv, modelsList)
 				if model:getPath() == path then return model end
 			end
 		end
+		return false
 	end
 	return function (urlConf)
 		local baseUri = urlConf:getBaseUri()
 		luv:dispatch{
-			["^/login"] = function (urlConf)
+			{"^/login$"; function (urlConf)
 				local form = auth.forms.LoginForm(luv:getPostData())
 				local user = auth.models.User:getAuthUser(luv:getSession(), form)
 				if user and user.isActive then luv:setResponseHeader("Location", baseUri):sendHeaders() end
-				luv:assign{ipairs=ipairs;tostring=tostring;form=form;user=user}
+				luv:assign{
+					capitalize=string.capitalize;
+					title="Authorisation";
+					ipairs=ipairs;tostring=tostring;form=form;user=user;
+				}
 				luv:display "admin/login.html"
-			end;
-			["^/logout"] = function ()
+			end};
+			{"^/logout$"; function (urlConf)
 				auth.models.User:logout(luv:getSession())
 				luv:setResponseHeader("Location", "/"):sendHeaders()
-			end;
-			["^/([^/]+)/add$"] = function (urlConf)
+			end};
+			{"^/([^/]+)/add$"; function (urlConf)
 				local user = auth.models.User:getAuthUser(luv:getSession())
 				if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
 				local model = findModel(urlConf:getCapture(1))
@@ -62,33 +64,42 @@ return function (luv, modelsList)
 					model=model;
 					urlConf=urlConf;
 					title="Add "..model:getLabel();
-					form=getFormFor(model);
+					form=getFormFor(model):addField("add", fields.Submit "Add")();
 				}
 				luv:display "admin/add.html"
-			end;
-			["^/([^/]+)/records$"] = function (urlConf)
+			end};
+			{"^/([^/]+)/records$"; function (urlConf)
 				local user = auth.models.User:getAuthUser(luv:getSession())
 				if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
 				local model = findModel(urlConf:getCapture(1))
 				if not model then return false end
-				local page = tonumber(luv:getPost "page") or 1
-				luv:assign{
-					ipairs=ipairs;
-					capitalize=string.capitalize;
-					tostring=tostring;
-					html=html;
-					baseUri=baseUri;
-					user=user;
-					model=model;
-					page=page;
-					fields=model:getDisplayList();
-					p=models.Paginator(model, 10);
-					urlConf=urlConf;
-					title=string.capitalize(model:getLabelMany());
-				}
-				luv:display "admin/_records-table.html"
-			end;
-			["^/([^/]+)$"] = function (urlConf)
+				if model:isKindOf(models.TreeModel) then
+					luv:assign{
+						ipairs=ipairs;tostring=tostring;
+						nodes={model:findRoot()};
+						isRoot=true;
+					}
+					luv:display "admin/_records-tree.html"
+				else
+					local page = tonumber(luv:getPost "page") or 1
+					luv:assign{
+						ipairs=ipairs;
+						capitalize=string.capitalize;
+						tostring=tostring;
+						html=html;
+						baseUri=baseUri;
+						user=user;
+						model=model;
+						page=page;
+						fields=model:getDisplayList();
+						p=models.Paginator(model, 10);
+						urlConf=urlConf;
+						title=string.capitalize(model:getLabelMany());
+					}
+					luv:display "admin/_records-table.html"
+				end
+			end};
+			{"^/([^/]+)$"; function (urlConf)
 				local user = auth.models.User:getAuthUser(luv:getSession())
 				if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
 				local model = findModel(urlConf:getCapture(1))
@@ -103,8 +114,8 @@ return function (luv, modelsList)
 					title=string.capitalize(model:getLabelMany());
 				}
 				luv:display "admin/records.html"
-			end;
-			[false] = function (urlConf)
+			end};
+			{false; function (urlConf)
 				local user = auth.models.User:getAuthUser(luv:getSession())
 				if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
 				luv:assign{
@@ -117,7 +128,7 @@ return function (luv, modelsList)
 					categories=modelsCategories;
 				}
 				luv:display "admin/main.html"
-			end;
+			end};
 		}
 	end;
 end

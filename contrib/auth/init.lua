@@ -22,7 +22,7 @@ local GroupRight = models.Model:extend{
 
 local UserGroup = models.Model:extend{
 	__tag = .....".UserGroup",
-	Meta = {labels={"user group", "user groups"}},
+	Meta = {labels={"user group";"user groups"}},
 	Admin = {
 		category = "authorisation";
 		smallIcon = {path="/images/icons/auth/users16.png";width=16;height=16};
@@ -43,11 +43,18 @@ local User = models.Model:extend{
 		smallIcon = {path="/images/icons/auth/community_users16.png";width=16;height=16};
 		bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
 		displayList = {"login", "name", "group"};
+		form = forms.Form:extend{
+			login = fields.Login();
+			name = fields.Text();
+			password = fields.Text{minLength=6;maxLength=32};
+			password2 = fields.Text{minLength=6;maxLength=32};
+			group = references.ManyToOne{references=UserGroup};
+		}
 	};
 	sessId = "LUV_AUTH",
 	secretSalt = "",
 	-- Fields
-	isActive = fields.Boolean{defaultValue=true};
+	isActive = fields.Boolean{defaultValue=true;label="active user"};
 	login = fields.Login(),
 	name = fields.Text(),
 	passwordHash = fields.Text{required = true},
