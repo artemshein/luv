@@ -13,6 +13,13 @@ local Input = Widget:extend{
 	end
 }
 
+local TextArea = Widget:extend{
+	__tag = .....".TextArea";
+	render = function (self, field, form)
+		return [[<textarea name="]]..html.escape(field:getName())..[[" id="]]..html.escape(field:getId())..[[">]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[[</textarea>]]
+	end;
+}
+
 local Checkbox = Input:extend{
 	__tag = .....".Checkbox";
 	type = "checkbox";
@@ -85,6 +92,7 @@ local MultipleSelect = Select:extend{
 }
 
 return {
+	TextArea=TextArea;
 	TextInput = TextInput,
 	HiddenInput = HiddenInput,
 	PasswordInput = PasswordInput,

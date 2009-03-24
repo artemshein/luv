@@ -5,13 +5,14 @@
 <div class="span-24 last">
 	<div class="span-18">
 		<ul id="modelsList">
-		{% local category, models for category, models in pairs(categories) do %}
+		{% local category, admins for category, admins in pairs(categories) do %}
 			<li>
 				<h2>{{ capitalize(category) }}</h2>
 				<ul>
-				{% local _, model for _, model in pairs(models) do %}
+				{% local _, admin for _, admin in ipairs(admins) do %}
+					{% local model = admin:getModel() %}
 					{% local name = model:getLabelMany() %}
-					{% local modelUrl = baseUri.."/"..model:getPath() %}
+					{% local modelUrl = baseUri.."/"..admin:getPath() %}
 					<li class="{{ cycle(0, {"odd";"even"}) }}">
 						<div class="button" style="float:right">
 							<a href="{{ modelUrl }}/add">
@@ -19,8 +20,8 @@
 							</a>
 							<a href="{{ modelUrl }}/add">Add</a>
 						</div>
-						{% if model:getSmallIcon() then %}
-							{% local icon = model:getSmallIcon() %}
+						{% if admin:getSmallIcon() then %}
+							{% local icon = admin:getSmallIcon() %}
 							<a href="{{ modelUrl }}">
 								<img src="{{ icon.path }}" width="{{ icon.width }}" height="{{ icon.height }}" alt="{{ capitalize(name) }}" />
 							</a>

@@ -4,6 +4,8 @@ local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Excep
 
 module(...)
 
+local DIR_SEP = "/"
+
 local Exception = Exception:extend{__tag = .....".Exception"}
 
 local File = Object:extend{
@@ -84,7 +86,28 @@ local Dir = Object:extend{
 	end
 }
 
-return {
-	File = File,
-	Dir = Dir
+local Path = Object:extend{
+	__tag = .....".Path";
+	init = function (self, path) self.path = path end;
+	exists = function (self) Exception "not implemented!":throw() end;
+	__div = function (self, path)
+		if string.endsWith(self.path, "/")
+		or string.endsWith(self.path, "\\") then
+			if string.beginsWith(path, "/")
+			or string.beginsWith(path, "\\") then
+				return self(self.path..string.slice(path, 2))
+			else
+				return self(self.path..path)
+			end
+		else
+			if string.beginsWith(path, "/")
+			or string.beginsWith(path, "\\") then
+				return self(self.path..path)
+			else
+				return self(self.path..DIR_SEP..path)
+			end
+		end
+	end;
 }
+
+return {File=File;Dir=Dir;Path=Path;}

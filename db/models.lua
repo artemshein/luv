@@ -65,7 +65,6 @@ local Model = Struct:extend{
 			table.insert(self.modelsList, new)
 		end
 		new.Meta = new.Meta or {}
-		new.Admin = new.Admin or {}
 		return new
 	end,
 	init = function (self, values)
@@ -140,25 +139,6 @@ local Model = Struct:extend{
 	setDb = function (self, db) rawset(self, "db", db) return self end,
 	getLabel = function (self) return self.Meta.label or self.Meta.labels[1] end,
 	getLabelMany = function (self) return self.Meta.labelMany or self.Meta.labels[2] end,
-	-- Admin
-	getSmallIcon = function (self) return self.Admin.smallIcon end;
-	setSmallIcon = function (self, icon) self.Admin.smallIcon = icon return self end;
-	getBigIcon = function (self) return self.Admin.bigIcon end;
-	setBigIcon = function (self, icon) self.Admin.bigIcon = icon return self end;
-	getCategory = function (self) return self.Admin.category end;
-	setCategory = function (self, category) self.Admin.category = category return self end;
-	getPath = function (self) return self.Admin.path or string.replace(string.lower(self:getLabelMany()), " ", "_") end;
-	getDisplayList = function (self)
-		if self.Admin.displayList then
-			return self.Admin.displayList
-		end
-		local res, name, field = {}
-		for name, _ in pairs(self:getFieldsByName()) do
-			table.insert(res, name)
-		end
-		return res
-	end;
-	getAdminForm = function (self) return self.Admin.form end;
 	-- Find
 	getFieldPlaceholder = function (self, field)
 		if not field:isRequired() then

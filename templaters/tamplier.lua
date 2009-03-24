@@ -1,5 +1,6 @@
 local io, string, loadstring, dump, setfenv, type, pairs, table = io, string, loadstring, dump, setfenv, type, pairs, table
 local Templater, fs, Exception = require"luv.templaters".Api, require"luv.fs", require"luv.exceptions".Exception
+local tostring = tostring
 local File = fs.File
 
 module(...)
@@ -20,7 +21,7 @@ return Templater:extend{
 				end
 				local includedFiles = self.internal.includedFiles
 				if not includedFiles[file] then
-					includedFiles[file] = self:fetch(file)
+					includedFiles[file] = self:getTemplateContents(file)
 				end
 				local res = self:compileString(includedFiles[file])
 				if values then
@@ -45,15 +46,18 @@ return Templater:extend{
 		end
 	end,
 	compileString = function (self, str)
+		io.write("\nCOMPILE ", str)
 		local res = string.gsub(str, "{{", "]===]..tostring(")
 		res = string.gsub(res, "}}", ")..[===[")
 		res = string.gsub(res, "{%%", "]===]\n")
 		res = "local s = [===["..string.gsub(res, "%%}", "\ns = s..[===[").."]===]\nreturn s"
+		io.write("\nLOAD ", res)
 		local func, err = loadstring(res)
 		if not func then
 			Exception(err):throw()
 		end
 		setfenv(func, self.internal)
+		io.write("\nEXECUTE", tostring(func))
 		return func()
 	end,
 	fetchString = function (self, str)
@@ -62,17 +66,20 @@ return Templater:extend{
 	displayString = function (self, str)
 		io.write(self:fetchString(str))
 	end,
-	fetch = function (self, template)
+	getTemplateContents = function (self, template)
 		local _, v
 		for _, v in pairs(self.templatesDirs) do
 			local tpl = File(v..template)
 			if tpl:isExists() then
 				local contents = tpl:openForReading():read("*a")
 				tpl:close()
-				return self:compileString(contents)
+				return contents
 			end
 		end
 		Exception("Template "..template.." not found!"):throw()
+	end;
+	fetch = function (self, template)
+		return self:compileString(self:getTemplateContents(template))
 	end,
 	display = function (self, template)
 		io.write(self:fetch(template))

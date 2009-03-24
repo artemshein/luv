@@ -34,10 +34,17 @@ Luv includes:
 	- placeholders;
 	- DBMS agnostic interface;
 	- Models with relations;
+	- auto back links for reference fields;
 - ... will be much more soon ...
 
 What's new
 ==========
+
+Version 0.4alpha
+----------------
++ More fields & widgets.
++ TreeModel & NestedSetModel.
++ AdminSite automatic forms.
 
 Version 0.3alpha [DONE]
 ----------------
@@ -97,37 +104,46 @@ Version 0.4alpha [mar-apr 2009]
 How to install
 ==============
 1. You will need Lua 5.1.x.
-For Ubuntu:
-	sudo apt-get install lua5.1
-For Windows:
-	Download Lua from http://luabinaries.luaforge.net/download.html and
-	then install it.
+	For Ubuntu:
+		sudo apt-get install lua5.1
+	For Windows:
+		Download Lua from http://luabinaries.luaforge.net/download.html
+		and install it.
 2. You will also need a web-server with mod_rewrite, CGI or SCGI support
 (for example Apache with mod_rewrite or LightTPD with mod_rewrite).
 3. datafilter library for Lua is required:
-You can get last binaries from
-http://www.daizucms.org/lua/library/datafilter/
+	Ubuntu:
+		sudo apt-get install liblua5.1-datafilter0
+	Windows:
+		Get last binaries from
+		http://www.daizucms.org/lua/library/datafilter/
 4. Get MySQL 5.x server:
-Ubuntu:
-	sudo apt-get install mysql-server-5.0
-Windows:
-	Download binary from http://dev.mysql.com/downloads/
-4. LuaSQL with MySQL support:
-Ubuntu:
-	sudo apt-get install liblua5.1-sql-mysql-2
-Windows:
-	Download and install binaries from
-	http://luaforge.net/frs/?group_id=12
-5. Copy Luv files to other lua libraries (often /usr/lib/lua/5.1/) into
+	Ubuntu:
+		sudo apt-get install mysql-server-5.0
+	Windows:
+		Download binary from http://dev.mysql.com/downloads/
+5. LuaSQL with MySQL support:
+	Ubuntu:
+		sudo apt-get install liblua5.1-sql-mysql-2
+	Windows:
+		Download and install binaries from
+		http://luaforge.net/frs/?group_id=12
+6. Copy Luv files to other lua libraries (often /usr/lib/lua/5.1/) into
 luv/ directory (/usr/lib/lua/5.1/luv/).
-6. Configure web-server mod_rewrite:
-LightTPD:
-	Uncomment "mod_rewrite" in server.modules. Add ".lua" to
-	static-file.exclude-extensions and place
-	$HTTP["host"] =~ "your host here" {
-		url.rewrite = ("^/(?!(css/|images/|js/))" => "/index.lua")
-	}
-	somewhere in the config file (lighttpd.conf).
+7. Configure web-server mod_rewrite:
+	LightTPD:
+		Uncomment "mod_rewrite" in server.modules. Add ".lua" to
+		static-file.exclude-extensions, place
+------------------------------------------------------------------------
+$HTTP["host"] =~ "your host here" {
+	url.rewrite = ("^/(?!(css/|images/|js/))" => "/index.lua")
+}
+------------------------------------------------------------------------
+		and (only for CGI)
+------------------------------------------------------------------------
+cgi.assign = ( ".lua" => "/usr/bin/lua" )
+------------------------------------------------------------------------
+		somewhere in the config file (lighttpd.conf).
 
 Manual or API reference
 =======================

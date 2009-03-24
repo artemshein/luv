@@ -71,6 +71,8 @@ local UrlConf = Object:extend{
 			return result and self:dispatch(result) or true
 		elseif type(action) == "function" then
 			return action(self)
+		elseif type(action) == "table" then
+			return self:dispatch(action)
 		else
 			Exception "Invalid action!":throw()
 		end
@@ -129,6 +131,10 @@ local Core = Object:extend{
 		self.dsn = dsn
 		self.db = require "luv.db".Factory(dsn)
 		require "luv.db.models".Model:setDb(self.db)
+		self.db:setLogger(function (sql, result)
+			io.write(sql)
+			self:debug(sql, "Database")
+		end)
 		return self
 	end,
 	getDb = function (self) return self.db end,
@@ -172,11 +178,39 @@ local Core = Object:extend{
 		return self
 	end,
 	fetch = function (self, template)
+		self:assign{debugHtml=self.debugger or ""}
 		return self.templater:fetch(template)
 	end,
 	display = function (self, template)
+		self:assign{debugHtml=self.debugger or ""}
 		return self.templater:display(template)
-	end
+	end;
+	-- Debugger
+	getDebugger = function (self) return self.debugger end;
+	setDebugger = function (self, debugger)
+		self.debugger = debugger
+		return self
+	end;
+	debug = function (self, ...)
+		if self.debugger then
+			self.debugger:debug(...)
+		end
+	end;
+	info = function (self, ...)
+		if self.debugger then
+			self.debugger:info(...)
+		end
+	end;
+	warn = function (self, ...)
+		if self.debugger then
+			self.debugger:warn(...)
+		end
+	end;
+	error = function (self, ...)
+		if self.debugger then
+			self.debugger:error(...)
+		end
+	end;
 }
 
 local Struct = Object:extend{
@@ -268,6 +302,7 @@ local init = function (params)
 	core:setTemplater(require "luv.templaters.tamplier" (params.templatesDirs))
 	core:setSession(sessions.Session(core:getWsApi(), sessions.SessionFile(params.sessionDir)))
 	core:setDsn(params.dsn)
+	core:setDebugger(params.debugger)
 	return core
 end
 

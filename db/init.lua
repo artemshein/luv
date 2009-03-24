@@ -362,9 +362,10 @@ local Driver = Object:extend{
 	DeleteRow = DeleteRow,
 	CreateTable = CreateTable,
 	DropTable = DropTable,
-	logger = function (sql, result)
-		io.write(sql, "<br />")
-	end,
+	-- Logger
+	logger = function (sql, result) end;
+	getLogger = function (self) return self.logger end;
+	setLogger = function (self, logger) self.logger = logger return self end;
 	processPlaceholder = Object.abstractMethod,
 	processPlaceholders = function (self, sql, ...)
 		local begPos, endPos, res, match, i, lastEnd = 0, 0, {}, nil, 1, 0
