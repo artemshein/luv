@@ -46,18 +46,15 @@ return Templater:extend{
 		end
 	end,
 	compileString = function (self, str)
-		io.write("\nCOMPILE ", str)
 		local res = string.gsub(str, "{{", "]===]..tostring(")
 		res = string.gsub(res, "}}", ")..[===[")
 		res = string.gsub(res, "{%%", "]===]\n")
 		res = "local s = [===["..string.gsub(res, "%%}", "\ns = s..[===[").."]===]\nreturn s"
-		io.write("\nLOAD ", res)
 		local func, err = loadstring(res)
 		if not func then
 			Exception(err):throw()
 		end
 		setfenv(func, self.internal)
-		io.write("\nEXECUTE", tostring(func))
 		return func()
 	end,
 	fetchString = function (self, str)

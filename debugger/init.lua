@@ -20,7 +20,6 @@ local Fire = Debugger:extend{
 		self.msgs = {}
 	end;
 	debug = function (self, msg, section)
-		io.write("[", msg, section, "]")
 		section = section or self.defaultSectionName
 		self.msgs[section] = self.msgs[section] or {}
 		table.insert(self.msgs[section], {level="log";msg=msg;time=os.clock()})
@@ -41,8 +40,6 @@ local Fire = Debugger:extend{
 		table.insert(self.msgs[section], {level="error";msg=msg;time=os.clock()})
 	end;
 	__tostring = function (self)
-		io.write("FLUSH!")
-		debug.dump(self.msgs, 3)
 		local res, section, msgs = "<script type=\"text/javascript\">//<![CDATA[\n"
 		for section, msgs in pairs(self.msgs) do
 			local _, info

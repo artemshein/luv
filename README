@@ -25,7 +25,8 @@ Luv includes:
 - Exceptions;
 - CGI, SCGI;
 - Unit-testing libs;
-- "Tamplier" template engine written in pure Lua;
+- simple & flexible template engine;
+- debugger for FireBug;
 - Fields (with Validators), Models & Forms;
 - URLconf (URL to action binding);
 - Widgets (representation layer);
@@ -45,6 +46,7 @@ Version 0.4alpha
 + More fields & widgets.
 + TreeModel & NestedSetModel.
 + AdminSite automatic forms.
++ Fire debugger for FireBug.
 
 Version 0.3alpha [DONE]
 ----------------

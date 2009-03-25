@@ -132,7 +132,6 @@ local Core = Object:extend{
 		self.db = require "luv.db".Factory(dsn)
 		require "luv.db.models".Model:setDb(self.db)
 		self.db:setLogger(function (sql, result)
-			io.write(sql)
 			self:debug(sql, "Database")
 		end)
 		return self
@@ -178,11 +177,11 @@ local Core = Object:extend{
 		return self
 	end,
 	fetch = function (self, template)
-		self:assign{debugHtml=self.debugger or ""}
+		self:assign{debugger=self.debugger or ""}
 		return self.templater:fetch(template)
 	end,
 	display = function (self, template)
-		self:assign{debugHtml=self.debugger or ""}
+		self:assign{debugger=self.debugger or ""}
 		return self.templater:display(template)
 	end;
 	-- Debugger
