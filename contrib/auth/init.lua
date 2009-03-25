@@ -11,7 +11,8 @@ local GroupRight = models.Model:extend{
 	Meta = {labels={"group right";"group rights"}},
 	model = fields.Text(),
 	action = fields.Text(),
-	description = fields.Text{maxLength=false}
+	description = fields.Text{maxLength=false};
+	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
 }
 
 local UserGroup = models.Model:extend{
@@ -96,23 +97,27 @@ local getModelsAdmins = function ()
 	if not modelsAdmins then
 		local ModelAdmin = require "luv.contrib.admin".ModelAdmin
 		modelsAdmins = {
-			GroupRightAdmin = ModelAdmin:extend{
+			ModelAdmin:extend{
 				__tag = MODULE..".GroupRightAdmin";
+				model = GroupRight;
 				category = "authorisation";
 				smallIcon = {path="/images/icons/auth/user_accept16.png";width=16;height=16};
 				bigIcon = {path="/images/icons/auth/user_accept48.png";width=48;height=48};
 				displayList = {"model";"action"};
 				fields = {"model";"action";"description"};
 			};
-			UserGroupAdmin = ModelAdmin:extend{
+			ModelAdmin:extend{
 				__tag = MODULE..".UserGroupAdmin";
+				model = UserGroup;
 				category = "authorisation";
 				smallIcon = {path="/images/icons/auth/users16.png";width=16;height=16};
 				bigIcon = {path="/images/icons/auth/users48.png";width=48;width=48};
 				displayList = {"title"};
+				fields = {"title";"description";"rights"};
 			};
-			UserAdmin = ModelAdmin:extend{
+			ModelAdmin:extend{
 				__tag = MODULE..".UserAdmin";
+				model = User;
 				category = "authorisation";
 				smallIcon = {path="/images/icons/auth/community_users16.png";width=16;height=16};
 				bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};

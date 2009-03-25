@@ -43,9 +43,11 @@ local Fire = Debugger:extend{
 		local res, section, msgs = "<script type=\"text/javascript\">//<![CDATA[\n"
 		for section, msgs in pairs(self.msgs) do
 			local _, info
+			res = res.."console.group(\""..section.."\");\n"
 			for _, info in ipairs(msgs) do
-				res = res.."console."..info.level.."(\""..section..": "..info.msg.."\");\n"
+				res = res.."console."..info.level.."(\""..info.msg.."\");\n"
 			end
+			res = res.."console.groupEnd();\n"
 		end
 		return res.."//]]></script>"
 	end;

@@ -110,10 +110,8 @@ local Form = Struct:extend{
 	end;
 	getButtonFields = function (self)
 		local res, _, field = {}
-		for _, field in ipairs(self:getFieldsList()) do
-			field = self:getField(field)
-			local widget = field:getWidget()
-			if widget and widget:isKindOf(widgets.Button) then
+		for _, field in ipairs(self:getFields()) do
+			if field:isKindOf(fields.Button) then
 				table.insert(res, field)
 			end
 		end
@@ -133,8 +131,9 @@ local ModelForm = Form:extend{
 		end
 		local k, v
 		for k, v in pairs(new.Meta.model:getFieldsByName()) do
-			if (not new.Meta.fields or table.find(new.Meta.fields, k))
-				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k)) then
+			if v:isKindOf(fields.Button)
+			or ((not new.Meta.fields or table.find(new.Meta.fields, k))
+				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k))) then
 				new:addField(k, v:clone())
 			end
 		end

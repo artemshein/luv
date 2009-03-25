@@ -9,7 +9,6 @@ module(...)
 
 local ModelAdmin = Object:extend{
 	__tag = .....".ModelAdmin";
-	init = function (self, model) self:setModel(model) end;
 	getModel = function (self) return self.model end;
 	setModel = function (self, model) self.model = model return self end;
 	getSmallIcon = function (self) return self.smallIcon end;
@@ -19,6 +18,7 @@ local ModelAdmin = Object:extend{
 	getCategory = function (self) return self.category end;
 	setCategory = function (self, category) self.category = category return self end;
 	getPath = function (self) return self.path or string.replace(string.lower(self:getModel():getLabelMany()), " ", "_") end;
+	getFields = function (self) return self.fields end;
 	getDisplayList = function (self)
 		if self.displayList then
 			return self.displayList
@@ -31,7 +31,7 @@ local ModelAdmin = Object:extend{
 	end;
 	getForm = function (self)
 		if not self.form then
-			self.form = forms.ModelForm:extend{Meta={model=self:getModel()}}
+			self.form = forms.ModelForm:extend{Meta={model=self:getModel();fields=self:getFields()}}
 		end
 		return self.form
 	end;
@@ -48,13 +48,13 @@ local AdminSite = Object:extend{
 			for _, model in ipairs(modelsList) do
 				local category, admin
 				if "table" == type(model) and model.isObject and model:isKindOf(models.Model) then
-					admin = ModelAdmin
+					admin = ModelAdmin:extend{model=model}
 				else
-					model, admin = unpack(model)
+					admin = model
 				end
 				category = admin:getCategory() or "not categorised"
 				modelsCategories[category] = modelsCategories[category] or {}
-				table.insert(modelsCategories[category], admin(model))
+				table.insert(modelsCategories[category], admin)
 			end
 		end
 		self.modelsCategories = modelsCategories

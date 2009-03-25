@@ -43,31 +43,22 @@ local Form = Widget:extend{
 		local html = ""
 		local _, v
 		-- Hidden fields first
-		for _, v in ipairs(form:getFieldsList()) do
-			local f = form:getField(v)
-			if f:getWidget() and f:getWidget():isKindOf(widgets.HiddenInput) then
-				html = html..self:renderField(form, f)
-			end
+		for _, v in ipairs(form:getHiddenFields()) do
+			html = html..self:renderField(form, v)
 		end
 		html = html..self.beforeFields
 		-- Then visible fields
-		for _, v in ipairs(form:getFieldsList()) do
-			local f = form:getField(v)
-			if f:getWidget() and not f:getWidget():isKindOf(widgets.HiddenInput) and not f:getWidget():isKindOf(widgets.Button) then
-				if f:getWidget():isKindOf(widgets.Checkbox) then
-					html = html..self.beforeLabel..self.afterLabel..self.beforeField..self:renderField(form, f)..self:renderLabelCheckbox(form, f)..self.afterField
-				else
-					html = html..self.beforeLabel..self:renderLabel(form, f)..self.afterLabel..self.beforeField..self:renderField(form, f)..self.afterField
-				end
+		for _, v in ipairs(form:getVisibleFields()) do
+			if v:getWidget():isKindOf(widgets.Checkbox) then
+				html = html..self.beforeLabel..self.afterLabel..self.beforeField..self:renderField(form, v)..self:renderLabelCheckbox(form, v)..self.afterField
+			else
+				html = html..self.beforeLabel..self:renderLabel(form, v)..self.afterLabel..self.beforeField..self:renderField(form, v)..self.afterField
 			end
 		end
 		-- Buttons
 		html = html..self.beforeLabel..self.afterLabel..self.beforeField
-		for _, v in ipairs(form:getFieldsList()) do
-			local f = form:getField(v)
-			if f:getWidget() and f:getWidget():isKindOf(widgets.Button) then
-				html = html..self:renderField(form, f)
-			end
+		for _, v in ipairs(form:getButtonFields()) do
+			html = html..self:renderField(form, v)
 		end
 		return html..self.afterField..self.afterFields
 	end,
