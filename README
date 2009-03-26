@@ -20,13 +20,13 @@ support.
 - LuaSocket for SCGI support.
 
 Luv includes:
-- table, string and debug extensions;
+- Table, string and debug extensions;
 - Prototype-based OOP;
 - Exceptions;
 - CGI, SCGI;
 - Unit-testing libs;
-- simple & flexible template engine;
-- debugger for FireBug;
+- Simple & flexible template engine;
+- Debugger for FireBug & profiler;
 - Fields (with Validators), Models & Forms;
 - URLconf (URL to action binding);
 - Widgets (representation layer);
@@ -45,8 +45,9 @@ Version 0.4alpha
 ----------------
 + More fields & widgets.
 + TreeModel & NestedSetModel.
-+ AdminSite automatic forms.
++ AdminSite automatic forms & actions (add).
 + Fire debugger for FireBug.
++ Profiler.
 
 Version 0.3alpha [DONE]
 ----------------

@@ -107,11 +107,29 @@ local UrlConf = Object:extend{
 	end
 }
 
+local Profiler = Object:extend{
+	__tag = .....".Profiler";
+	init = function (self) self.stat = {} end;
+	beginSection = function (self, section)
+		self.stat[section] = self.stat[section] or {}
+		local statSection = self.stat[section]
+		statSection.begin = os.clock()
+	end;
+	endSection = function (self, section)
+		local statSection = self.stat[section] or Exception "Begin profiling first!":throw()
+		statSection.total = (statSection.total or 0) + (os.clock()-statSection.begin)
+		statSection.count = (statSection.count or 0) + 1
+	end;
+	getStat = function (self) return self.stat end;
+}
+
 local Core = Object:extend{
 	__tag = .....".Core",
 	version = Version(0, 3, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
+		self:setProfiler(Profiler())
+		self:beginProfiling("Luv")
 		-- Init random seed
 		local seed, i, str = os.time(), nil, tostring(tostring(self))
 		for i = 1, string.len(str) do
@@ -177,15 +195,28 @@ local Core = Object:extend{
 	assign = function (self, ...)
 		self.templater:assign(...)
 		return self
-	end,
+	end;
 	fetch = function (self, template)
-		self:assign{debugger=self.debugger or ""}
+		self:flush()
 		return self.templater:fetch(template)
 	end,
 	display = function (self, template)
-		self:assign{debugger=self.debugger or ""}
+		self:flush()
 		return self.templater:display(template)
 	end;
+	flush = function (self)
+		self:endProfiling("Luv")
+		local section, info
+		for section, info in pairs(self:getProfiler():getStat()) do
+			self:info(section.." was executed "..tostring(info.count).." times and takes "..tostring(info.total).." secs", "Profiler")
+		end
+		self:assign{debugger=self.debugger or ""}
+	end;
+	-- Profiler
+	getProfiler = function (self) return self.profiler end;
+	setProfiler = function (self, profiler) self.profiler = profiler return self end;
+	beginProfiling = function (self, section) self.profiler:beginSection(section) return self end;
+	endProfiling = function (self, section) self.profiler:endSection(section) return self end;
 	-- Debugger
 	getDebugger = function (self) return self.debugger end;
 	setDebugger = function (self, debugger)

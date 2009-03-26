@@ -363,7 +363,7 @@ local Driver = Object:extend{
 	CreateTable = CreateTable,
 	DropTable = DropTable,
 	-- Logger
-	logger = function (sql, result) end;
+	logger = function (sql, result, time) end;
 	getLogger = function (self) return self.logger end;
 	setLogger = function (self, logger) self.logger = logger return self end;
 	processPlaceholder = Object.abstractMethod,
