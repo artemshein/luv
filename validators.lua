@@ -14,12 +14,12 @@ local Validator = Object:extend{
 	end,
 	addError = function (self, error) table.insert(self.errors, error) return self end,
 	addErrors = function (self, errors)
-		local i, v for i, v in ipairs(errors) do
+		local _, v for _, v in ipairs(errors) do
 			table.insert(self.errors, v)
 		end
 		return self
 	end,
-	setErrors = function (self, errors) return self.errors end,
+	setErrors = function (self, errors) self.errors = errors return self end,
 	getErrors = function (self) return self.errors end
 }
 
@@ -28,8 +28,8 @@ local Filled = Validator:extend{
 	init = function (self) Validator.init(self) return self end,
 	isValid = function (self, value)
 		Validator.isValid(self, value)
-		if type(value) == "string" then
-			return 0 ~= #value
+		if type(value) == "string" and 0 ~= string.len(value) then
+			return true
 		elseif type(value) ~= "nil" then
 			return true
 		end
@@ -74,7 +74,8 @@ local Length = Validator:extend{
 		elseif type(value) ~= "string" then
 			value = ""
 		end
-		if (self.maxLength ~= 0 and #value > self.maxLength) or (self.minLength and #value < self.minLength) then
+		if (self.maxLength ~= 0 and string.len(value) > self.maxLength)
+		or (self.minLength and string.len(value) < self.minLength) then
 			self:addError "Field \"%s\" has incorrect length."
 			return false
 		end

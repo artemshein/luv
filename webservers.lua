@@ -1,6 +1,7 @@
 require "luv.debug"
 require "luv.string"
 local io, os, string, pairs, debug, ipairs, tonumber = io, os, string, pairs, debug, ipairs, tonumber
+local type, table = type, table
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
 
 module(...)
@@ -108,7 +109,15 @@ local Cgi = Api:extend{
 			local _, v
 			for _, v in ipairs(data) do
 				local key, val = string.split(v, "=")
-				self.post[key] = val
+				if not self.post[key] then
+					self.post[key] = val
+				else
+					if "table" == type(self.post[key]) then
+						table.insert(self.post[key], val)
+					else
+						self.post[key] = {self.post[key];val}
+					end
+				end
 			end
 		else
 			Exception "Not implemented!":throw()

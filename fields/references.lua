@@ -49,10 +49,16 @@ local ManyToMany = Reference:extend{
 	end;
 	setValue = function (self, value)
 		if "table" == type(value) then
-			local refModel, _, v = self:getRefModel()
-			for _, v in pairs(value) do
-				if not v:isKindOf(refModel) then
-					Exception"Table of field references instances required!":throw()
+			value = table.copy(value)
+			local refModel, k, v = self:getRefModel()
+			for k, v in pairs(value) do
+				if "table" ~= type(v) or not v.isObject or not v:isKindOf(refModel) then
+					local obj = refModel:find(v)
+					if not obj then
+						Exception"Table of field references instances required!":throw()
+					else
+						value[k] = obj
+					end
 				end
 			end
 		end
@@ -127,7 +133,7 @@ local ManyToMany = Reference:extend{
 		end
 	end,
 	getValue = function (self)
-		return self
+		return self.value
 	end,
 	all = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()

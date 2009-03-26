@@ -62,6 +62,10 @@ string.explode = function (self, ex)
 	return res
 end
 
+string.escape = function (self)
+	return string.gsub(self, "\"", "\\\"")
+end
+
 --[[
 local urlEncodeChars = {36=true;38;43;44;47;58;59;61;63;64}
 

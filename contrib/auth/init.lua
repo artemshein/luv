@@ -9,8 +9,8 @@ local MODULE = ...
 local GroupRight = models.Model:extend{
 	__tag = .....".GroupRight",
 	Meta = {labels={"group right";"group rights"}},
-	model = fields.Text(),
-	action = fields.Text(),
+	model = fields.Text{required=true;minLength=1};
+	action = fields.Text{required=true;minLength=1};
 	description = fields.Text{maxLength=false};
 	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
 }

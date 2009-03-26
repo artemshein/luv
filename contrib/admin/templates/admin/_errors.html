@@ -1,4 +1,4 @@
-<script type="text/javascript" language="JavaScript">//<![CDATA[
+<!--script type="text/javascript" language="JavaScript">//<![CDATA[
 	function showErrors (errors)
 	{
 		$('#errors').html('<h4>Error!</h4>' + errors.replace(/\n/g, '<br />')).show();
@@ -7,6 +7,12 @@
 	{
 		$('#errors').hide();
 	}
-//]]></script>
-<div id="errors" style="display:none">
-</div>
+//]]></script-->
+{% if errors[1] then %}
+	<div id="errors">
+	<h4>Error!</h4>
+	{% local _, error for _, error in ipairs(errors) do %}
+		{{ error }}<br />
+	{% end %}
+	</div>
+{% end %}

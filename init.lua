@@ -239,6 +239,24 @@ local Struct = Object:extend{
 		end
 		return value
 	end,
+	-- Fields
+	getField = function (self, field) return self.fieldsByName[field] end;
+	getFields = function (self) return self.fields end;
+	getFieldsByName = function (self) return self.fieldsByName end;
+	getValues = function (self)
+		local res = {}
+		local k, v
+		for k, v in pairs(self:getFieldsByName()) do
+			res[k] = v:getValue()
+		end
+		return res
+	end,
+	setValues = function (self, values)
+		local k, v
+		for k, v in pairs(self:getFieldsByName()) do
+			v:setValue(values[k])
+		end
+	end;
 	addField = function (self, name, field)
 		if not field:isKindOf(require "luv.fields".Field) then
 			Exception "instance of Field expected!":throw()
@@ -249,6 +267,7 @@ local Struct = Object:extend{
 		self.fieldsByName[name] = field
 		return self
 	end;
+	-- Validation & errors collect
 	isValid = function (self)
 		local _, v
 		self:setErrors{}
@@ -272,25 +291,6 @@ local Struct = Object:extend{
 	end,
 	getErrors = function (self) return self.errors end,
 	getErrorsCount = function (self) return table.maxn(self.errors) end,
-	getField = function (self, field)
-		return self.fieldsByName[field]
-	end,
-	getFields = function (self) return self.fields end;
-	getFieldsByName = function (self) return self.fieldsByName end;
-	getValues = function (self)
-		local res = {}
-		local k, v
-		for k, v in pairs(self:getFieldsByName()) do
-			res[k] = v:getValue()
-		end
-		return res
-	end,
-	setValues = function (self, values)
-		local k, v
-		for k, v in pairs(self:getFieldsByName()) do
-			v:setValue(values[k])
-		end
-	end
 }
 
 local Widget = Object:extend{

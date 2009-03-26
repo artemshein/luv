@@ -59,7 +59,7 @@ local Field = Object:extend{
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
 	addError = function (self, error) table.insert(self.errors, error) return self end,
 	addErrors = function (self, errors)
-		local i, v for i, v in ipairs(errors) do table.insert(self.errors, v) end
+		local _, v for _, v in ipairs(errors) do table.insert(self.errors, v) end
 		return self
 	end,
 	setErrors = function (self, errors) self.errors = errors return self end,
