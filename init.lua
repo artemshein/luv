@@ -225,7 +225,11 @@ local Struct = Object:extend{
 		if res then
 			res = res[field]
 			if res then
-				return res:getValue()
+				if res:isKindOf(require "luv.fields.references".ManyToMany) or res:isKindOf(require "luv.fields.references".OneToMany)then
+					return res
+				else
+					return res:getValue()
+				end
 			end
 		end
 		return rawget(self, "parent")[field]

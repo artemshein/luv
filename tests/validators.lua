@@ -7,7 +7,7 @@ local Filled = TestCase:extend{
 	testSimple = function (self)
 		local v = Validators.Filled()
 		self.assertTrue(v:isValid("1"))
-		self.assertFalse(v:isValid(""))
+		self.assertTrue(v:isValid(""))
 		self.assertFalse(v:isValid())
 		self.assertTrue(v:isValid(0))
 		self.assertTrue(v:isValid(1))

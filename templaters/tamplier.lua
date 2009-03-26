@@ -12,6 +12,7 @@ return Templater:extend{
 	init = function (self, ...)
 		Templater.init(self, ...)
 		self.internal = {
+			tostring=tostring;
 			includedFiles = {},
 			include = function (file, values)
 				local oldInternal = self.internal
