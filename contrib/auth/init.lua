@@ -123,10 +123,11 @@ local getModelsAdmins = function ()
 				bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
 				displayList = {"login";"name";"group"};
 				form = forms.Form:extend{
+					Meta = {fields={"login";"password";"password2";"name";"group"}};
 					login = fields.Login();
 					name = fields.Text();
 					password = fields.Text{minLength=6;maxLength=32};
-					password2 = fields.Text{minLength=6;maxLength=32};
+					password2 = fields.Text{minLength=6;maxLength=32;label="Repeat password"};
 					group = references.ManyToOne{references=UserGroup};
 				};
 			};

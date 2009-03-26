@@ -56,7 +56,8 @@ local UrlConf = Object:extend{
 		if queryPos then
 			self.uri = string.sub(self.uri, 1, queryPos-1)
 		end
-		self.baseUri = self.uri
+		self.tailUri = self.uri
+		self.baseUri = ""
 	end,
 	getWsApi = function (self) return self.wsApi end;
 	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end;
@@ -64,7 +65,8 @@ local UrlConf = Object:extend{
 		return self.captures[pos]
 	end;
 	getUri = function (self) return self.uri end;
-	getBaseUri = function (self) return string.slice(self.baseUri, 1, -string.len(self.uri)-1) end;
+	getTailUri = function (self) return self.tailUri end;
+	getBaseUri = function (self) return self.baseUri end;
 	execute = function (self, action)
 		if type(action) == "string" then
 			local result = dofile(action)
@@ -81,10 +83,12 @@ local UrlConf = Object:extend{
 		local _, item, action
 		for _, item in pairs(urls) do
 			if "string" == type(item[1]) then
-				local res = {string.find(self.uri, item[1])}
+				local res = {string.find(self.tailUri, item[1])}
 				if nil ~= res[1] then
-					local oldUri, oldCaptures = self.uri, self.captures
-					self.uri = string.sub(self.uri, res[2]+1)
+					local oldTailUri, oldBaseUri, oldCaptures = self.tailUri, self.baseUri, self.captures
+					local tailUriLen = string.len(self.tailUri)
+					self.baseUri = self.baseUri..string.sub(self.uri, 1, -tailUriLen+res[1]-2)
+					self.tailUri = string.sub(self.tailUri, res[2]+1)
 					self.captures = {}
 					local i = 3
 					for i = 3, #res do
@@ -93,8 +97,6 @@ local UrlConf = Object:extend{
 					if false ~= self:execute(item[2]) then
 						return true
 					end
-					self.uri = oldUri
-					self.captures = oldCaptures
 				end
 			elseif false == item[1] then
 				action = item[2]

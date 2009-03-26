@@ -1,55 +1,54 @@
 require"luv.table"
-local debug, table, type, io, rawget, tostring, pairs, getmetatable = debug, table, type, io, rawget, tostring, pairs, getmetatable
+local debug, table, type, rawget, io, tostring, pairs, getmetatable = debug, table, type, rawget, io, tostring, pairs, getmetatable
 
 module(...)
 
 debug.dump = function (obj, depth, tab, seen)
-	local tab = tab or ""
+	local res, tab = "", tab or ""
 	local depth = depth or 10
 	local seen = seen or {}
 	if type(obj) == "nil" then
-		io.write"nil"
+		res = res.."nil"
 	elseif obj == true then
-		io.write"true"
+		res = res.."true"
 	elseif obj == false then
-		io.write"false"
+		res = res.."false"
 	elseif type(obj) == "number" then
-		io.write(obj)
+		res = res..obj
 	elseif type(obj) == "string" then
-		io.write("\"", obj, "\"")
+		res = res.."\""..obj.."\""
 	elseif type(obj) == "table" then
 		local tag = rawget(obj, "__tag")
 		if tag then
-			io.write(tag)
+			res = res..tag
 		else
-			io.write(tostring(obj))
+			res = res..tostring(obj)
 		end
 		if table.find(seen, obj) then
-			io.write "[RECURSION]"
+			res = res.."[RECURSION]"
 		elseif 0 ~= depth then
 			table.insert(seen, obj)
-			io.write"{\n"
+			res = res.."{\n"
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do
 				if key ~= "__tag" then
-					io.write(ntab, key, " = ")
-					debug.dump(val, depth-1, ntab, seen)
-					io.write",\n"
+					res = res..ntab..key.." = "..debug.dump(val, depth-1, ntab, seen)..",\n"
 				end
 			end
 			if getmetatable(obj) then
-				io.write(ntab, "__metatable = ")
-				debug.dump(getmetatable(obj), depth-1, ntab, seen)
-				io.write"\n"
+				res = res..ntab.."__metatable = "..debug.dump(getmetatable(obj), depth-1, ntab, seen).."\n"
 			end
-			io.write(tab, "}")
+			res = res..tab.."}"
 			table.removeValue(seen, obj)
 		end
 	elseif type(obj) == "function" then
-		io.write(tostring(obj))
+		res = res..tostring(obj)
 	else
-		io.write(type(obj))
+		res = res..type(obj)
 	end
+	return res
 end
+
+debug.dprint = function (...) io.write(debug.dump(...)) end
 
 return debug

@@ -12,7 +12,7 @@
 				{% local _, admin for _, admin in ipairs(admins) do %}
 					{% local model = admin:getModel() %}
 					{% local name = model:getLabelMany() %}
-					{% local modelUrl = baseUri.."/"..admin:getPath() %}
+					{% local modelUrl = urlConf:getBaseUri().."/"..admin:getPath() %}
 					<li class="{{ cycle(0, {"odd";"even"}) }}">
 						<div class="button" style="float:right">
 							<a href="{{ modelUrl }}/add">

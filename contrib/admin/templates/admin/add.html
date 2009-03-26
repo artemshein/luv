@@ -1,7 +1,7 @@
 {{ include "admin/_header.html" }}
 
 {{ include "admin/_info.html" }}
-{% local modelUrl = baseUri.."/"..urlConf:getCapture(1) %}
+{% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
 <div class="span-24 last">
 	<div id="chainMenu"><a href="{{ baseUri }}">&larr; Back to main</a> | <a href="{{ modelUrl }}">{{ capitalize(model:getLabelMany()) }}</a></div>
 	<h2>Add {{ model:getLabel() }}</h2>

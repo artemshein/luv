@@ -2,7 +2,7 @@
 
 {{ include "admin/_info.html" }}
 
-{% local modelUrl = baseUri.."/"..urlConf:getCapture(1) %}
+{% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
 
 <div class="span-24 last">
 	<div class="span-18">
@@ -13,7 +13,7 @@
 				</a>
 				<a href="{{ modelUrl }}/add">Add</a>
 			</div>
-			<a href="{{ baseUri }}">&larr; Back to main</a>
+			<a href="{{ urlConf:getBaseUri() }}">&larr; Back to main</a>
 		</div>
 		<div id="records">
 		</div>

@@ -1,6 +1,7 @@
 require "luv.debug"
-local os, table, pairs, ipairs, io, debug, tostring = os, table, pairs, ipairs, io, debug, tostring
+local os, table, pairs, ipairs, io, debug, tostring, type = os, table, pairs, ipairs, io, debug, tostring, type
 local Object = require "luv.oop".Object
+local json = require "luv.utils.json"
 
 module(...)
 
@@ -45,7 +46,11 @@ local Fire = Debugger:extend{
 			local _, info
 			res = res.."console.group(\""..section.."\");\n"
 			for _, info in ipairs(msgs) do
-				res = res.."console."..info.level.."(\""..info.msg.."\");\n"
+				if "string" == type(info.msg) then
+					res = res.."console."..info.level.."(\""..info.msg.."\");\n"
+				else
+					res = res.."console."..info.level.."("..json.to(info.msg)..");\n"
+				end
 			end
 			res = res.."console.groupEnd();\n"
 		end

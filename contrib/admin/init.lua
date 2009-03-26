@@ -4,6 +4,7 @@ local debug, unpack, type, rawget, select = debug, unpack, type, rawget, select
 local Object, auth, models, html = require "luv.oop".Object, require "luv.contrib.auth", require "luv.db.models", require "luv.utils.html"
 local fields = require "luv.fields"
 local forms = require "luv.forms"
+local json = require "luv.utils.json"
 
 module(...)
 
@@ -31,7 +32,7 @@ local ModelAdmin = Object:extend{
 	end;
 	getForm = function (self)
 		if not self.form then
-			self.form = forms.ModelForm:extend{Meta={model=self:getModel();fields=self:getFields()}}
+			self.form = forms.ModelForm:extend{Meta={id="form";model=self:getModel();fields=self:getFields()}}
 		end
 		return self.form
 	end;
@@ -71,12 +72,11 @@ local AdminSite = Object:extend{
 	getUrls = function (self)
 		local luv = self.luv
 		return function (urlConf)
-			local baseUri = urlConf:getBaseUri()
 			return urlConf:dispatch{
 				{"^/login$"; function (urlConf)
 					local form = auth.forms.LoginForm(luv:getPostData())
 					local user = auth.models.User:getAuthUser(luv:getSession(), form)
-					if user and user.isActive then luv:setResponseHeader("Location", baseUri):sendHeaders() end
+					if user and user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri()):sendHeaders() end
 					luv:assign{
 						capitalize=string.capitalize;title="Authorisation";
 						ipairs=ipairs;tostring=tostring;form=form;user=user;
@@ -89,22 +89,22 @@ local AdminSite = Object:extend{
 				end};
 				{"^/([^/]+)/add$"; function (urlConf)
 					local user = auth.models.User:getAuthUser(luv:getSession())
-					if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
+					if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
 					local admin = self:findAdmin(urlConf:getCapture(1))
 					if not admin then return false end
 					local model = admin:getModel()
 					luv:assign{
 						ipairs=ipairs;capitalize=string.capitalize;
-						tostring=tostring;html=html;baseUri=baseUri;
+						tostring=tostring;html=html;
 						user=user;model=model;urlConf=urlConf;
 						title="Add "..model:getLabel();
-						form=admin:getForm():addField("add", fields.Submit "Add")();
+						form=admin:getForm():addField("add", fields.Submit "Add")():setAction(urlConf:getBaseUri());
 					}
 					luv:display "admin/add.html"
 				end};
 				{"^/([^/]+)/records$"; function (urlConf)
 					local user = auth.models.User:getAuthUser(luv:getSession())
-					if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
+					if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
 					local admin = self:findAdmin(urlConf:getCapture(1))
 					if not admin then return false end
 					local model = admin:getModel()
@@ -119,11 +119,10 @@ local AdminSite = Object:extend{
 						local page = tonumber(luv:getPost "page") or 1
 						luv:assign{
 							ipairs=ipairs;capitalize=string.capitalize;
-							tostring=tostring;html=html;baseUri=baseUri;
+							tostring=tostring;html=html;urlConf=urlConf;
 							user=user;model=model;page=page;
 							fields=admin:getDisplayList();
 							p=models.Paginator(model, 10);
-							urlConf=urlConf;
 							title=string.capitalize(model:getLabelMany());
 						}
 						luv:display "admin/_records-table.html"
@@ -131,14 +130,13 @@ local AdminSite = Object:extend{
 				end};
 				{"^/([^/]+)$"; function (urlConf)
 					local user = auth.models.User:getAuthUser(luv:getSession())
-					if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
+					if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
 					local admin = self:findAdmin(urlConf:getCapture(1))
 					if not admin then return false end
 					local model = admin:getModel()
 					luv:assign{
 						capitalize=string.capitalize;
 						tostring=tostring;
-						baseUri=baseUri;
 						user=user;
 						model=model;
 						urlConf=urlConf;
@@ -146,13 +144,13 @@ local AdminSite = Object:extend{
 					}
 					luv:display "admin/records.html"
 				end};
-				{false; function (urlConf)
+				{"^$"; function (urlConf)
 					local user = auth.models.User:getAuthUser(luv:getSession())
-					if not user or not user.isActive then luv:setResponseHeader("Location", baseUri.."/login"):sendHeaders() end
+					if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
 					luv:assign{
 						pairs=pairs;ipairs=ipairs;
 						tostring=tostring;
-						baseUri=baseUri;
+						urlConf=urlConf;
 						user=user;
 						capitalize=string.capitalize;lower=string.lower;replace=string.replace;
 						title="AdminSite";
