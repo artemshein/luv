@@ -9,7 +9,7 @@
 		<th>{{ capitalize(model:getField(field):getLabel()) }}</th>
 	{% end %}
 	</thead>
-	{% local record for _, record in p:getPage(page):pairs() do %}
+	{% local record for _, record in pairs(p:getPage(page):getValues()) do %}
 		<tr class="record">
 			<td width="10"><input type="checkbox" name="items[]" value="{{ record.pk }}" /></td>
 		{% for _, field in ipairs(fields) do %}

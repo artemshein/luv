@@ -1,4 +1,4 @@
-local table, pairs, next, type = table, pairs, next, type
+local table, pairs, next, type, require = table, pairs, next, type, require
 
 module(...)
 

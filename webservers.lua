@@ -91,6 +91,7 @@ local Cgi = Api:extend{
 			local v
 			for _, v in ipairs(data) do
 				local key, val = string.split(v, "=")
+				val = urlDecode(val)
 				self.get[key] = urlDecode(val)
 			end
 		end
@@ -109,6 +110,7 @@ local Cgi = Api:extend{
 			local _, v
 			for _, v in ipairs(data) do
 				local key, val = string.split(v, "=")
+				val = urlDecode(val)
 				if not self.post[key] then
 					self.post[key] = val
 				else

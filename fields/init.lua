@@ -2,6 +2,7 @@ require "luv.debug"
 local debug, error = debug, error
 local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
+local Exception = require "luv.exceptions".Exception
 
 module(...)
 
@@ -47,7 +48,7 @@ local Field = Object:extend{
 	isRequired = function (self) return self.required end,
 	isUnique = function (self) return self.unique end,
 	isPk = function (self) return self.pk end,
-	getId = function (self) return self.id or self:getContainer():getId()..string.capitalize(self:getName()) end,
+	getId = function (self) return self.id end,
 	setId = function (self, id) self.id = id return self end,
 	getLabel = function (self) return self.label or self:getName() end,
 	setLabel = function (self, label) self.label = label return self end;
@@ -81,7 +82,7 @@ local Field = Object:extend{
 	end,
 	getWidget = function (self) return self.widget end,
 	setWidget = function (self, widget) self.widget = widget return self end,
-	asHtml = function (self, form) return self.widget:render(self, form) end;
+	asHtml = function (self, form) return self.widget:render(self, form or self:getContainer()) end;
 }
 
 local Text = Field:extend{

@@ -217,7 +217,7 @@ local Model = Struct:extend{
 				v:insert()
 			end
 		end
-		return self
+		return true
 	end,
 	update = function (self)
 		if not self:isValid() then
@@ -250,6 +250,7 @@ local Model = Struct:extend{
 				v:update()
 			end
 		end
+		return true
 	end,
 	save = function (self)
 		local pk = self:getPk()
@@ -532,6 +533,7 @@ local LazyQuerySet = Object:extend{
 	evaluate = function (self)
 		self.evaluated = true
 		local s = self.db:Select():from(self.model:getTableName())
+		if self.initFunc then self:initFunc(s) end
 		self:applyFiltersAndExcludes(s)
 		local _, v, obj = {}
 		self.values = {}
@@ -540,12 +542,12 @@ local LazyQuerySet = Object:extend{
 			self.values[obj:getPk():getValue()] = obj
 		end
 	end,
-	pairs = function (self)
+	getValues = function (self)
 		if not self.evaluated then
 			self:evaluate()
 		end
-		return pairs(self.values)
-	end,
+		return self.values
+	end;
 	update = function (self, set)
 		local s = self.db:Update(self.model:getTableName())
 		if self.initFunc then self:initFunc(s) end

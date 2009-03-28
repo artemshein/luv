@@ -1,22 +1,27 @@
 require "luv.string"
+require "luv.table"
 local tostring, debug, io = tostring, debug, io
-local string = string
+local string, table, pairs = string, table, pairs
 local Widget, html = require"luv".Widget, require"luv.utils.html"
 
 module(...)
+
+function getId(form, field)
+	return field:getId() or (form:getId()..string.capitalize(field:getName()))
+end
 
 local Input = Widget:extend{
 	__tag = .....".Input",
 	tail = "",
 	render = function (self, field, form)
-		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())..[[" id="]]..html.escape(field:getId())..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..self.tail..[[ />]]
+		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())..[[" id="]]..html.escape(getId(form, field))..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..self.tail..[[ />]]
 	end
 }
 
 local TextArea = Widget:extend{
 	__tag = .....".TextArea";
 	render = function (self, field, form)
-		return [[<textarea name="]]..html.escape(field:getName())..[[" id="]]..html.escape(field:getId())..[[">]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[[</textarea>]]
+		return [[<textarea name="]]..html.escape(field:getName())..[[" id="]]..html.escape(getId(form, field))..[[">]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[[</textarea>]]
 	end;
 }
 
@@ -72,22 +77,23 @@ local ImageButton = Button:extend{
 local Select = Widget:extend{
 	__tag = .....".Select";
 	render = function (self, field, form)
-		local values = ""
-		for k, v in field:getRefModel():all():pairs() do
-			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[[">]]..tostring(v)..[[</option>]]
+		local values, fieldValue = "", field:getValue()
+		for k, v in pairs(field:getRefModel():all():getValues()) do
+			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(fieldValue == v and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
 		end
-		return [[<select id="]]..html.escape(form:getId())..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];
+		return [[<select id="]]..html.escape(getId(form, field))..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];
 	end;
 }
 
 local MultipleSelect = Select:extend{
 	__tag = .....".MiltipleSelect";
 	render = function (self, field, form)
-		local values = ""
-		for k, v in field:getRefModel():all():pairs() do
-			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[[">]]..tostring(v)..[[</option>]]
+		local values, fieldValues = "", field:getValue()
+		for k, v in pairs(field:all():getValues()) do
+			local founded = fieldValues and table.find(fieldValues, v) or false
+			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(founded and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
 		end
-		return [[<select multiple="multiple" id="]]..html.escape(field:getId())..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];
+		return [[<select multiple="multiple" id="]]..html.escape(getId(form, field))..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];
 	end;
 }
 

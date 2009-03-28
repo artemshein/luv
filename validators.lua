@@ -69,6 +69,9 @@ local Length = Validator:extend{
 	getMinLength = function (self) return self.minLength end,
 	isValid = function (self, value)
 		Validator.isValid(self, value)
+		if value == nil or value == "" then
+			return true
+		end
 		if type(value) == "number" then
 			value = tostring(value)
 		elseif type(value) ~= "string" then

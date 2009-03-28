@@ -1,5 +1,5 @@
 require "luv.table"
-local math, tostring = math, tostring
+local math, tostring, debug = math, tostring, debug
 local require, rawset, type, pairs, ipairs, table, io = require, rawset, type, pairs, ipairs, table, io
 local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"
 local references = require "luv.fields.references"
@@ -67,7 +67,7 @@ local Form = Struct:extend{
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(fields.Submit) then
 				local fVal = v:getValue()
-				if ((value and (value == fVal)) or not value) and fVal == v:getDefaultValue() then
+				if ((value and (value == v:getName())) or not value) and fVal == v:getDefaultValue() then
 					return fVal
 				end
 			end
@@ -91,7 +91,7 @@ local Form = Struct:extend{
 		for _, field in ipairs(self:getFieldsList()) do
 			field = self:getField(field)
 			local widget = field:getWidget()
-			if widget and widget:isKindOf(widgets.Hidden) then
+			if widget and widget:isKindOf(widgets.HiddenInput) then
 				table.insert(res, field)
 			end
 		end
@@ -102,7 +102,7 @@ local Form = Struct:extend{
 		for _, field in ipairs(self:getFieldsList()) do
 			field = self:getField(field)
 			local widget = field:getWidget()
-			if widget and not widget:isKindOf(widgets.Hidden) and not widget:isKindOf(widgets.Button) then
+			if widget and not widget:isKindOf(widgets.HiddenInput) and not widget:isKindOf(widgets.Button) then
 				table.insert(res, field)
 			end
 		end
@@ -119,8 +119,30 @@ local Form = Struct:extend{
 	end;
 }
 
+local ModelSelect = fields.Field:extend{
+	__tag = .....".fields.ModelSelect";
+	init = function (self, model, modelField, params)
+		params = params or {}
+		params.widget = params.widget or widgets.Select
+		fields.Field.init(self, params)
+		self.querySet = modelField:getRefModel():all()
+	end;
+	all = function (self) return self.querySet end;
+}
+
+local ModelMultipleSelect = fields.Field:extend{
+	__tag = .....".fields.ModelMultipleSelect";
+	init = function (self, model, modelField, params)
+		params = params or {}
+		params.widget = params.widget or widgets.MultipleSelect
+		fields.Field.init(self, params)
+		self.querySet = modelField:getRefModel():all()
+	end;
+	all = function (self) return self.querySet end;
+}
+
 local ModelForm = Form:extend{
-	__tag = .....".ModelForm",
+	__tag = .....".ModelForm";
 	extend = function (self, new)
 		new = Form.extend(self, new)
 		if not new.Meta then
@@ -134,14 +156,24 @@ local ModelForm = Form:extend{
 			if v:isKindOf(fields.Button)
 			or ((not new.Meta.fields or table.find(new.Meta.fields, k))
 				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k))) then
-				new:addField(k, v:clone())
+				if v:isKindOf(references.OneToOne) or v:isKindOf(references.ManyToOne) then
+					new:addField(k, ModelSelect(new:getModel(), v))
+				elseif v:isKindOf(references.OneToMany) or v:isKindOf(references.ManyToMany) then
+					new:addField(k, ModelMultipleSelect(new:getModel(), v))
+				else
+					new:addField(k, v:clone())
+				end
 			end
 		end
 		return new
 	end;
+	getModel = function (self) return self.Meta.model end;
+	getPk = function (self) return self:getModel():getPk() end;
+	getPkName = function (self) return self:getModel():getPkName() end;
 }
 
 return {
 	Form = Form,
-	ModelForm = ModelForm
+	ModelForm = ModelForm;
+	fields = {ModelSelect=ModelSelect;ModelMultipleSelect=ModelMultipleSelect}
 }

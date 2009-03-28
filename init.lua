@@ -152,6 +152,7 @@ local Core = Object:extend{
 		self.db = require "luv.db".Factory(dsn)
 		require "luv.db.models".Model:setDb(self.db)
 		self.db:setLogger(function (sql, result)
+			--io.write(sql)
 			self:debug(sql, "Database")
 		end)
 		return self
@@ -291,6 +292,7 @@ local Struct = Object:extend{
 		for k, v in pairs(self:getFieldsByName()) do
 			v:setValue(values[k])
 		end
+		return self
 	end;
 	addField = function (self, name, field)
 		if not field:isKindOf(require "luv.fields".Field) then

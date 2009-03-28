@@ -44,7 +44,6 @@ local ManyToMany = Reference:extend{
 	__tag = .....".ManyToMany",
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.MultipleSelect
 		Reference.init(self, params)
 	end;
 	setValue = function (self, value)
@@ -122,7 +121,7 @@ local ManyToMany = Reference:extend{
 				Exception"Primary key value must be set first!":throw()
 			end
 			container:getDb():Delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
-			if not table.isEmpty(self.value) then
+			if "table" == type(self.value) and not table.isEmpty(self.value) then
 				local s, _, v = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
 				for _, v in pairs(self.value) do
 					s:values(container:getPk():getValue(), v:getPk():getValue())
@@ -139,7 +138,7 @@ local ManyToMany = Reference:extend{
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local pkName = container:getPkName()
 		if not container:getField(pkName):getValue() then
-			Exception"Primary key must be set first!":throw()
+			return nil
 		end
 		return require"luv.db.models".LazyQuerySet(self:getRefModel(), function (qs, s)
 			s:join({refTable=self:getTableName()}, {"?#.?# = ?#.?#", "refTable", qs.model:getTableName(), qs.model:getTableName(), qs.model:getPkName()}, {})
@@ -164,7 +163,6 @@ local ManyToOne = Reference:extend{
 	__tag = .....".ManyToOne",
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.Select
 		Reference.init(self, params)
 	end;
 	getValue = function (self)
@@ -212,7 +210,6 @@ local OneToMany = Reference:extend{
 	__tag = .....".OneToMany",
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.MultipleSelect
 		Reference.init(self, params)
 	end;
 	getTableName = function (self)
@@ -292,7 +289,6 @@ local OneToOne = Reference:extend{
 	__tag = .....".OneToOne",
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.Select
 		Reference.init(self, params)
 		self.backLink = params.backLink or false
 	end,

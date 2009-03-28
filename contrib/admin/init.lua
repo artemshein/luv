@@ -36,7 +36,8 @@ local ModelAdmin = Object:extend{
 		end
 		return self.form
 	end;
-	add = function (self, form) return self:getModel():create(form:getValues()) end;
+	initModelByForm = function (self, model, form) model:setValues(form:getValues()) return self end;
+	initFormByModel = function (self, form, model) form:setValues(model:getValues()) return self end;
 }
 
 local UserMsgsStack = Object:extend{
@@ -109,8 +110,10 @@ local AdminSite = Object:extend{
 				local model = admin:getModel()
 				local form = admin:getForm():addField("add", fields.Submit "Add")(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
-				if form:isSubmitted("Add") and form:isValid() then
-					if admin:add(form) then
+				if form:isSubmitted("add") and form:isValid() then
+					local record = model()
+					admin:initModelByForm(record, form)
+					if record:save() then
 						msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
 						form:setValues{}
 					else
@@ -136,7 +139,7 @@ local AdminSite = Object:extend{
 				local model = admin:getModel()
 				if model:isKindOf(models.TreeModel) then
 					luv:assign{
-						ipairs=ipairs;tostring=tostring;
+						pairs=pairs;ipairs=ipairs;tostring=tostring;
 						nodes={model:findRoot()};
 						isRoot=true;
 					}
@@ -144,7 +147,7 @@ local AdminSite = Object:extend{
 				else
 					local page = tonumber(luv:getPost "page") or 1
 					luv:assign{
-						ipairs=ipairs;capitalize=string.capitalize;
+						pairs=pairs;ipairs=ipairs;capitalize=string.capitalize;
 						tostring=tostring;html=html;urlConf=urlConf;
 						user=user;model=model;page=page;
 						fields=admin:getDisplayList();
@@ -153,6 +156,37 @@ local AdminSite = Object:extend{
 					}
 					luv:display "admin/_records-table.html"
 				end
+			end};
+			{"^/([^/]+)/([^/]+)"; function (urlConf)
+				local user = auth.models.User:getAuthUser(luv:getSession())
+				if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
+				local admin = self:findAdmin(urlConf:getCapture(1))
+				if not admin then return false end
+				local model = admin:getModel()
+				local record = model:find(urlConf:getCapture(2))
+				if not record then return false end
+				local form = admin:getForm():addField("save", fields.Submit "Save")(luv:getPostData()):setAction(urlConf:getUri())
+				local msgsStack = UserMsgsStack()
+				if form:isSubmitted("save") then
+					if form:isValid() then
+						admin:initModelByForm(record, form)
+						if record:save() then
+							msgsStack:okMsg(string.capitalize(model:getLabel()).." was saved successfully!")
+						else
+							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not saved!")
+						end
+					end
+				else
+					admin:initFormByModel(form, record)
+				end
+				luv:assign{
+					ipairs=ipairs;capitalize=string.capitalize;
+					tostring=tostring;html=html;
+					user=user;model=model;urlConf=urlConf;
+					title="Edit "..model:getLabel();
+					form=form;userMsgs=msgsStack:getMsgs();
+				}
+				luv:display "admin/edit.html"
 			end};
 			{"^/([^/]+)$"; function (urlConf)
 				local user = auth.models.User:getAuthUser(luv:getSession())

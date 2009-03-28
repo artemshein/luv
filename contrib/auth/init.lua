@@ -104,7 +104,7 @@ local getModelsAdmins = function ()
 				smallIcon = {path="/images/icons/auth/user_accept16.png";width=16;height=16};
 				bigIcon = {path="/images/icons/auth/user_accept48.png";width=48;height=48};
 				displayList = {"model";"action"};
-				fields = {"model";"action";"description"};
+				fields = {"id";"model";"action";"description"};
 			};
 			ModelAdmin:extend{
 				__tag = MODULE..".UserGroupAdmin";
@@ -113,7 +113,7 @@ local getModelsAdmins = function ()
 				smallIcon = {path="/images/icons/auth/users16.png";width=16;height=16};
 				bigIcon = {path="/images/icons/auth/users48.png";width=48;width=48};
 				displayList = {"title"};
-				fields = {"title";"description";"rights"};
+				fields = {"id";"title";"description";"rights"};
 			};
 			ModelAdmin:extend{
 				__tag = MODULE..".UserAdmin";
@@ -123,13 +123,20 @@ local getModelsAdmins = function ()
 				bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
 				displayList = {"login";"name";"group"};
 				form = forms.Form:extend{
-					Meta = {fields={"login";"password";"password2";"name";"group"}};
+					Meta = {fields={"id";"login";"password";"password2";"name";"group"}};
+					id = fields.Id();
 					login = fields.Login();
 					name = fields.Text();
 					password = fields.Text{minLength=6;maxLength=32};
 					password2 = fields.Text{minLength=6;maxLength=32;label="Repeat password"};
 					group = references.ManyToOne{references=UserGroup};
 				};
+				initModelByForm = function (self, model, form)
+					model.id = form.id
+					model.login = form.login
+					model.name = form.name
+					model.group = form.group
+				end;
 			};
 		}
 	end
