@@ -129,7 +129,7 @@ local getModelsAdmins = function ()
 					name = fields.Text();
 					password = fields.Text{minLength=6;maxLength=32};
 					password2 = fields.Text{minLength=6;maxLength=32;label="Repeat password"};
-					group = references.ManyToOne{references=UserGroup};
+					group = forms.fields.ModelSelect(UserGroup:all():getValue());
 				};
 				initModelByForm = function (self, model, form)
 					model.id = form.id

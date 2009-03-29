@@ -7,11 +7,11 @@ local Filled = TestCase:extend{
 	testSimple = function (self)
 		local v = Validators.Filled()
 		self.assertTrue(v:isValid("1"))
-		self.assertTrue(v:isValid(""))
+		self.assertFalse(v:isValid(""))
 		self.assertFalse(v:isValid())
 		self.assertTrue(v:isValid(0))
 		self.assertTrue(v:isValid(1))
-		self.assertTrue(v:isValid({}))
+		self.assertFalse(v:isValid({}))
 	end
 }
 
@@ -39,9 +39,9 @@ local Length = TestCase:extend{
 		self.assertTrue(v:isValid("1234567891"))
 		self.assertFalse(v:isValid("1234"))
 		self.assertFalse(v:isValid("12345678910"))
-		self.assertFalse(v:isValid(""))
+		self.assertTrue(v:isValid(""))
 		self.assertFalse(v:isValid(10))
-		self.assertFalse(v:isValid())
+		self.assertTrue(v:isValid())
 		self.assertTrue(v:isValid(10000))
 		self.assertFalse(v:isValid(false))
 		self.assertFalse(v:isValid(true))

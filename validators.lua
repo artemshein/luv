@@ -1,5 +1,7 @@
 require"luv.string"
+require "luv.debug"
 local type, tonumber, tostring, string, table, ipairs = type, tonumber, tostring, string, table, ipairs
+local debug = debug
 local Object = require"luv.oop".Object
 
 module(...)
@@ -28,9 +30,11 @@ local Filled = Validator:extend{
 	init = function (self) Validator.init(self) return self end,
 	isValid = function (self, value)
 		Validator.isValid(self, value)
-		if type(value) == "string" and 0 ~= string.len(value) then
+		if type(value) == "string" and 0 ~= #value then
 			return true
-		elseif type(value) ~= "nil" then
+		elseif type(value) == "table" and (value.isObject or not table.isEmpty(value)) then
+			return true
+		elseif type(value) == "number" then
 			return true
 		end
 		self:addError "Field \"%s\" must be filled."

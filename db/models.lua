@@ -182,6 +182,7 @@ local Model = Struct:extend{
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:isValid() then
+			--debug.dprint(self:getErrors())
 			Exception"Validation error!":throw()
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
@@ -475,6 +476,9 @@ local LazyQuerySet = Object:extend{
 			if string.find(k, "__") then
 				local vals = string.explode(k, "__")
 				local name, op = vals[1], vals[2]
+				if name == "pk" then
+					name = self.model:getPkName()
+				end
 				if op == "exact" then
 					table.insert(filTbl, self.db:processPlaceholders("?#="..self.model:getFieldPlaceholder(self.model:getField(name)), name, v))
 				elseif op == "lt" then
@@ -542,7 +546,7 @@ local LazyQuerySet = Object:extend{
 			self.values[obj:getPk():getValue()] = obj
 		end
 	end,
-	getValues = function (self)
+	getValue = function (self)
 		if not self.evaluated then
 			self:evaluate()
 		end

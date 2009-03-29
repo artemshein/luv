@@ -66,7 +66,7 @@ local Field = Object:extend{
 	setErrors = function (self, errors) self.errors = errors return self end,
 	getErrors = function (self) return self.errors end,
 	isValid = function (self, value)
-		local value = value or self.value
+		local value = value or self:getValue()
 		self:setErrors{}
 		if not self.validators then
 			return true

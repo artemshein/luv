@@ -1,4 +1,4 @@
-Luv 0.4alpha
+Luv 0.5alpha
 ============
 
 Luv is Lua (lua.org) MVC web-framework. Luv is open-source and
@@ -30,6 +30,7 @@ Luv includes:
 - Fields (with Validators), Models & Forms;
 - URLconf (URL to action binding);
 - Widgets (representation layer);
+- Automatic AdminSite panel.
 - Databases:
 	- MySQL only in this version;
 	- placeholders;
@@ -43,9 +44,9 @@ What's new
 
 Version 0.4alpha
 ----------------
-+ More fields & widgets.
++ More fields, form fields & widgets.
 + TreeModel & NestedSetModel.
-+ AdminSite automatic forms & actions (add).
++ AdminSite automatic forms & actions (add, edit).
 + Fire debugger for FireBug.
 + Profiler.
 
@@ -92,17 +93,15 @@ Version 1.0 [Q4 2009 - Q1 2010]
 - Full AdminSite.
 - Much more...
 
-Version 0.5alpha
+Version 0.6alpha [apr-may 2009]
 ----------------
 - Cacher with Memcached support.
 - Caching for models (SQL select) and templates.
 
-Version 0.4alpha [mar-apr 2009]
+Version 0.5alpha [apr 2009]
 ----------------
-- Basics of AdminSite.
-- i18n with Gettext(?).
-- Forms and Managers (Models to Forms binding).
-
+- AdminSite delete action.
+- TreeModel AdminSite actions.
 
 How to install
 ==============

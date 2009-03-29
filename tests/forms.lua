@@ -1,6 +1,7 @@
 require"luv.debug"
 local io, type, tostring, debug = io, type, tostring, debug
 local TestCase, forms, fields, Model, html = require"luv.unittest".TestCase, require"luv.forms", require"luv.fields", require"luv.db.models".Model, require"luv.utils.html"
+local references = require "luv.fields.references"
 
 module(...)
 
@@ -56,6 +57,59 @@ local Form = TestCase:extend{
 	end
 }
 
+local Category = Model:extend{
+	__tag = .....".Category";
+	Meta = {labels={"category";"categories"}};
+	title = fields.Text();
+}
+
+local Article = Model:extend{
+	__tag = .....".Article";
+	Meta = {labels={"article";"articles"}};
+	title = fields.Text{required=true};
+	categories = references.ManyToMany{references=Category;required=true;relatedName="articles"};
+}
+
+local ModelForm = TestCase:extend{
+	__tag = .....".ModelForm";
+	setUp = function (self)
+		self:tearDown()
+		Category:createTables()
+		Article:createTables()
+	end;
+	tearDown = function (self)
+		Article:dropTables()
+		Category:dropTables()
+	end;
+	testSimple = function (self)
+
+		Category:create{title="net"}
+		Category:create{title="web"}
+		Category:create{title="microsoft"}
+
+		local Form = forms.ModelForm:extend{Meta={model=Article}}
+		local f = Form():addField("add", fields.Submit "Add")
+		self.assertFalse(f:isSubmitted())
+		self.assertFalse(f:isValid())
+
+		f:setValues{title="one"}
+		self.assertFalse(f:isSubmitted())
+		self.assertFalse(f:isValid())
+
+		f:setValues{title="one";categories=Category:all():filter{title__in={"net";"web"}}:getValue()}
+		self.assertFalse(f:isSubmitted())
+		self.assertTrue(f:isValid())
+
+		f:setValues{title="one";categories=Category:all():filter{title__in={"net";"web"}}:getValue();add="Add"}
+		self.assertTrue(f:isSubmitted())
+		self.assertTrue(f:isValid())
+
+		local article = Article(f:getValues())
+		article:save()
+		self.assertEquals(article.categories:count(), 2)
+	end;
+}
+
 return {
-	Form = Form
+	Form = Form;ModelForm=ModelForm;
 }

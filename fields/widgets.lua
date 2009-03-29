@@ -1,7 +1,7 @@
 require "luv.string"
 require "luv.table"
 local tostring, debug, io = tostring, debug, io
-local string, table, pairs = string, table, pairs
+local string, table, pairs, ipairs = string, table, pairs, ipairs
 local Widget, html = require"luv".Widget, require"luv.utils.html"
 
 module(...)
@@ -78,8 +78,8 @@ local Select = Widget:extend{
 	__tag = .....".Select";
 	render = function (self, field, form)
 		local values, fieldValue = "", field:getValue()
-		for k, v in pairs(field:getRefModel():all():getValues()) do
-			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(fieldValue == v and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
+		for k, v in pairs(field:getValues()) do
+			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(tostring(fieldValue) == tostring(v:getPk():getValue()) and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
 		end
 		return [[<select id="]]..html.escape(getId(form, field))..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];
 	end;
@@ -88,9 +88,16 @@ local Select = Widget:extend{
 local MultipleSelect = Select:extend{
 	__tag = .....".MiltipleSelect";
 	render = function (self, field, form)
-		local values, fieldValues = "", field:getValue()
-		for k, v in pairs(field:all():getValues()) do
-			local founded = fieldValues and table.find(fieldValues, v) or false
+		local values, fieldValue = "", field:getValue()
+		for k, v in pairs(field:getValues()) do
+			local founded = false
+			local _, val
+			for _, val in ipairs(fieldValue) do
+				if tostring(val) == tostring(v:getPk():getValue()) then
+					founded = true
+					break
+				end
+			end
 			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(founded and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
 		end
 		return [[<select multiple="multiple" id="]]..html.escape(getId(form, field))..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];

@@ -8,6 +8,10 @@ local Exception = require "luv.exceptions".Exception
 
 module(...)
 
+function getId(form, field)
+	return field:getId() or (form:getId()..string.capitalize(field:getName()))
+end
+
 local Form = Widget:extend{
 	__tag = .....".FormWidget",
 	renderFormHeader = function (self, form)
@@ -22,19 +26,21 @@ local Form = Widget:extend{
 		if not field:getLabel() then
 			return ""
 		end
-		if not field:getId() then
+		local id = getId(form, field)
+		if not id then
 			return string.capitalize(field:getLabel())..":"
 		end
-		return [[<label for="]]..html.escape(field:getId())..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
+		return [[<label for="]]..html.escape(id)..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
 	end;
 	renderLabelCheckbox = function (self, form, field)
 		if not field:getLabel() then
 			return ""
 		end
-		if not field:getId() then
+		local id = getId(form, field)
+		if not id then
 			return field:getLabel()
 		end
-		return [[<label for="]]..html.escape(field:getId())..[[">]]..field:getLabel()..[[</label>]]
+		return [[<label for="]]..html.escape(id)..[[">]]..field:getLabel()..[[</label>]]
 	end;
 	renderField = function (self, form, field)
 		return field:asHtml(form)

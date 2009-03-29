@@ -46,10 +46,21 @@ local ManyToMany = Reference:extend{
 		params = params or {}
 		Reference.init(self, params)
 	end;
+	isValid = function (self)
+		if self:isRequired() and #self:getValue() == 0 then
+			return false
+		end
+		return Reference.isValid(self)
+	end;
 	setValue = function (self, value)
-		if "table" == type(value) then
+		if "table" ~= type(value) then
+			value = nil
+		else
 			value = table.copy(value)
-			local refModel, k, v = self:getRefModel()
+			if #value > 0 and "table" ~= type(value[1]) then
+				value = self:getRefModel():all():filter{pk__in=value}:getValue()
+			end
+			--[[local refModel, k, v = self:getRefModel()
 			for k, v in pairs(value) do
 				if "table" ~= type(v) or not v.isObject or not v:isKindOf(refModel) then
 					local obj = refModel:find(v)
@@ -59,9 +70,10 @@ local ManyToMany = Reference:extend{
 						value[k] = obj
 					end
 				end
-			end
+			end]]
 		end
 		self.value = value
+		return self
 	end,
 	getTableName = function (self)
 		if not self.tableName then
@@ -132,12 +144,15 @@ local ManyToMany = Reference:extend{
 		end
 	end,
 	getValue = function (self)
+		if not self.value and self:getContainer():getPk():getValue() then
+			self:setValue(self:all():getValue())
+		end
 		return self.value
 	end,
 	all = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local pkName = container:getPkName()
-		if not container:getField(pkName):getValue() then
+		if not container:getPk():getValue() then
 			return nil
 		end
 		return require"luv.db.models".LazyQuerySet(self:getRefModel(), function (qs, s)

@@ -87,6 +87,7 @@ local AdminSite = Object:extend{
 	end;
 	getUrls = function (self)
 		local luv = self.luv
+		luv:debug(luv:getPostData())
 		return {
 			{"^/login$"; function (urlConf)
 				local form = auth.forms.LoginForm(luv:getPostData())
@@ -157,7 +158,7 @@ local AdminSite = Object:extend{
 					luv:display "admin/_records-table.html"
 				end
 			end};
-			{"^/([^/]+)/([^/]+)"; function (urlConf)
+			{"^/([^/]+)/(.+)$"; function (urlConf)
 				local user = auth.models.User:getAuthUser(luv:getSession())
 				if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
 				local admin = self:findAdmin(urlConf:getCapture(1))

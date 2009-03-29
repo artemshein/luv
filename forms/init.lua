@@ -8,6 +8,65 @@ local widgets = require "luv.fields.widgets"
 
 module(...)
 
+local ModelSelect = fields.Field:extend{
+	__tag = .....".fields.ModelSelect";
+	init = function (self, params)
+		if not params then
+			Exception"Values required!":throw()
+		end
+		if not params.values then
+			params = {values=params}
+		end
+		self:setValues(params.values)
+		params.widget = params.widget or widgets.Select
+		fields.Field.init(self, params)
+	end;
+	setValue = function (self, value)
+		if "table" == type(value) then
+			value = value:getPk():getValue()
+		end
+		return fields.Field.setValue(self, value)
+	end;
+	getValues = function (self) return self.values end;
+	setValues = function (self, values) self.values = values return self end;
+}
+
+local ModelMultipleSelect = fields.Field:extend{
+	__tag = .....".fields.ModelMultipleSelect";
+	init = function (self, params)
+		if not params then
+			Exception"Values required!":throw()
+		end
+		if not params.values then
+			params = {values=params}
+		end
+		self:setValues(params.values)
+		params.widget = params.widget or widgets.MultipleSelect
+		fields.Field.init(self, params)
+	end;
+	getValues = function (self) return self.values end;
+	setValues = function (self, values) self.values = values return self end;
+	setValue = function (self, value)
+		if "table" ~= type(value) then
+			value = {value}
+		end
+		if "table" == type(value) then
+			local resValue = {}
+			local k, v
+			for k, v in pairs(value) do
+				if "table" == type(v) then
+					table.insert(resValue, v:getPk():getValue())
+				else
+					table.insert(resValue, v)
+				end
+			end
+			value = resValue
+		end
+		return fields.Field.setValue(self, value)
+	end;
+	getValue = function (self) return self.value or {} end;
+}
+
 local Form = Struct:extend{
 	__tag = .....".Form",
 	extend = function (self, new)
@@ -117,28 +176,23 @@ local Form = Struct:extend{
 		end
 		return res
 	end;
-}
-
-local ModelSelect = fields.Field:extend{
-	__tag = .....".fields.ModelSelect";
-	init = function (self, model, modelField, params)
-		params = params or {}
-		params.widget = params.widget or widgets.Select
-		fields.Field.init(self, params)
-		self.querySet = modelField:getRefModel():all()
+	getValues = function (self)
+		local values, k, v = {}
+		for k, v in pairs(self:getFieldsByName()) do
+			local value = v:getValue()
+			if v:isKindOf(ModelMultipleSelect) then
+				if "table" ~= type(value) then
+					if value then
+						value = {value}
+					else
+						value = {}
+					end
+				end
+			end
+			values[k] = value
+		end
+		return values
 	end;
-	all = function (self) return self.querySet end;
-}
-
-local ModelMultipleSelect = fields.Field:extend{
-	__tag = .....".fields.ModelMultipleSelect";
-	init = function (self, model, modelField, params)
-		params = params or {}
-		params.widget = params.widget or widgets.MultipleSelect
-		fields.Field.init(self, params)
-		self.querySet = modelField:getRefModel():all()
-	end;
-	all = function (self) return self.querySet end;
 }
 
 local ModelForm = Form:extend{
@@ -157,9 +211,9 @@ local ModelForm = Form:extend{
 			or ((not new.Meta.fields or table.find(new.Meta.fields, k))
 				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k))) then
 				if v:isKindOf(references.OneToOne) or v:isKindOf(references.ManyToOne) then
-					new:addField(k, ModelSelect(new:getModel(), v))
+					new:addField(k, ModelSelect{values=v:getRefModel():all():getValue();required=v:isRequired()})
 				elseif v:isKindOf(references.OneToMany) or v:isKindOf(references.ManyToMany) then
-					new:addField(k, ModelMultipleSelect(new:getModel(), v))
+					new:addField(k, ModelMultipleSelect{values=v:getRefModel():all():getValue();required=v:isRequired()})
 				else
 					new:addField(k, v:clone())
 				end
