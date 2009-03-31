@@ -152,7 +152,7 @@ local Core = Object:extend{
 		self.db = require "luv.db".Factory(dsn)
 		require "luv.db.models".Model:setDb(self.db)
 		self.db:setLogger(function (sql, result)
-			io.write(sql)
+			--io.write(sql)
 			self:debug(sql, "Database")
 		end)
 		return self

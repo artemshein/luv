@@ -166,9 +166,12 @@ local AdminSite = Object:extend{
 				local model = admin:getModel()
 				local record = model:find(urlConf:getCapture(2))
 				if not record then return false end
-				local form = admin:getForm():addField("save", fields.Submit "Save")(luv:getPostData()):setAction(urlConf:getUri())
+				local form = admin:getForm()
+				form:addField("delete", fields.Submit{defaultValue="Delete";onClick="return confirm('O\\'RLY?')"})
+				form:addField("save", fields.Submit "Save")
+				form = form(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
-				if form:isSubmitted("save") then
+				if form:isSubmitted "save" then
 					if form:isValid() then
 						admin:initModelByForm(record, form)
 						if record:save() then
@@ -177,6 +180,9 @@ local AdminSite = Object:extend{
 							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not saved!")
 						end
 					end
+				elseif form:isSubmitted "delete" then
+					record:delete()
+					luv:setResponseHeader("Location", urlConf:getBaseUri().."/"..urlConf:getCapture(1)):sendHeaders()
 				else
 					admin:initFormByModel(form, record)
 				end

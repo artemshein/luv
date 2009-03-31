@@ -151,7 +151,9 @@ local MysqlDriver = Driver:extend{
 			return "'"..string.gsub(tostring(value), "'", "\\'").."'"
 		elseif placeholder == "?d" then
 			local num
-			if "boolean" == type(value) then
+			if nil == type(value) then
+				num = 0
+			elseif "boolean" == type(value) then
 				num = value and 1 or 0
 			else
 				num = tonumber(value)

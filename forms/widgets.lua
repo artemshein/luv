@@ -56,7 +56,7 @@ local Form = Widget:extend{
 		-- Then visible fields
 		for _, v in ipairs(form:getVisibleFields()) do
 			if v:getWidget():isKindOf(widgets.Checkbox) then
-				html = html..self.beforeLabel..self.afterLabel..self.beforeField..self:renderField(form, v)..self:renderLabelCheckbox(form, v)..self.afterField
+				html = html..self.beforeLabel..self.afterLabel..self.beforeField..self:renderField(form, v).." "..self:renderLabelCheckbox(form, v)..self.afterField
 			else
 				html = html..self.beforeLabel..self:renderLabel(form, v)..self.afterLabel..self.beforeField..self:renderField(form, v)..self.afterField
 			end

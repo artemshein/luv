@@ -67,6 +67,7 @@ local Field = Object:extend{
 	getErrors = function (self) return self.errors end,
 	isValid = function (self, value)
 		local value = value or self:getValue()
+		if nil == value then value = self:getDefaultValue() end
 		self:setErrors{}
 		if not self.validators then
 			return true
@@ -167,19 +168,37 @@ local Boolean = Int:extend{
 	__tag = .....".Boolean";
 	init = function (self, params)
 		params = params or {}
+		params.required = true
 		params.widget = params.widget or widgets.Checkbox
 		Int.init(self, params)
 	end;
 	setValue = function (self, value)
-		if "number" == type(value) then
-			self.value = value
-		elseif "nil" == type(value) then
+		if "string" == type(value) then
+			value = tonumber(value)
+		end
+		if nil == value then
 			self.value = nil
+		elseif "number" == type(value) then
+			self.value = value
 		else
 			self.value = value and 1 or 0
 		end
 	end;
-	getValue = function (self) if not self.value then return nil end return self.value ~= 0 end;
+	getValue = function (self) if nil == self.value then return nil end return self.value ~= 0 end;
+	getDefaultValue = function (self)
+		if nil == self.defaultValue then return nil end
+		if "boolean" == type(self.defaultValue) then return self.defaultValue and 1 or 0 end
+		return self.defaultValue ~= 0
+	end;
+	isValid = function (self, value)
+		value = value or self:getValue()
+		if nil == value then value = self:getDefaultValue() end
+		if nil == value then
+			return Int.isValid(self, value)
+		else
+			return Int.isValid(self, value and 1 or 0)
+		end
+	end;
 }
 
 local Login = Text:extend{
@@ -214,7 +233,15 @@ local Button = Text:extend{
 		end
 		params.widget = params.widget or widgets.Button
 		Text.init(self, params)
-	end
+	end;
+	setParams = function (self, params)
+		Text.setParams(self, params)
+		if params.onClick then
+			self:setOnClick(params.onClick)
+		end
+	end;
+	getOnClick = function (self) return self.onClick end;
+	setOnClick = function (self, onClick) self.onClick = onClick return self end;
 }
 
 local Submit = Button:extend{
@@ -283,6 +310,65 @@ local Datetime = Field:extend{
 	end;
 }
 
+local ModelSelect = Field:extend{
+	__tag = .....".ModelSelect";
+	init = function (self, params)
+		if not params then
+			Exception"Values required!":throw()
+		end
+		if not params.values then
+			params = {values=params}
+		end
+		self:setValues(params.values)
+		params.widget = params.widget or widgets.Select
+		Field.init(self, params)
+	end;
+	setValue = function (self, value)
+		if "table" == type(value) then
+			value = value:getPk():getValue()
+		end
+		return Field.setValue(self, value)
+	end;
+	getValues = function (self) return self.values end;
+	setValues = function (self, values) self.values = values return self end;
+}
+
+local ModelMultipleSelect = Field:extend{
+	__tag = .....".ModelMultipleSelect";
+	init = function (self, params)
+		if not params then
+			Exception"Values required!":throw()
+		end
+		if not params.values then
+			params = {values=params}
+		end
+		self:setValues(params.values)
+		params.widget = params.widget or widgets.MultipleSelect
+		Field.init(self, params)
+	end;
+	getValues = function (self) return self.values end;
+	setValues = function (self, values) self.values = values return self end;
+	setValue = function (self, value)
+		if "table" ~= type(value) then
+			value = {value}
+		end
+		if "table" == type(value) then
+			local resValue = {}
+			local k, v
+			for k, v in pairs(value) do
+				if "table" == type(v) then
+					table.insert(resValue, v:getPk():getValue())
+				else
+					table.insert(resValue, v)
+				end
+			end
+			value = resValue
+		end
+		return Field.setValue(self, value)
+	end;
+	getValue = function (self) return self.value or {} end;
+}
+
 return {
 	Field = Field,
 	Text = Text,
@@ -297,4 +383,5 @@ return {
 	Email=Email;
 	Phone=Phone;
 	Url=Url;File=File;
+	ModelSelect=ModelSelect;ModelMultipleSelect=ModelMultipleSelect;
 }

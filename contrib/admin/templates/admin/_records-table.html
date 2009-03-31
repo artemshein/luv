@@ -11,7 +11,7 @@
 	</thead>
 	{% local record for _, record in pairs(p:getPage(page):getValue()) do %}
 		<tr class="record">
-			<td width="10"><input type="checkbox" name="items[]" value="{{ record.pk }}" /></td>
+			<td width="10"><input type="checkbox" name="items" value="{{ record.pk }}" /></td>
 		{% for _, field in ipairs(fields) do %}
 			<td class="activeLink" onclick="selectRecord('{{ record.pk }}')">{{ html.escape(tostring(record[field] or "")) }}</td>
 		{% end %}

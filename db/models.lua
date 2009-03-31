@@ -222,7 +222,7 @@ local Model = Struct:extend{
 	end,
 	update = function (self)
 		if not self:isValid() then
-			Exception"Validation error!":throw()
+			Exception("Validation error! "..debug.dump(self:getErrors())):throw()
 		end
 		local updateRow = self:getDb():UpdateRow(self:getTableName())
 		local pk, _, v = self:getPk()
@@ -541,7 +541,7 @@ local LazyQuerySet = Object:extend{
 		self:applyFiltersAndExcludes(s)
 		local _, v, obj = {}
 		self.values = {}
-		for _, v in pairs(s:exec()) do
+		for _, v in pairs(s:exec() or {}) do
 			obj = self.model(v)
 			self.values[obj:getPk():getValue()] = obj
 		end

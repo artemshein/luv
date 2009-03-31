@@ -123,19 +123,22 @@ local getModelsAdmins = function ()
 				bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
 				displayList = {"login";"name";"group"};
 				form = forms.Form:extend{
-					Meta = {fields={"id";"login";"password";"password2";"name";"group"}};
-					id = fields.Id();
-					login = fields.Login();
-					name = fields.Text();
+					Meta = {fields={"id";"login";"password";"password2";"name";"group";"isActive"}};
+					id = User:getField "id":clone();
+					login = User:getField "login":clone();
+					name = User:getField "name":clone();
 					password = fields.Text{minLength=6;maxLength=32};
 					password2 = fields.Text{minLength=6;maxLength=32;label="Repeat password"};
-					group = forms.fields.ModelSelect(UserGroup:all():getValue());
+					group = fields.ModelSelect(UserGroup:all():getValue());
+					isActive = User:getField "isActive":clone();
 				};
 				initModelByForm = function (self, model, form)
 					model.id = form.id
 					model.login = form.login
 					model.name = form.name
 					model.group = form.group
+					debug.dprint(form.isActive)
+					model.isActive = form.isActive
 				end;
 			};
 		}

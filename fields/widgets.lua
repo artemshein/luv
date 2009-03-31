@@ -11,10 +11,10 @@ function getId(form, field)
 end
 
 local Input = Widget:extend{
-	__tag = .....".Input",
-	tail = "",
-	render = function (self, field, form)
-		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())..[[" id="]]..html.escape(getId(form, field))..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..self.tail..[[ />]]
+	__tag = .....".Input";
+	render = function (self, field, form, tail)
+		tail = tail or ""
+		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())..[[" id="]]..html.escape(getId(form, field))..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..tail..[[ />]]
 	end
 }
 
@@ -29,10 +29,11 @@ local Checkbox = Input:extend{
 	__tag = .....".Checkbox";
 	type = "checkbox";
 	render = function (self, field, form)
+		local tail
 		if field:getValue() then
-			self.tail = [[ checked="checked"]]
+			tail = [[ checked="checked"]]
 		end
-		return Input.render(self, field, form)
+		return Input.render(self, field, form, tail)
 	end;
 }
 
@@ -40,8 +41,8 @@ local TextInput = Input:extend{
 	__tag = .....".TextInput",
 	type = "text",
 	render = function (self, field, form)
-		self.tail = [[ maxlength="]]..field:getMaxLength()..[["]]
-		return Input.render(self, field, form)
+		local tail = [[ maxlength="]]..field:getMaxLength()..[["]]
+		return Input.render(self, field, form, tail)
 	end
 }
 
@@ -57,7 +58,14 @@ local PasswordInput = TextInput:extend{
 
 local Button = Input:extend{
 	__tag = .....".Button",
-	type = "button"
+	type = "button";
+	render = function (self, field, form)
+		local tail
+		if field:getOnClick() then
+			tail = [[ onClick="]]..string.escape(field:getOnClick())..[["]]
+		end
+		return Input.render(self, field, form, tail)
+	end;
 }
 
 local SubmitButton = Button:extend{
@@ -69,8 +77,8 @@ local ImageButton = Button:extend{
 	__tag = .....".ImageButton";
 	type = "image";
 	render = function (self, field, form)
-		self.tail = [[ src="]]..field:getSrc()..[["]]
-		return Button.render(self, field, form)
+		local tail = [[ src="]]..field:getSrc()..[["]]
+		return Button.render(self, field, form, tail)
 	end
 }
 

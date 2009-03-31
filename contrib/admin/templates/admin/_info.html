@@ -2,7 +2,7 @@
 	<div class="span-16"><h1>{% if titleIcon then %}<img src="{{ titleIcon.path }}" width="{{ titleIcon.width }}" height="{{ titleIcon.height }}" /> {% end %}{{ capitalize(title) }}</h1></div>
 	<div id="userInfo" class="span-8 last">
 		You are &mdash; <a href="{{ baseUri }}/user/{{ user.id }}/edit"><img src="/images/admin/user.png" width="16" height="16" alt="" /></a>
-		<a href="{{ baseUri }}/user/{{ user.id }}">{{ tostring(user) }}</a>.
-		[ <a href="{{ baseUri }}/logout">logout</a> &rarr; ]
+		<a href="{{ urlConf:getBaseUri() }}/user/{{ user.id }}">{{ user }}</a>.
+		[ <a href="{{ urlConf:getBaseUri() }}/logout">logout</a> &rarr; ]
 	</div>
 </div>
