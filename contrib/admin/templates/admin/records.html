@@ -7,12 +7,14 @@
 <div class="span-24 last">
 	<div class="span-18">
 		<div id="chainMenu">
+			{% if not isTree then %}
 			<div class="button" style="float:right">
 				<a href="{{ modelUrl }}/add">
 					<img src="/images/admin/page_add.png" width="16" height="16" alt="Add" />
 				</a>
 				<a href="{{ modelUrl }}/add">Add {{ model:getLabel() }}</a>
 			</div>
+			{% end %}
 			<a href="{{ urlConf:getBaseUri() }}">&larr; Back to main</a>
 		</div>
 		<div id="records">
@@ -21,14 +23,18 @@
 	<div class="span-6 last">
 		<div id="recordsActions">
 			<h2>Actions</h2>
+			{% if not isTree then %}
 			<ul>
 				<li><a href="javascript:void(0)" onclick="luv.checkMultipleCheckboxesByName('items')">Select all</a></li>
 				<li><a href="javascript:void(0)" onclick="luv.clearMultipleCheckboxesByName('items')">Deselect all</a></li>
 				<li><div class="button" onclick="deleteSelected();">
 					<img src="/images/admin/remove.png" width="16" height="16" alt="" />
-					<a href="javascript:void(0)">Remove selected</a>
+					<a href="javascript:void(0)">Delete selected</a>
 				</div></li>
 			</ul>
+			{% else %}
+			<ul><li>What's there?</li></ul>
+			{% end %}
 		</div>
 	</div>
 </div>
@@ -36,13 +42,21 @@
 <script type="text/javascript" language="JavaScript">//<![CDATA[
 	function deleteSelected ()
 	{
-		if (!confirm('Confirm deletion?'))
-			return false;
-		$.post(
-			'{{ modelUrl }}/records/delete',
-			Dedal.formValues('items'),
-			function() { window.location = window.location; }
-		);
+		var values = luv.getFormValues('items');
+		if (values.items && values.items.length)
+		{
+			if (!confirm('Confirm deletion?'))
+				return false;
+			$.post(
+				'{{ modelUrl }}/records/delete',
+				values,
+				function() { window.location = window.location; }
+			);
+		}
+		else
+		{
+			alert('No records selected.');
+		}
 	}
 	function toggleNode (id)
 	{

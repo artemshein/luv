@@ -36,6 +36,7 @@ local ModelAdmin = Object:extend{
 		end
 		return self.form
 	end;
+	isTreeModel = function (self) return self:getModel():isKindOf(models.TreeModel) end;
 	initModelByForm = function (self, model, form) model:setValues(form:getValues()) return self end;
 	initFormByModel = function (self, form, model) form:setValues(model:getValues()) return self end;
 }
@@ -88,6 +89,11 @@ local AdminSite = Object:extend{
 	getUrls = function (self)
 		local luv = self.luv
 		luv:debug(luv:getPostData())
+		local function getUser (urlConf)
+			local user = auth.models.User:getAuthUser(luv:getSession())
+			if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
+			return user
+		end
 		return {
 			{"^/login$"; function (urlConf)
 				local form = auth.forms.LoginForm(luv:getPostData())
@@ -103,22 +109,41 @@ local AdminSite = Object:extend{
 				auth.models.User:logout(luv:getSession())
 				luv:setResponseHeader("Location", "/"):sendHeaders()
 			end};
-			{"^/([^/]+)/add$"; function (urlConf)
-				local user = auth.models.User:getAuthUser(luv:getSession())
-				if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
+			{"^/([^/]+)/add/?$"; function (urlConf)
+				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then return false end
 				local model = admin:getModel()
 				local form = admin:getForm():addField("add", fields.Submit "Add")(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted("add") and form:isValid() then
-					local record = model()
-					admin:initModelByForm(record, form)
-					if record:save() then
-						msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
-						form:setValues{}
+					if model:isKindOf(models.TreeModel) then
+						if model:findRoot() then
+							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+							form:addError "Root record already exist."
+						else
+							local record = model()
+							record.left = 1
+							record.right = 2
+							admin:initModelByForm(record, form)
+							if record:save() then
+								msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
+								form:setValues{}
+							else
+								msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+								form:addErrors(record:getErrors())
+							end
+						end
 					else
-						msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+						local record = model()
+						admin:initModelByForm(record, form)
+						if record:save() then
+							msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
+							form:setValues{}
+						else
+							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+							form:addErrors(record:getErrors())
+						end
 					end
 				end
 				luv:debug(luv:getPostData())
@@ -132,25 +157,44 @@ local AdminSite = Object:extend{
 				}
 				luv:display "admin/add.html"
 			end};
-			{"^/([^/]+)/records$"; function (urlConf)
-				local user = auth.models.User:getAuthUser(luv:getSession())
-				if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
+			{"^/([^/]+)/records/delete/?$"; function (urlConf)
+				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then return false end
 				local model = admin:getModel()
+				local items = luv:getPost "items"
+				if "table" ~= type(items) then
+					items = {items}
+				end
+				model:all():filter{pk__in=items}:delete()
+				io.write ""
+			end};
+			{"^/([^/]+)/records/?$"; function (urlConf)
+				local user = getUser(urlConf)
+				local admin = self:findAdmin(urlConf:getCapture(1))
+				if not admin then return false end
+				local model = admin:getModel()
+				luv:assign{
+					pairs=pairs;ipairs=ipairs;tostring=tostring;capitalize=string.capitalize;html=html;urlConf=urlConf;user=user;
+					modelUri=urlConf:getBaseUri().."/"..urlConf:getCapture(1);model=model;
+				}
 				if model:isKindOf(models.TreeModel) then
-					luv:assign{
-						pairs=pairs;ipairs=ipairs;tostring=tostring;
-						nodes={model:findRoot()};
-						isRoot=true;
-					}
+					local node = luv:getPost "node"
+					if node then
+						node = model:find(node)
+						if not node then return false end
+						luv:assign{parent=node;nodes=node:getChildren()}
+					else
+						node = model:findRoot()
+						if not node then return false end
+						luv:assign{nodes={node}}
+						luv:assign{isRoot=true}
+					end
 					luv:display "admin/_records-tree.html"
 				else
 					local page = tonumber(luv:getPost "page") or 1
 					luv:assign{
-						pairs=pairs;ipairs=ipairs;capitalize=string.capitalize;
-						tostring=tostring;html=html;urlConf=urlConf;
-						user=user;model=model;page=page;
+						model=model;page=page;
 						fields=admin:getDisplayList();
 						p=models.Paginator(model, 10);
 						title=string.capitalize(model:getLabelMany());
@@ -158,9 +202,38 @@ local AdminSite = Object:extend{
 					luv:display "admin/_records-table.html"
 				end
 			end};
-			{"^/([^/]+)/(.+)$"; function (urlConf)
-				local user = auth.models.User:getAuthUser(luv:getSession())
-				if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
+			{"^/([^/]+)/(.+)/add/?$"; function (urlConf) -- for TreeModel
+				local user = getUser(urlConf)
+				local admin = self:findAdmin(urlConf:getCapture(1))
+				if not admin then return false end
+				local model = admin:getModel()
+				if not model:isKindOf(models.TreeModel) then return false end
+				local record = model:find(urlConf:getCapture(2))
+				if not record then return false end
+				local form = admin:getForm():addField("add", fields.Submit "Add")(luv:getPostData()):setAction(urlConf:getUri())
+				local msgsStack = UserMsgsStack()
+				if form:isSubmitted "add" and form:isValid() then
+					local child = model()
+					admin:initModelByForm(child, form)
+					if record:addChild(child) then
+						msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
+						form:setValues{}
+					else
+						msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+						form:addErrors(record:getErrors())
+					end
+				end
+				luv:assign{
+					ipairs=ipairs;capitalize=string.capitalize;
+					tostring=tostring;html=html;
+					user=user;model=model;urlConf=urlConf;
+					title="Add "..model:getLabel();
+					form=form;userMsgs=msgsStack:getMsgs();
+				}
+				luv:display "admin/add.html"
+			end};
+			{"^/([^/]+)/(.+)/?$"; function (urlConf)
+				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then return false end
 				local model = admin:getModel()
@@ -195,9 +268,8 @@ local AdminSite = Object:extend{
 				}
 				luv:display "admin/edit.html"
 			end};
-			{"^/([^/]+)$"; function (urlConf)
-				local user = auth.models.User:getAuthUser(luv:getSession())
-				if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
+			{"^/([^/]+)/?$"; function (urlConf)
+				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then return false end
 				local model = admin:getModel()
@@ -208,12 +280,12 @@ local AdminSite = Object:extend{
 					model=model;
 					urlConf=urlConf;
 					title=string.capitalize(model:getLabelMany());
+					isTree=model:isKindOf(models.TreeModel);
 				}
 				luv:display "admin/records.html"
 			end};
 			{"^$"; function (urlConf)
-				local user = auth.models.User:getAuthUser(luv:getSession())
-				if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri().."/login"):sendHeaders() end
+				local user = getUser(urlConf)
 				luv:assign{
 					pairs=pairs;ipairs=ipairs;
 					tostring=tostring;

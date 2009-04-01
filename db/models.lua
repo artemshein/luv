@@ -374,7 +374,7 @@ local NestedSetModel = TreeModel:extend{
 	__tag = .....".NestedSetModel";
 	hasChildren = function (self) return self.right-self.left > 1 end;
 	getChildren = function (self)
-		return self:all():filter{left__gte=self.left;right__lte=self.right;level=self.level+1}
+		return self:all():filter{left__gte=self.left;right__lte=self.right;level=self.level+1}:getValue()
 	end;
 	getParent = function (self)
 		if 0 == self.level then
@@ -410,11 +410,11 @@ local NestedSetModel = TreeModel:extend{
 		child.left = self.left+1
 		child.right = self.left+2
 		self.db:beginTransaction()
-		self.db:Update(self.getTableName())
+		self.db:Update(self:getTableName())
 			:set("?#=?#+2", "left", "left")
 			:where("?#>?d", "left", self.left)
 			:exec()
-		self.db:Update(self.getTableName())
+		self.db:Update(self:getTableName())
 			:set("?#=?#+2", "right", "right")
 			:where("?#>?d", "right", self.left)
 			:exec()

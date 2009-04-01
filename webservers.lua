@@ -104,7 +104,7 @@ local Cgi = Api:extend{
 		if self:getRequestHeader "REQUEST_METHOD" ~= "POST" then
 			return
 		end
-		if "application/x-www-form-urlencoded" == self:getRequestHeader "CONTENT_TYPE" then
+		if string.beginsWith(self:getRequestHeader "CONTENT_TYPE", "application/x-www-form-urlencoded") then
 			local data = io.read(tonumber(self:getRequestHeader "CONTENT_LENGTH"))
 			data = string.explode(data, "&")
 			local _, v
@@ -122,7 +122,7 @@ local Cgi = Api:extend{
 				end
 			end
 		else
-			Exception "Not implemented!":throw()
+			Exception ("Not implemented for Content-type: "..self:getRequestHeader "CONTENT_TYPE".."!"):throw()
 		end
 	end,
 	-- Cookies

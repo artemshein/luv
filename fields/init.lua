@@ -39,6 +39,7 @@ local Field = Object:extend{
 		self:setWidget(params.widget)
 		if self.required then
 			self.validators.filled = validators.Filled()
+			self:addClass "required"
 		end
 		self:setDefaultValue(params.defaultValue)
 		return self
@@ -63,6 +64,13 @@ local Field = Object:extend{
 		local _, v for _, v in ipairs(errors) do table.insert(self.errors, v) end
 		return self
 	end,
+	addClass = function (self, class)
+		self.classes = self.classes or {}
+		table.insert(self.classes, class)
+		return self
+	end;
+	getClasses = function (self) return self.classes end;
+	setClasses = function (self, classes) self.classes = classes return self end;
 	setErrors = function (self, errors) self.errors = errors return self end,
 	getErrors = function (self) return self.errors end,
 	isValid = function (self, value)

@@ -14,14 +14,23 @@ local Input = Widget:extend{
 	__tag = .....".Input";
 	render = function (self, field, form, tail)
 		tail = tail or ""
-		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())..[[" id="]]..html.escape(getId(form, field))..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[["]]..tail..[[ />]]
+		local classes = field:getClasses()
+		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())
+		..[[" id="]]..html.escape(getId(form, field))
+		..[[" value="]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))
+		..(classes and ([[" class="]]..table.join(classes, " ")) or "")
+		..[["]]..tail..[[ />]]
 	end
 }
 
 local TextArea = Widget:extend{
 	__tag = .....".TextArea";
 	render = function (self, field, form)
-		return [[<textarea name="]]..html.escape(field:getName())..[[" id="]]..html.escape(getId(form, field))..[[">]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[[</textarea>]]
+		local classes = field:getClasses()
+		return [[<textarea name="]]..html.escape(field:getName())
+		..[[" id="]]..html.escape(getId(form, field))
+		..(classes and ([[" class="]]..table.join(classes, " ")) or "")
+		..[[">]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ""))..[[</textarea>]]
 	end;
 }
 
@@ -85,17 +94,23 @@ local ImageButton = Button:extend{
 local Select = Widget:extend{
 	__tag = .....".Select";
 	render = function (self, field, form)
+		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
+		if not field:isRequired() then values = [[<option></option>]] end
 		for k, v in pairs(field:getValues()) do
 			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(tostring(fieldValue) == tostring(v:getPk():getValue()) and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
 		end
-		return [[<select id="]]..html.escape(getId(form, field))..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];
+		return [[<select id="]]..html.escape(getId(form, field))
+		..[[" name="]]..html.escape(field:getName())
+		..(classes and ([[" class="]]..table.join(classes, " ")) or "")
+		..[[">]]..values..[[</select>]];
 	end;
 }
 
 local MultipleSelect = Select:extend{
 	__tag = .....".MiltipleSelect";
 	render = function (self, field, form)
+		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
 		for k, v in pairs(field:getValues()) do
 			local founded = false
@@ -108,7 +123,10 @@ local MultipleSelect = Select:extend{
 			end
 			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(founded and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
 		end
-		return [[<select multiple="multiple" id="]]..html.escape(getId(form, field))..[[" name="]]..html.escape(field:getName())..[[">]]..values..[[</select>]];
+		return [[<select multiple="multiple" id="]]..html.escape(getId(form, field))
+		..[[" name="]]..html.escape(field:getName())
+		..(classes and ([[" class="]]..table.join(classes, " ")) or "")
+		..[[">]]..values..[[</select>]];
 	end;
 }
 

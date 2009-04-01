@@ -422,6 +422,9 @@ local Driver = Object:extend{
 		local _, v = next(res)
 		return v
 	end,
+	beginTransaction = function (self) self:query "BEGIN;" return self end;
+	commit = function (self) self:query "COMMIT;" return self end;
+	rollback = function (self) self:query "ROLLBACK;" return self end;
 	query = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self.connection:execute(rawSql)

@@ -14,12 +14,14 @@
 					{% local name = model:getLabelMany() %}
 					{% local modelUrl = urlConf:getBaseUri().."/"..admin:getPath() %}
 					<li class="{{ cycle(0, {"odd";"even"}) }}">
+						{% if not admin:isTreeModel() then %}
 						<div class="button" style="float:right">
 							<a href="{{ modelUrl }}/add">
 								<img src="/images/admin/page_add.png" width="16" height="16" alt="Add" />
 							</a>
 							<a href="{{ modelUrl }}/add">Add</a>
 						</div>
+						{% end %}
 						{% if admin:getSmallIcon() then %}
 							{% local icon = admin:getSmallIcon() %}
 							<a href="{{ modelUrl }}">

@@ -1,5 +1,8 @@
+{% if isRoot then %}<ul>{% end %}
+{% if parent then %}
+	<li><a href="{{ modelUri }}/{{ parent.pk }}/add">Add {{ model:getLabel() }}</a></li>
+{% end %}
 {% if nodes then %}
-	{% if isRoot then %}<ul>{% end %}
 	{% local _, node for _, node in ipairs(nodes) do %}
 		{% childrenCount=node:childrenCount() %}
 		<li>
@@ -7,16 +10,15 @@
 		{% if node:hasChildren() then %}
 			<a href="javascript:void(0)" id="buttonFor{{ node.pk }}" onclick="toggleNode({{ node.pk }});">+</a>
 		{% end %}
-		<a href="{{ baseUri }}{{ modelUri }}{{ node.pk }}">{{ node }}</a> {% if childrenCount > 0 then %}({{ childrenCount }} elements){% end %}
+		<a href="{{ modelUri }}/{{ node.pk }}">{{ node }}</a> {% if childrenCount > 0 then %}({{ childrenCount }} elements){% end %}
+		<a href="{{ modelUri }}/{{ node.pk }}/add">Add subcategory</a>
 		</div>
 		{% if node:hasChildren() then %}
 		<ul id="childrenFor{{ node.pk }}" style="display: none"></ul>
 		</li>
 		{% end %}
 	{% end %}
-	{% if isRoot then %}</ul>{% end %}
-{% else %}
-	Пусто.
 {% end %}
+{% if isRoot then %}</ul>{% end %}
 
 {{ debugger }}

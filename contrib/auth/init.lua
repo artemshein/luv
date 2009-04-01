@@ -1,6 +1,7 @@
 require "luv.debug"
 local io, type, require, math, tostring, string, debug = io, type, require, math, tostring, string, debug
 local models, fields, references, forms, managers, crypt, widgets = require "luv.db.models", require "luv.fields", require "luv.fields.references", require "luv.forms", require "luv.managers", require "luv.crypt", require "luv.fields.widgets"
+local widgets = require "luv.fields.widgets"
 
 module(...)
 
@@ -127,18 +128,32 @@ local getModelsAdmins = function ()
 					id = User:getField "id":clone();
 					login = User:getField "login":clone();
 					name = User:getField "name":clone();
-					password = fields.Text{minLength=6;maxLength=32};
-					password2 = fields.Text{minLength=6;maxLength=32;label="Repeat password"};
+					password = fields.Text{minLength=6;maxLength=32;widget=widgets.PasswordInput};
+					password2 = fields.Text{minLength=6;maxLength=32;label="Repeat password";widget=widgets.PasswordInput};
 					group = fields.ModelSelect(UserGroup:all():getValue());
 					isActive = User:getField "isActive":clone();
+					isValid = function (self)
+						if not forms.Form.isValid(self) then
+							return false
+						end
+						if self.password then
+							if self.password ~= self.password2 then
+								self:addError "Entered passwords don't match."
+								return false
+							end
+						end
+						return true
+					end;
 				};
 				initModelByForm = function (self, model, form)
 					model.id = form.id
 					model.login = form.login
 					model.name = form.name
 					model.group = form.group
-					debug.dprint(form.isActive)
 					model.isActive = form.isActive
+					if form.password then
+						model.passwordHash = model:encodePassword(form.password)
+					end
 				end;
 			};
 		}
