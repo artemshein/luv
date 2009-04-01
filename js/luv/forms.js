@@ -210,8 +210,12 @@
 		form.find('input[type!="button"][type!="submit"][type!="checkbox"], textarea, select[multiple!="multiple"]')
 		.each(function(){ result[$(this).attr('name')] = $(this).val(); });
 		form.find('select[multiple]').each(function(){ result[$(this).attr('name')] = $(this).val(); });
-		// TODO: test and fix
-		form.find('input[type="checkbox"]:checked').each(function() { if (!result[$(this).attr('name')]) result[$(this).attr('name')] = []; result[$(this).attr('name')].push($(this).val()); });
+		form.find('input[type="checkbox"]:checked').each(function() {
+			var name = $(this).attr('name');
+			if (!result[name])
+				result[name] = [];
+			result[name].push($(this).val());
+		});
 		return result;
 	}
 	luv.sendForm = function (formId, buttonId, callback)

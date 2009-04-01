@@ -42,7 +42,14 @@ Luv includes:
 What's new
 ==========
 
-Version 0.4alpha
+Version 0.5alpha
+----------------
++ JavaScript.
++ AdminSite automatic actions (delete, mass delete).
++ Fields CSS classes.
++ Button onClick scripts.
+
+Version 0.4alpha [DONE]
 ----------------
 + More fields, form fields & widgets.
 + TreeModel & NestedSetModel.

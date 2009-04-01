@@ -89,7 +89,7 @@ local LoginForm = forms.Form:extend{
 	__tag = .....".LoginForm",
 	Meta = {fields={"login";"password";"authorise"}};
 	login = User:getField "login",
-	password = fields.Text{label="password", maxLength=32, minLength=6, widget=widgets.PasswordInput},
+	password = fields.Text{label="password";maxLength=32;minLength=6;widget=widgets.PasswordInput;required=true};
 	authorise = fields.Submit{defaultValue="Authorise"}
 }
 

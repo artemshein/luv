@@ -1,9 +1,6 @@
 {% if isRoot then %}<ul>{% end %}
-{% if parent then %}
-	<li><a href="{{ modelUri }}/{{ parent.pk }}/add">Add {{ model:getLabel() }}</a></li>
-{% end %}
 {% if nodes then %}
-	{% local _, node for _, node in ipairs(nodes) do %}
+	{% local _, node for _, node in pairs(nodes) do %}
 		{% childrenCount=node:childrenCount() %}
 		<li>
 		<div>

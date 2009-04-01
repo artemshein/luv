@@ -359,8 +359,8 @@ local Model = Struct:extend{
 	end
 }
 
-local TreeModel = Model:extend{
-	__tag = .....".TreeModel";
+local Tree = Model:extend{
+	__tag = .....".Tree";
 	hasChildren = Model.abstractMethod;
 	getChildren = Model.abstractMethod;
 	getParent = Model.abstractMethod;
@@ -370,11 +370,11 @@ local TreeModel = Model:extend{
 	findRoot = Model.abstractMethod;
 }
 
-local NestedSetModel = TreeModel:extend{
-	__tag = .....".NestedSetModel";
+local NestedSet = Tree:extend{
+	__tag = .....".NestedSet";
 	hasChildren = function (self) return self.right-self.left > 1 end;
 	getChildren = function (self)
-		return self:all():filter{left__gte=self.left;right__lte=self.right;level=self.level+1}:getValue()
+		return self.parent:all():filter{left__gte=self.left;right__lte=self.right;level=self.level+1}:getValue()
 	end;
 	getParent = function (self)
 		if 0 == self.level then
@@ -586,7 +586,7 @@ local Paginator = Object:extend{
 }
 
 return {
-	Model = Model;TreeModel=TreeModel;NestedSetModel=NestedSetModel;
+	Model = Model;Tree=Tree;NestedSet=NestedSet;
 	LazyQuerySet = LazyQuerySet;
 	Paginator=Paginator;
 }

@@ -36,7 +36,7 @@ local ModelAdmin = Object:extend{
 		end
 		return self.form
 	end;
-	isTreeModel = function (self) return self:getModel():isKindOf(models.TreeModel) end;
+	isTree = function (self) return self:getModel():isKindOf(models.Tree) end;
 	initModelByForm = function (self, model, form) model:setValues(form:getValues()) return self end;
 	initFormByModel = function (self, form, model) form:setValues(model:getValues()) return self end;
 }
@@ -117,7 +117,7 @@ local AdminSite = Object:extend{
 				local form = admin:getForm():addField("add", fields.Submit "Add")(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted("add") and form:isValid() then
-					if model:isKindOf(models.TreeModel) then
+					if model:isKindOf(models.Tree) then
 						if model:findRoot() then
 							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
 							form:addError "Root record already exist."
@@ -178,7 +178,7 @@ local AdminSite = Object:extend{
 					pairs=pairs;ipairs=ipairs;tostring=tostring;capitalize=string.capitalize;html=html;urlConf=urlConf;user=user;
 					modelUri=urlConf:getBaseUri().."/"..urlConf:getCapture(1);model=model;
 				}
-				if model:isKindOf(models.TreeModel) then
+				if model:isKindOf(models.Tree) then
 					local node = luv:getPost "node"
 					if node then
 						node = model:find(node)
@@ -207,7 +207,7 @@ local AdminSite = Object:extend{
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then return false end
 				local model = admin:getModel()
-				if not model:isKindOf(models.TreeModel) then return false end
+				if not model:isKindOf(models.Tree) then return false end
 				local record = model:find(urlConf:getCapture(2))
 				if not record then return false end
 				local form = admin:getForm():addField("add", fields.Submit "Add")(luv:getPostData()):setAction(urlConf:getUri())
@@ -280,7 +280,7 @@ local AdminSite = Object:extend{
 					model=model;
 					urlConf=urlConf;
 					title=string.capitalize(model:getLabelMany());
-					isTree=model:isKindOf(models.TreeModel);
+					isTree=model:isKindOf(models.Tree);
 				}
 				luv:display "admin/records.html"
 			end};

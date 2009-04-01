@@ -68,7 +68,7 @@ local Object = {
 		return false
 	end,
 	abstractMethod = abstractMethod,
-	maskedMethod = function () error("Method not founded! "..debug.traceback()) end,
+	maskedMethod = function () error("Masked method! "..debug.traceback()) end,
 	checkTypes = checkTypes,
 	singleton = function (self) return self end
 }

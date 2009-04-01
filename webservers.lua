@@ -29,8 +29,8 @@ local urlDecode = function (url)
 	return string.gsub(string.gsub(url, "%%(..)", function (s)
 		local zero, A = string.byte("0"), string.byte("A")
 		local i, j = string.byte(s, 1, 2)
-		if i > A then i = i - A + 10 else i = i - zero end
-		if j > A then j = j - A + 10 else j = j - zero end
+		if i >= A then i = i - A + 10 else i = i - zero end
+		if j >= A then j = j - A + 10 else j = j - zero end
 		return string.char(i*16+j)
 	end), "[+]", function (s)
 		local replace = {
