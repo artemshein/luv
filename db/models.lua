@@ -2,7 +2,7 @@ require "luv.table"
 require "luv.string"
 require "luv.debug"
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber
-local math, ipairs, error = math, ipairs, error
+local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
 
 module(...)
@@ -176,8 +176,12 @@ local Model = Struct:extend{
 		new:setValues(res)
 		return new
 	end,
-	all = function (self)
-		return require "luv.db.models".LazyQuerySet(self)
+	all = function (self, limitFrom, limitTo)
+		local qs = require "luv.db.models".LazyQuerySet(self)
+		if limitFrom then
+			qs:limit(limitFrom, limitTo)
+		end
+		return qs
 	end;
 	-- Save, insert, update, create
 	insert = function (self)
@@ -427,6 +431,23 @@ local NestedSet = Tree:extend{
 	end;
 	childrenCount = function (self) return (self.right-self.left-1)/2 end;
 	findRoot = function (self) return self:find{left=1} end;
+	delete = function (self)
+		self.db:beginTransaction()
+		self.db:Delete():from(self:getTableName())
+			:where("?#>?d", "left", self.left)
+			:where("?#<?d", "right", self.right)
+			:exec()
+		Tree.delete(self)
+		self.db:Update(self:getTableName())
+			:set("?#=?#-?d", "left", "left", self.right-self.left+1)
+			:where("?#>?d", "left", self.right)
+			:exec()
+		self.db:Update(self:getTableName())
+			:set("?#=?#-?d", "right", "right", self.right-self.left+1)
+			:where("?#>?d", "right", self.right)
+			:exec()
+		self.db:commit()
+	end;
 }
 
 local LazyQuerySet = Object:extend{
@@ -437,6 +458,8 @@ local LazyQuerySet = Object:extend{
 		self.evaluated = false
 		self.filters = {}
 		self.excludes = {}
+		self.limits = {}
+		self.orders = {}
 		self.initFunc = func
 		getmetatable(self).__index = function (self, field)
 			local res = self.parent[field]
@@ -450,6 +473,10 @@ local LazyQuerySet = Object:extend{
 			return nil
 		end
 	end,
+	limit = function (self, limitFrom, limitTo)
+		self.limits = {from=limitFrom;to=limitTo}
+		return self
+	end;
 	filter = function (self, filters)
 		if type(filters) == "table" then
 			table.insert(self.filters, filters)
@@ -466,6 +493,13 @@ local LazyQuerySet = Object:extend{
 		end
 		return self
 	end,
+	order = function (self, ...)
+		local i, v
+		for i = 1, select("#", ...) do
+			table.insert(self.orders, select(i, ...))
+		end
+		return self
+	end;
 	applyFilterOrExclude = function (self, filter, s)
 		local filTbl, k, v = {}
 		for k, v in pairs(filter) do
@@ -520,6 +554,12 @@ local LazyQuerySet = Object:extend{
 				s:where("NOT ("..res..")")
 			end
 		end
+		if self.limits.from then
+			s:limit(self.limits.from, self.limits.to)
+		end
+		if not table.isEmpty(self.orders) then
+			s:order(unpack(self.orders))
+		end
 		return s
 	end,
 	count = function (self)
@@ -541,9 +581,9 @@ local LazyQuerySet = Object:extend{
 		self:applyFiltersAndExcludes(s)
 		local _, v, obj = {}
 		self.values = {}
-		for _, v in pairs(s:exec() or {}) do
+		for _, v in ipairs(s:exec() or {}) do
 			obj = self.model(v)
-			self.values[obj:getPk():getValue()] = obj
+			table.insert(self.values, obj)
 		end
 	end,
 	getValue = function (self)

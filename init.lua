@@ -81,6 +81,9 @@ local UrlConf = Object:extend{
 	end,
 	dispatch = function (self, urls)
 		local _, item, action
+		if "string" == type(urls) then
+			return self:dispatch(dofile(urls))
+		end
 		for _, item in pairs(urls) do
 			if "string" == type(item[1]) then
 				local res = {string.find(self.tailUri, item[1])}
@@ -125,7 +128,7 @@ local Profiler = Object:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core",
-	version = Version(0, 3, 0, "alpha"),
+	version = Version(0, 5, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
 		self:setProfiler(Profiler())
@@ -161,6 +164,8 @@ local Core = Object:extend{
 	-- Web-server
 	getRequestHeader = function (self, ...) return self.wsApi:getRequestHeader(...) end,
 	setResponseHeader = function (self, ...) self.wsApi:setResponseHeader(...) return self end,
+	setResponseCode = function (self, ...) self.wsApi:setResponseCode(...) return self end;
+	sendHeaders = function (self, ...) self.wsApi:sendHeaders(...) return self end;
 	getGet = function (self, name) return self.wsApi:getGet(name) end,
 	getGetData = function (self) return self.wsApi:getGetData() end,
 	getPost = function (self, name) return self.wsApi:getPost(name) end,

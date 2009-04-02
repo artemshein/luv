@@ -31,7 +31,7 @@ return Templater:extend{
 				return res
 			end;
 			cycle = function (index, params)
-				if not cycleCounters[index] then cycleCounters[index] = 0 end
+				if not cycleCounters[index] then cycleCounters[index] = 1 end
 				cycleCounters[index] = cycleCounters[index] + 1
 				return params[cycleCounters[index] % table.maxn(params) + 1]
 			end;

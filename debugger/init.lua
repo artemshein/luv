@@ -1,5 +1,7 @@
 require "luv.debug"
+require "luv.string"
 local os, table, pairs, ipairs, io, debug, tostring, type = os, table, pairs, ipairs, io, debug, tostring, type
+local string = string
 local Object = require "luv.oop".Object
 local json = require "luv.utils.json"
 
@@ -44,10 +46,10 @@ local Fire = Debugger:extend{
 		local res, section, msgs = "<script type=\"text/javascript\">//<![CDATA[\n"
 		for section, msgs in pairs(self.msgs) do
 			local _, info
-			res = res.."console.group(\""..section.."\");\n"
+			res = res.."console.group(\""..string.escape(section).."\");\n"
 			for _, info in ipairs(msgs) do
 				if "string" == type(info.msg) then
-					res = res.."console."..info.level.."(\""..info.msg.."\");\n"
+					res = res.."console."..info.level.."(\""..string.escape(info.msg).."\");\n"
 				else
 					res = res.."console."..info.level.."("..json.to(info.msg)..");\n"
 				end

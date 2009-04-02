@@ -39,9 +39,15 @@
 	<div class="span-6 last">
 		<div id="actionsHistory">
 			<h2>Last actions</h2>
+			{% if isEmpty(actionLogs) then %}
+			<ul><li>No actions.</li></ul>
+			{% else %}
 			<ul>
-				<li>Тут скоро будет список последних выполненых действий.</li>
+				{% local _, actionLog for _, actionLog in ipairs(actionLogs) do %}
+				<li>{{ actionLog }}</li>
+				{% end %}
 			</ul>
+			{% end %}
 		</div>
 	</div>
 </div>
