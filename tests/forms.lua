@@ -52,7 +52,7 @@ local Form = TestCase:extend{
 		--io.write(html.escape(F():setAction("/section1/"):setId("form"):asHtml()))
 		self.assertEquals(
 			F():setAction("/section1/"):setId("form"):asHtml(),
-			[[<form id="form" action="/section1/" method="POST"><table><tbody><tr><th><label for="formAbc">ABC</label>:</th><td><input type="text" name="abc" id="formAbc" value="" maxlength="255" /></td></tr><tr><th></th><td></td></tr></tbody></table></form>]]
+			[[<form id="form" action="/section1/" method="POST"><table><tbody><tr><th><label for="formAbc">ABC</label>:</th><td><input type="text" name="abc" id="formAbc" value="" class="required" maxlength="255" /></td></tr><tr><th></th><td></td></tr></tbody></table></form>]]
 		)
 	end
 }

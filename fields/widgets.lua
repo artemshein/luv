@@ -68,10 +68,10 @@ local PasswordInput = TextInput:extend{
 local Button = Input:extend{
 	__tag = .....".Button",
 	type = "button";
-	render = function (self, field, form)
-		local tail
+	render = function (self, field, form, tail)
+		tail = tail or ""
 		if field:getOnClick() then
-			tail = [[ onClick="]]..string.escape(field:getOnClick())..[["]]
+			tail = tail..[[ onClick="]]..string.escape(field:getOnClick())..[["]]
 		end
 		return Input.render(self, field, form, tail)
 	end;

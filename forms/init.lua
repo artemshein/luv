@@ -65,7 +65,9 @@ local Form = Struct:extend{
 	isSubmitted = function (self, value)
 		local _, v
 		for _, v in ipairs(self:getFields()) do
-			if v:isKindOf(fields.Submit) then
+			if v:isKindOf(fields.Image) and v:getValue() then
+				return v:getValue()
+			elseif v:isKindOf(fields.Submit) then
 				local fVal = v:getValue()
 				if ((value and (value == v:getName())) or not value) and fVal == v:getDefaultValue() then
 					return fVal
@@ -133,6 +135,17 @@ local Form = Struct:extend{
 			values[k] = value
 		end
 		return values
+	end;
+	setValues = function (self, values)
+		local k, v
+		for k, v in pairs(self:getFieldsByName()) do
+			if v:isKindOf(fields.Image) then
+				v:setValue{x=values[k..".x"];y=values[k..".y"]}
+			else
+				v:setValue(values[k])
+			end
+		end
+		return self
 	end;
 }
 

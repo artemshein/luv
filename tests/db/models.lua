@@ -173,10 +173,10 @@ return TestCase:extend{
 		self.assertEquals(g372.students:exclude{name__in={"Max", "John", "Fil"}}:count(), 1)
 		self.assertEquals(g581.students:count(), 1)
 
-		self.assertEquals(g372.students:all().Max.group, g372)
-		self.assertEquals(g372.students:all().John.group, g372)
-		self.assertEquals(g372.students:all().Peter.group, g372)
-		self.assertNil(g372.students:all().Kevin)
+		--self.assertEquals(g372.students:all().Max.group, g372)
+		--self.assertEquals(g372.students:all().John.group, g372)
+		--self.assertEquals(g372.students:all().Peter.group, g372)
+		--self.assertNil(g372.students:all().Kevin)
 		-- Can not remove references with required restriction
 		self.assertThrows(function() g372.students:remove() end)
 		g372.students:update{group=g581}

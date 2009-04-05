@@ -124,7 +124,8 @@ local Email = Text:extend{
 	__tag = .....".Email";
 	init = function (self, params)
 		params = params or {}
-		params.maxLength = 255;
+		params.maxLength = 255
+		params.regexp = "^%a[%w%-%.]*@[%w%-%.]+%.%w+$"
 		Text.init(self, params)
 	end;
 }
@@ -239,6 +240,7 @@ local Button = Text:extend{
 		if "table" ~= type(params) then
 			params = {defaultValue=params}
 		end
+		params.defaultValue = params.defaultValue or 1
 		params.widget = params.widget or widgets.Button
 		Text.init(self, params)
 	end;

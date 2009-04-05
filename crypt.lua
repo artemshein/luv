@@ -5,7 +5,7 @@ local Filter = require"datafilter"
 
 module(...)
 
-local Hash = Object:extend{__tag = .....",Hash"}
+local Hash = Object:extend{__tag = .....".Hash"}
 
 local Md5 = Hash:extend{
 	__tag = .....".Md5",

@@ -28,17 +28,12 @@ local Api = Object:extend{
 }
 
 local urlDecode = function (url)
-	return string.gsub(string.gsub(url, "%%(..)", function (s)
+	return string.gsub(url, "%%(..)", function (s)
 		local zero, A = string.byte("0"), string.byte("A")
 		local i, j = string.byte(s, 1, 2)
 		if i >= A then i = i - A + 10 else i = i - zero end
 		if j >= A then j = j - A + 10 else j = j - zero end
 		return string.char(i*16+j)
-	end), "[+]", function (s)
-		local replace = {
-			["+"] = " "
-		}
-		return replace[s]
 	end)
 end
 
@@ -178,7 +173,9 @@ local Cgi = Api:extend{
 	sendHeaders = function (self)
 		io.write = self.write
 		if not self.responseCode then self.responseCode = 200 end
-		io.write("HTTP/1.1 ", self.responseCode, " ", responseString[self.responseCode], "\n")
+		if not self:getResponseHeader "Location" then
+			io.write("HTTP/1.1 ", self.responseCode, " ", responseString[self.responseCode], "\n")
+		end
 		if not self:getResponseHeader("Content-type") then
 			self:setResponseHeader("Content-type", "text/html")
 		end

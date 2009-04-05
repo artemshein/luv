@@ -60,8 +60,34 @@ local Login = TestCase:extend{
 	end
 }
 
+local Email = TestCase:extend{
+	__tag = .....".Email";
+	testSimple = function (self)
+		local e = Fields.Email()
+		e:setValue "test@test.com"
+		self.assertTrue(e:isValid())
+		e:setValue "test2134@test-sadf.asdfa.info"
+		self.assertTrue(e:isValid())
+		e:setValue "Sfdssdf.test-2134@test-sadf.asd654fa.ru"
+		self.assertTrue(e:isValid())
+		e:setValue "@test.ru"
+		self.assertFalse(e:isValid())
+		e:setValue "asdf@"
+		self.assertFalse(e:isValid())
+		e:setValue "asdf@#%!@#@asdf.ru"
+		self.assertFalse(e:isValid())
+		e:setValue "asdf@asdf."
+		self.assertFalse(e:isValid())
+		e:setValue "asdf@asd@asdf.re"
+		self.assertFalse(e:isValid())
+		e:setValue "--asdfasd@asdf.re"
+		self.assertFalse(e:isValid())
+	end;
+}
+
 return {
 	Field = Field,
 	Text = Text,
-	Login = Login
+	Login = Login;
+	Email=Email;
 }
