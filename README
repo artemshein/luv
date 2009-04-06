@@ -17,7 +17,7 @@ for CGI support;
 SHA1 passwords hashing;
 - LuaSQL (www.keplerproject.org/luasql/) with mysql driver for MySQL
 support.
-- LuaSocket for SCGI support.
+- LuaSocket for SCGI & Memcached support.
 
 Luv includes:
 - Table, string and debug extensions;
@@ -37,7 +37,7 @@ Luv includes:
 	- DBMS agnostic interface;
 	- Models with relations;
 	- auto back links for reference fields;
-- ... will be much more soon ...
+- Cache (Memcached) & cache wrappers (namespaces & tags support).
 
 What's new
 ==========
@@ -48,6 +48,9 @@ Version 0.5alpha
 + AdminSite automatic actions (delete, mass delete).
 + Fields CSS classes.
 + Button onClick scripts.
++ Cache interfaces & wrappers (namespaces & tags support).
++ Memcached support.
++ TreeModel AdminSite actions (edit, add subcategory, delete).
 
 Version 0.4alpha [DONE]
 ----------------
@@ -100,15 +103,9 @@ Version 1.0 [Q4 2009 - Q1 2010]
 - Full AdminSite.
 - Much more...
 
-Version 0.6alpha [apr-may 2009]
+Version 0.6alpha [apr 2009]
 ----------------
-- Cacher with Memcached support.
 - Caching for models (SQL select) and templates.
-
-Version 0.5alpha [apr 2009]
-----------------
-- AdminSite delete action.
-- TreeModel AdminSite actions.
 
 How to install
 ==============

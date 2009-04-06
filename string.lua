@@ -1,6 +1,7 @@
 require"luv.debug"
 require"luv.table"
-local string, table, unpack, select, debug, error = string, table, unpack, select, debug, error
+local string, table, unpack, select, debug, error, loadstring, assert = string, table, unpack, select, debug, error, loadstring, assert
+local type, tostring, pairs, io = type, tostring, pairs, io
 
 module(...)
 
@@ -79,5 +80,35 @@ string.urlEncode = function (self)
 end]]
 
 string.replace = string.gsub
+
+string.serialize = function (self, seen)
+	seen = seen or {}
+	local selfType = type(self)
+	if "string" == selfType then
+		return '"'..string.escape(self)..'"'
+	elseif "number" == selfType or "boolean" == selfType or "nil" == selfType  then
+		return tostring(self)
+	elseif "table" == selfType then
+		local res, first, k, v = "{", true
+		table.insert(seen, self)
+		for k, v in pairs(self) do
+			if "table" ~= type(v) or not table.find(seen, v) then
+				if first then
+					first = false
+				else
+					res = res..","
+				end
+				res = res.."["..string.serialize(k).."]="..string.serialize(v, seen)
+			end
+		end
+		table.removeValue(seen, self)
+		return res.."}"
+	end
+	return ""
+end
+
+string.unserialize = function (self)
+	return assert(loadstring("return "..self))()
+end
 
 return string

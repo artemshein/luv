@@ -1,6 +1,6 @@
 require "luv.string"
 require "luv.table"
-local type, pairs, table, string = type, pairs, table, string
+local type, pairs, table, string, tostring = type, pairs, table, string, tostring
 
 module(...)
 
@@ -10,6 +10,8 @@ local function to (self, seen)
 		return self and "true" or "false"
 	elseif "string" == type(self) then
 		return "\""..string.escape(self).."\""
+	elseif "number" == type(self) then
+		return tostring(self)
 	elseif "table" == type(self) then
 		if table.find(seen, self) then
 			return "\"[RECURSION]\""

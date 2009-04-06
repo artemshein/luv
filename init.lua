@@ -128,7 +128,7 @@ local Profiler = Object:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core",
-	version = Version(0, 5, 0, "alpha"),
+	version = Version(0, 6, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
 		self:setProfiler(Profiler())
