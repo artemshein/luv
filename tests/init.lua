@@ -22,7 +22,9 @@ local all = TestSuite(
 	-- Models
 	"luv.tests.db.models",
 	-- Forms
-	"luv.tests.forms"
+	"luv.tests.forms",
+	-- Cache
+	"luv.tests.cache"
 )
 
 return {

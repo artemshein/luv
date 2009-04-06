@@ -1,11 +1,13 @@
 require "luv.table"
 require "luv.string"
 local table, tostring, string, io, pairs, ipairs, os, tonumber = table, tostring, string, io, pairs, ipairs, os, tonumber
+local type, math = type, math
 local Object = require "luv.oop".Object
 local socket = require "socket.core"
 local json = require "luv.utils.json"
 local serialize, unserialize = string.serialize, string.unserialize
 local Exception = require "luv.exceptions".Exception
+local crypt = require "luv.crypt"
 
 module(...)
 
@@ -33,23 +35,25 @@ local NamespaceWrapper = Backend:extend{
 		return self.backend:get(self:mangleId(id), doNotTestCacheValidity)
 	end;
 	set = function (self, id, data, tags, specificLifetime)
-		tags = table.copy(tags)
-		local i, v
-		for i, v in ipairs(tags) do
-			tags[i] = self:mangleId(v)
+		if tags then
+			tags = table.copy(tags)
+			local i, v
+			for i, v in ipairs(tags) do
+				tags[i] = self:mangleId(v)
+			end
 		end
-		return self.backend:set(data, self:mangleId(id), tags, specificLifetime)
+		return self.backend:set(self:mangleId(id), data, tags, specificLifetime)
 	end;
 	delete = function (self, id)
 		return self.backend:delete(self:mangleId(id))
 	end;
-	cleanTags = function (self, tags)
+	clearTags = function (self, tags)
 		local _, tag
 		for _, tag in ipairs(tags) do
 			self.backend:delete(self:mangleId(tag))
 		end
 	end;
-	clean = function (self) return self.backend:clean() end;
+	clear = function (self) return self.backend:clean() end;
 	mangleId = function (self, id) return self.namespace.."_"..id end;
 	getDefaultLifetime = function (self) return self.backend:getDefaultLifetime() end;
 	setDefaultLifetime = function (self, lifetime) return self.backend:setDefaultLifetime(lifetime) end;
@@ -84,7 +88,7 @@ local TagEmuWrapper = Backend:extend{
 		local serialized = serialize(combined)
 		return self.backend:set(id, serialized, nil, specificLifetime)
 	end;
-	cleanTags = function (self, tags)
+	clearTags = function (self, tags)
 		if "table" == type(tags) then
 			local _, tag
 			for _, tag in ipairs(tags) do
@@ -98,15 +102,15 @@ local TagEmuWrapper = Backend:extend{
 	mangleTag = function (self, tag) return self.prefix.."_"..self.version.."_"..tag end;
 	loadOrTest = function (self, id, doNotTestCacheValidity, returnTrueIfValid)
 		local serialized = self.backend:get(id, doNotTestCacheValidity)
-		if not serialized then return false end
+		if not serialized then return nil end
 		local combined = unserialize(serialized)
-		if "table" ~= type(combined) then return false end
+		if "table" ~= type(combined) then return nil end
 		if "table" == type(combined[1]) then
 			local tag, savedTagVersion
 			for tag, savedTagVersion in pairs(combined[1]) do
 				local actualTagVersion = self.backend:get(self:mangleTag(tag))
 				if actualTagVersion ~= savedTagVersion then
-					return false
+					return nil
 				end
 			end
 		end
@@ -115,7 +119,7 @@ local TagEmuWrapper = Backend:extend{
 	generateNewTagVersion = function (self)
 		self.counter = self.counter or 0
 		self.counter = self.counter + 1
-		return crypt.hash("md5", tostring(math.random(1, 2000000000))..tostring(counter))
+		return tostring(crypt.hash("md5", tostring(math.random(1, 2000000000))..tostring(counter)))
 	end;
 	getDefaultLifetime  = function (self)
 		return self.backend:getDefaultLifetime()
@@ -174,7 +178,6 @@ local Memcached = Backend:extend{
 			Exception"Tags unsupported. Use TagEmuWrapper instead.":throw()
 		end
 		local serialized = serialize(data)
-		io.write(serialized)
 		if not self.socket:send("set "..id.." 0 "..tostring(specificLifetime or self.defaultLifetime).." "..tostring(string.len(serialized)).."\r\n"..serialized.."\r\n") then
 			Exception"Send failed":throw()
 		end

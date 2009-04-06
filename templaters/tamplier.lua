@@ -1,6 +1,7 @@
+require "luv.debug"
 local io, string, loadstring, dump, setfenv, type, pairs, table = io, string, loadstring, dump, setfenv, type, pairs, table
 local Templater, fs, Exception = require"luv.templaters".Api, require"luv.fs", require"luv.exceptions".Exception
-local tostring = tostring
+local tostring, debug = tostring, debug
 local File = fs.File
 
 module(...)
@@ -66,6 +67,14 @@ return Templater:extend{
 	end,
 	getTemplateContents = function (self, template)
 		local _, v
+		if "table" ~= type(self.templatesDirs) or table.isEmpty(self.templatesDirs) then
+			local tpl = File(template)
+			if tpl:isExists() then
+				local contents = tpl:openForReading():read("*a")
+				tpl:close()
+				return contents
+			end
+		end
 		for _, v in pairs(self.templatesDirs) do
 			local tpl = File(v..template)
 			if tpl:isExists() then

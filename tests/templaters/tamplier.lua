@@ -5,7 +5,7 @@ module(...)
 
 return TestCase:extend{
 	__tag = ...,
-	testFileName = "fgasu2345sfafasdf",
+	testFileName = "/tmp/fgasu2345sfafasdf",
 	setUp = function (self)
 		self.t = Tamplier()
 	end,
