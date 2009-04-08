@@ -1,4 +1,5 @@
 local Object = require"luv.oop".Object
+local require = require
 
 module(...)
 
@@ -36,6 +37,24 @@ local Version = Object:extend{
 	__tostring = function (self) return self:full() end
 }
 
+local sendEmail = function (from, to, subject, body, server)
+	local smtp = require "socket.smtp"
+	return smtp.send{
+		from = from;
+		rcpt = to;
+		source = smtp.message{
+			headers = {
+				from = from;
+				to = to;
+				subject = subject;
+			};
+			body = body;
+		};
+		server = server;
+	}
+end
+
 return {
-	Version = Version
+	Version = Version;
+	sendEmail=sendEmail;
 }

@@ -38,6 +38,7 @@ Luv includes:
 	- Models with relations;
 	- auto back links for reference fields;
 - Cache (Memcached) & cache wrappers (namespaces & tags support).
+- will be more...
 
 What's new
 ==========
