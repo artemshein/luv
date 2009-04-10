@@ -149,6 +149,7 @@ local Core = Object:extend{
 	setTemplater = function (self, templater) self.templater = templater return self end,
 	getSession = function (self) return self.session end,
 	setSession = function (self, session) self.session = session return self end,
+	-- Database
 	getDsn = function (self) return self.dsn end,
 	setDsn = function (self, dsn)
 		self.dsn = dsn
@@ -161,6 +162,9 @@ local Core = Object:extend{
 		return self
 	end,
 	getDb = function (self) return self.db end,
+	beginTransaction = function (self) return self.db:beginTransaction() end;
+	commit = function (self) return self.db:commit() end;
+	rollback = function (self) return self.db:rollback() end;
 	-- Web-server
 	getRequestHeader = function (self, ...) return self.wsApi:getRequestHeader(...) end,
 	setResponseHeader = function (self, ...) self.wsApi:setResponseHeader(...) return self end,
