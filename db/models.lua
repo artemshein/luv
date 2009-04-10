@@ -209,6 +209,7 @@ local Model = Struct:extend{
 			end
 		end
 		if not insert:exec() then
+			self:addError(self.db:getError())
 			return false
 		end
 		-- If Fields.Id than retrieve new generated ID

@@ -64,7 +64,7 @@ return TestCase:extend{
 	validDsn = validDsn,
 	setUp = function (self)
 		self.A = Model:extend{
-			title = fields.Text(),
+			title = fields.Text{unique=true},
 			Meta = {label = "a", labelMany = "as"}
 		}
 		self.A:setDb(Factory(self.validDsn))
@@ -107,6 +107,9 @@ return TestCase:extend{
 		self.assertTrue(a:insert())
 		local b = self.A:getDb():SelectRow():from(self.A:getTableName()):exec()
 		self.assertEquals(b.title, "testTitle")
+		a = self.A()
+		a.title = "testTitle"
+		self.assertFalse(a:insert())
 	end,
 	testUpdateSimple = function (self)
 		local id = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc"):exec()
