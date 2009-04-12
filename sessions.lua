@@ -46,8 +46,8 @@ local Session = Object:extend{
 		rawset(self, "wsApi", wsApi)
 		rawset(self, "storage", storage)
 		local id = wsApi:getCookie(self:getCookieName())
-		if not id then
-			id = tostring(crypt.Md5(math.random(2000000000)))
+		if not id or #id ~= 12 then
+			id = string.slice(tostring(crypt.Md5(math.random(2000000000))), 1, 12)
 			wsApi:setCookie(self:getCookieName(), id)
 		end
 		rawset(self, "id", id)
@@ -72,7 +72,7 @@ local SessionFile = Object:extend{
 	getDir = function (self) return self.dir end,
 	setDir = function (self, dir) self.dir = Dir(dir) return self end,
 	read = function (self, name)
-		local f = File(Dir(self.dir:getName()..string.slice(name, 1, 2)):getName()..name)
+		local f = File(Dir(self.dir:getName()..string.slice(name, 1, 2)):getName()..string.slice(name, 3))
 		if not f:isExists() then
 			return nil
 		end
@@ -81,12 +81,12 @@ local SessionFile = Object:extend{
 	write = function (self, name, value)
 		local d = Dir(self.dir:getName()..string.slice(name, 1, 2))
 		d:create()
-		local f = File(d:getName()..name)
+		local f = File(d:getName()..string.slice(name, 3))
 		f:openForWriting():write(value):close()
 		return true
 	end,
 	delete = function (self, name)
-		File(Dir(self.dir:getName()..string.slice(fileName, 1, 2)):getName()..name):delete()
+		File(Dir(self.dir:getName()..string.slice(fileName, 1, 2)):getName()..string.slice(name, 3)):delete()
 	end
 }
 
