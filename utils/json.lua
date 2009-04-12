@@ -13,22 +13,22 @@ local function to (self, seen)
 	elseif "number" == type(self) then
 		return tostring(self)
 	elseif "table" == type(self) then
-		if table.find(seen, self) then
-			return "\"[RECURSION]\""
-		end
 		table.insert(seen, self)
 		local res, first, k, v = "{", true
 		for k, v in pairs(self) do
-			if "function" ~= type(v) and "userdata" ~= type(v) then
+			local vType = type(v)
+			if "function" ~= vType and "userdata" ~= vType then
 				if first then
 					first = false
 				else
 					res = res..","
 				end
-				if "string" == type(k) then
-					res = res.."\""..string.escape(k).."\":"..to(v, seen)
-				else
-					res = res..k..":"..to(v, seen)
+				if ("table" == vType and not table.find(seen, v)) or "table" ~= vType then
+					if "string" == type(k) then
+						res = res.."\""..string.escape(k).."\":"..to(v, seen)
+					else
+						res = res..k..":"..to(v, seen)
+					end
 				end
 			end
 		end

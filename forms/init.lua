@@ -1,4 +1,5 @@
 require "luv.table"
+require "luv.debug"
 local math, tostring, debug = math, tostring, debug
 local require, rawset, type, pairs, ipairs, table, io = require, rawset, type, pairs, ipairs, table, io
 local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"

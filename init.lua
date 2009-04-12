@@ -206,10 +206,18 @@ local Core = Object:extend{
 		self.templater:assign(...)
 		return self
 	end;
+	fetchString = function (self, template)
+		self:flush()
+		return self.templater:fetchString(template)
+	end;
 	fetch = function (self, template)
 		self:flush()
 		return self.templater:fetch(template)
-	end,
+	end;
+	displayString = function (self, template)
+		self:flush()
+		return self.templater:displayString(template)
+	end;
 	display = function (self, template)
 		self:flush()
 		return self.templater:display(template)
@@ -237,21 +245,25 @@ local Core = Object:extend{
 		if self.debugger then
 			self.debugger:debug(...)
 		end
+		return self
 	end;
 	info = function (self, ...)
 		if self.debugger then
 			self.debugger:info(...)
 		end
+		return self
 	end;
 	warn = function (self, ...)
 		if self.debugger then
 			self.debugger:warn(...)
 		end
+		return self
 	end;
 	error = function (self, ...)
 		if self.debugger then
 			self.debugger:error(...)
 		end
+		return self
 	end;
 }
 

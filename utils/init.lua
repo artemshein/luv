@@ -39,6 +39,8 @@ local Version = Object:extend{
 
 local sendEmail = function (from, to, subject, body, server)
 	local smtp = require "socket.smtp"
+	local mime = require "mime"
+	local ltn12 = require "ltn12"
 	return smtp.send{
 		from = from;
 		rcpt = to;
@@ -46,9 +48,21 @@ local sendEmail = function (from, to, subject, body, server)
 			headers = {
 				from = from;
 				to = to;
-				subject = subject;
+				subject = "=?utf8?b?"..mime.encode("base64")(subject).."?=";
 			};
-			body = body;
+			body = {{
+				headers = {
+					["content-type"] = 'text/plain; charset="utf-8"';
+					["content-transfer-encoding"] = "BASE64";
+				};
+				body = ltn12.source.chain(
+					ltn12.source.string(body),
+					ltn12.filter.chain(
+						mime.encode("base64"),
+						mime.wrap()
+					)
+				);
+			}};
 		};
 		server = server;
 	}
