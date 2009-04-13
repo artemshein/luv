@@ -143,11 +143,18 @@ local Cgi = Api:extend{
 		if not cookieString then
 			return nil
 		end
-		local cookies = string.explode(cookieString, "&")
+		local cookies
+		if string.find(cookieString, "&", 1, true) then
+			cookies = string.explode(cookieString, "&")
+		elseif string.find(cookieString, ";", 1, true) then
+			cookies = string.explode(cookieString, ";")
+		else
+			cookies = {cookieString}
+		end
 		local _, v
 		for _, v in ipairs(cookies) do
 			local name, value = string.split(v, "=")
-			self.cookies[name] = value
+			self.cookies[string.trim(name)] = string.trim(value)
 		end
 	end,
 	getCookie = function (self, name)

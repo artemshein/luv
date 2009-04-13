@@ -1,6 +1,15 @@
-local table, pairs, next, type, require = table, pairs, next, type, require
+local table, pairs, next, type, require, ipairs = table, pairs, next, type, require, ipairs
 
 module(...)
+
+table.ifind = function (tbl, val)
+	for k, v in ipairs(tbl) do
+		if val == v then
+			return true
+		end
+	end
+	return false
+end
 
 table.find = function (tbl, val)
 	for k, v in pairs(tbl) do

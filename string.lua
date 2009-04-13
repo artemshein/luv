@@ -1,5 +1,5 @@
 require"luv.debug"
-require"luv.table"
+local table = require "luv.table"
 local string, table, unpack, select, debug, error, loadstring, assert = string, table, unpack, select, debug, error, loadstring, assert
 local type, tostring, pairs, io = type, tostring, pairs, io
 
@@ -27,7 +27,7 @@ string.endsWith = function (str, search)
 end
 
 string.split = function (str, ...)
-	local res, tail, i, len = {}, str, 1, select("#", ...)
+	local res, tail, len = {}, str, select("#", ...)
 	for i = 1, len do
 		if not tail then break end
 		local begPos, endPos = string.find(tail, select(i, ...), 1, true)
@@ -63,6 +63,34 @@ string.explode = function (self, ex)
 	return res
 end
 
+local trimChars = {string.byte" ";string.byte"\t";string.byte"\v";string.byte"\r";string.byte"\n";0}
+
+string.ltrim = function (self)
+	local index = 1
+	for i = 1, string.len(self) do
+		if not table.ifind(trimChars, string.byte(self, i)) then
+			index = i
+			break
+		end
+	end
+	return string.slice(self, index)
+end
+
+string.rtrim = function (self)
+	local index = 1
+	for i = string.len(self), 1, -1 do
+		if not table.ifind(trimChars, string.byte(self, i)) then
+			index = i
+			break
+		end
+	end
+	return string.slice(self, 1, index)
+end
+
+string.trim = function (self)
+	return string.ltrim(string.rtrim(self))
+end
+
 string.escape = function (self)
 	return string.gsub(self, "\"", "\\\"")
 end
@@ -89,7 +117,7 @@ string.serialize = function (self, seen)
 	elseif "number" == selfType or "boolean" == selfType or "nil" == selfType  then
 		return tostring(self)
 	elseif "table" == selfType then
-		local res, first, k, v = "{", true
+		local res, first = "{", true
 		table.insert(seen, self)
 		for k, v in pairs(self) do
 			if "table" ~= type(v) or not table.find(seen, v) then
