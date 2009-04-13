@@ -1,38 +1,16 @@
-require "luv.string"
+local string = require "luv.string"
 require "luv.debug"
-local math, string, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable = math, string, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable
+local os = os
+local math, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable = math, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable
 local oop, crypt, fs = require "luv.oop", require "luv.crypt", require "luv.fs"
 local Object, File, Dir = oop.Object, fs.File, fs.Dir
 
 module(...)
 
-local function serialize (value)
-	local t = type(value)
-	if "string" == t then
-		return "\""..value.."\""
-	elseif "number" == t or "boolean" == t or "nil" == t then
-		return tostring(value)
-	elseif "table" == t then
-		local res, k, v = "{"
-		for k, v in pairs(value) do
-			if type(v) ~= "userdata" and type(v) ~= "function" then
-				if type(k) == "number" then
-					res = res..k
-				else
-					res = res.."["..serialize(k).."]"
-				end
-				res = res.."="..serialize(v)..","
-			end
-		end
-		return res.."}"
-	end
-	return "nil"
-end
-
 local sessionGet = function (self, key)
-	local res = self.parent[key]
+	local res = rawget(self, "parent")[key]
 	if res then return res end
-	return self.data[key]
+	return rawget(self, "data")[key]
 end
 
 local sessionSet = function (self, key, value)
@@ -51,7 +29,7 @@ local Session = Object:extend{
 			wsApi:setCookie(self:getCookieName(), id)
 		end
 		rawset(self, "id", id)
-		rawset(self, "data", loadstring(storage:read(id) or "return {}")())
+		rawset(self, "data", string.unserialize(storage:read(id) or "{}"))
 		local mt = getmetatable(self)
 		mt.__index = sessionGet
 		mt.__newindex = sessionSet
@@ -61,7 +39,7 @@ local Session = Object:extend{
 	setCookieName = function (self, name) rawset(self, "cookieName", name) return self end,
 	getData = function (self) return self.data end,
 	setData = function (self, data) self.data = data self:save() end,
-	save = function (self) self.storage:write(self.id, "return "..serialize(self.data)) end
+	save = function (self) self.storage:write(self.id, string.serialize(self.data)) end
 }
 
 local SessionFile = Object:extend{
