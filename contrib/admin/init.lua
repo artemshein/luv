@@ -318,6 +318,7 @@ local AdminSite = Object:extend{
 					model=model;
 					urlConf=urlConf;
 					title=string.capitalize(model:getLabelMany());
+					titleIcon=admin:getBigIcon();
 					isTree=model:isKindOf(models.Tree);
 				}
 				luv:display "admin/records.html"
