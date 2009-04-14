@@ -8,7 +8,7 @@
 			<a href="javascript:void(0)" id="buttonFor{{ node.pk }}" onclick="toggleNode({{ node.pk }});">+</a>
 		{% end %}
 		<a href="{{ modelUri }}/{{ node.pk }}">{{ node }}</a> {% if childrenCount > 0 then %}({{ childrenCount }} elements){% end %}
-		<a href="{{ modelUri }}/{{ node.pk }}/add">Add subcategory</a>
+		<a href="{{ modelUri }}/{{ node.pk }}/create">Create subcategory</a>
 		</div>
 		{% if node:hasChildren() then %}
 		<ul id="childrenFor{{ node.pk }}" style="display: none"></ul>

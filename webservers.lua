@@ -7,6 +7,7 @@ local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Excep
 module(...)
 
 local Exception = Exception:extend{__tag = .....".Exception"}
+local Http403 = Exception:extend{__tag = .....".Http403"}
 local Http404 = Exception:extend{__tag = .....".Http404"}
 
 local Api = Object:extend{
@@ -311,5 +312,5 @@ return {
 	Cgi = Cgi,
 	Scgi = Scgi,
 	SocketAppServer = SocketAppServer;
-	Exception=Exception;Http404=Http404;
+	Exception=Exception;Http403=Http403;Http404=Http404;
 }

@@ -1,5 +1,6 @@
 require "luv.debug"
 local io, type, require, math, tostring, string, debug = io, type, require, math, tostring, string, debug
+local ipairs = ipairs
 local models, fields, references, forms, managers, crypt, widgets = require "luv.db.models", require "luv.fields", require "luv.fields.references", require "luv.forms", require "luv.managers", require "luv.crypt", require "luv.fields.widgets"
 local widgets = require "luv.fields.widgets"
 
@@ -16,6 +17,8 @@ local GroupRight = models.Model:extend{
 	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
 }
 
+local superuserRight = GroupRight{model="any model";action="any action"}
+
 local UserGroup = models.Model:extend{
 	__tag = .....".UserGroup",
 	Meta = {labels={"user group";"user groups"}},
@@ -23,6 +26,16 @@ local UserGroup = models.Model:extend{
 	description = fields.Text{maxLength=false},
 	rights = references.ManyToMany{references=GroupRight;relatedName="groups"},
 	__tostring = function (self) return tostring(self.title) end;
+	hasRight = function (self, model, action)
+		local superuserRight = superuserRight
+		for _, v in ipairs(self.rights:getValue()) do
+			if (v.model == superuserRight.model and v.action == superuserRight.action)
+			or (v.model == model and v.action == action) then
+				return true
+			end
+		end
+		return false
+	end;
 }
 
 local User = models.Model:extend{
@@ -82,7 +95,41 @@ local User = models.Model:extend{
 	logout = function (self, session)
 		session[self.sessId] = nil
 		session:save()
-	end
+	end;
+	-- Rights
+	hasRight = function (self, model, action)
+		return self.group and self.group:hasRight(model, right)
+	end;
+	rightToCreate = function (self, model)
+		if "string" ~= type(model) then
+			model = model:getLabel()
+		end
+		return GroupRight{model=model;action="create";description="Right to create "..model}
+	end;
+	rightToEdit = function (self, model)
+		if "string" ~= type(model) then
+			model = model:getLabel()
+		end
+		return GroupRight{model=model;action="edit";description="Right to edit "..model}
+	end;
+	rightToDelete = function (self, model)
+		if "string" ~= type(model) then
+			model = model:getLabel()
+		end
+		return GroupRight{model=model;action="delete";description="Right to delete "..model}
+	end;
+	canCreate = function (self, model)
+		local right = self:rightToCreate(model)
+		return self:hasRight(right.model, right.action)
+	end;
+	canEdit = function (self, model)
+		local right = self:rightToEdit(model)
+		return self:hasRight(right.model, right.action)
+	end;
+	canDelete = function (self, model)
+		local right = self:rightToDelete(model)
+		return self:hasRight(right.model, right.action)
+	end;
 }
 
 local LoginForm = forms.Form:extend{

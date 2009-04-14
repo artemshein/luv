@@ -51,8 +51,8 @@ local ActionLog = models.Model:extend{
 	type = fields.Text{required=true};
 	message = fields.Text{maxLength=false;required=true};
 	__tostring = function (self) return tostring(self.message) end;
-	logAdd = function (self, baseUri, user, admin, record)
-		self:create{user=user;type="add";message="Added "..record:getLabel().." "..[[<a href="]]..baseUri.."/"..admin:getPath().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
+	logCreate = function (self, baseUri, user, admin, record)
+		self:create{user=user;type="create";message="Created "..record:getLabel().." "..[[<a href="]]..baseUri.."/"..admin:getPath().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
 	end;
 	logSave = function (self, baseUri, user, admin, record)
 		self:create{user=user;type="save";message="Edited "..record:getLabel().." "..[[<a href="]]..baseUri.."/"..admin:getPath().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
@@ -130,17 +130,18 @@ local AdminSite = Object:extend{
 				auth.models.User:logout(luv:getSession())
 				luv:setResponseHeader("Location", "/"):sendHeaders()
 			end};
-			{"^/([^/]+)/add/?$"; function (urlConf)
+			{"^/([^/]+)/create/?$"; function (urlConf)
 				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then ws.Http404():throw() end
 				local model = admin:getModel()
-				local form = admin:getForm():addField("add", fields.Submit "Add")(luv:getPostData()):setAction(urlConf:getUri())
+				if not user:canCreate(model) then ws.Http403():throw() end
+				local form = admin:getForm():addField("create", fields.Submit "Create")(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
-				if form:isSubmitted("add") and form:isValid() then
+				if form:isSubmitted("create") and form:isValid() then
 					if model:isKindOf(models.Tree) then
 						if model:findRoot() then
-							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not created!")
 							form:addError "Root record already exist."
 						else
 							local record = model()
@@ -148,11 +149,11 @@ local AdminSite = Object:extend{
 							record.right = 2
 							admin:initModelByForm(record, form)
 							if record:save() then
-								ActionLog:logAdd(urlConf:getBaseUri(), user, admin, record)
-								msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
+								ActionLog:logCreate(urlConf:getBaseUri(), user, admin, record)
+								msgsStack:okMsg(string.capitalize(model:getLabel()).." was created successfully!")
 								form:setValues{}
 							else
-								msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+								msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not created!")
 								form:addErrors(record:getErrors())
 							end
 						end
@@ -160,11 +161,11 @@ local AdminSite = Object:extend{
 						local record = model()
 						admin:initModelByForm(record, form)
 						if record:save() then
-							ActionLog:logAdd(urlConf:getBaseUri(), user, admin, record)
-							msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
+							ActionLog:logCreate(urlConf:getBaseUri(), user, admin, record)
+							msgsStack:okMsg(string.capitalize(model:getLabel()).." was created successfully!")
 							form:setValues{}
 						else
-							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+							msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not created!")
 							form:addErrors(record:getErrors())
 						end
 					end
@@ -175,16 +176,17 @@ local AdminSite = Object:extend{
 					ipairs=ipairs;capitalize=string.capitalize;
 					tostring=tostring;html=html;
 					user=user;model=model;urlConf=urlConf;
-					title="Add "..model:getLabel();
+					title="Create "..model:getLabel();
 					form=form;userMsgs=msgsStack:getMsgs();
 				}
-				luv:display "admin/add.html"
+				luv:display "admin/create.html"
 			end};
 			{"^/([^/]+)/records/delete/?$"; function (urlConf)
 				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then ws.Http404():throw() end
 				local model = admin:getModel()
+				if not user:canDelete(model) then ws.Http403():throw() end
 				local items = luv:getPost "items"
 				if "table" ~= type(items) then
 					items = {items}
@@ -230,25 +232,26 @@ local AdminSite = Object:extend{
 					luv:display "admin/_records-table.html"
 				end
 			end};
-			{"^/([^/]+)/(.+)/add/?$"; function (urlConf) -- for TreeModel
+			{"^/([^/]+)/(.+)/create/?$"; function (urlConf) -- for TreeModel
 				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then ws.Http404():throw() end
 				local model = admin:getModel()
+				if not user:canCreate(model) then ws.Http403():throw() end
 				if not model:isKindOf(models.Tree) then ws.Http404:throw() end
 				local record = model:find(urlConf:getCapture(2))
 				if not record then ws.Http404():throw() end
-				local form = admin:getForm():addField("add", fields.Submit "Add")(luv:getPostData()):setAction(urlConf:getUri())
+				local form = admin:getForm():addField("create", fields.Submit "Create")(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
-				if form:isSubmitted "add" and form:isValid() then
+				if form:isSubmitted "create" and form:isValid() then
 					local child = model()
 					admin:initModelByForm(child, form)
 					if record:addChild(child) then
-						ActionLog:logAdd(urlConf:getBaseUri(), user, admin, child)
-						msgsStack:okMsg(string.capitalize(model:getLabel()).." was added successfully!")
+						ActionLog:logCreate(urlConf:getBaseUri(), user, admin, child)
+						msgsStack:okMsg(string.capitalize(model:getLabel()).." was created successfully!")
 						form:setValues{}
 					else
-						msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not added!")
+						msgsStack:errorMsg(string.capitalize(model:getLabel()).." was not created!")
 						form:addErrors(record:getErrors())
 					end
 				end
@@ -256,20 +259,23 @@ local AdminSite = Object:extend{
 					ipairs=ipairs;capitalize=string.capitalize;
 					tostring=tostring;html=html;
 					user=user;model=model;urlConf=urlConf;
-					title="Add "..model:getLabel();
+					title="Create "..model:getLabel();
 					form=form;userMsgs=msgsStack:getMsgs();
 				}
-				luv:display "admin/add.html"
+				luv:display "admin/create.html"
 			end};
 			{"^/([^/]+)/(.+)/?$"; function (urlConf)
 				local user = getUser(urlConf)
 				local admin = self:findAdmin(urlConf:getCapture(1))
 				if not admin then ws.Http404():throw() end
 				local model = admin:getModel()
+				if not user:canEdit(model) then ws.Http403():throw() end
 				local record = model:find(urlConf:getCapture(2))
 				if not record then ws.Http404():throw() end
 				local form = admin:getForm()
-				form:addField("delete", fields.Submit{defaultValue="Delete";onClick="return confirm('O\\'RLY?')"})
+				if user:canDelete(model) then
+					form:addField("delete", fields.Submit{defaultValue="Delete";onClick="return confirm('O\\'RLY?')"})
+				end
 				form:addField("save", fields.Submit "Save")
 				form = form(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
@@ -284,6 +290,7 @@ local AdminSite = Object:extend{
 						end
 					end
 				elseif form:isSubmitted "delete" then
+					if not user:canDelete(model) then ws.Http403():throw() end
 					record:delete()
 					ActionLog:logDelete(urlConf:getBaseUri(), user, admin, record)
 					luv:setResponseHeader("Location", urlConf:getBaseUri().."/"..urlConf:getCapture(1)):sendHeaders()
