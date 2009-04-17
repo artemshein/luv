@@ -98,6 +98,9 @@ local Regexp = Validator:extend{
 	end,
 	isValid = function (self, value)
 		Validator.isValid(self, value)
+		if value == nil or value == "" then
+			return true
+		end
 		if not string.find(tostring(value), self.regexp) then
 			self:addError "Field \"%s\" has not valid value."
 			return false

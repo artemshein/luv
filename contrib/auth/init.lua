@@ -15,9 +15,10 @@ local GroupRight = models.Model:extend{
 	action = fields.Text{required=true;minLength=1};
 	description = fields.Text{maxLength=false};
 	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
+	getSuperuserRight = function (self) return self.superuserRight end;
 }
 
-local superuserRight = GroupRight{model="any model";action="any action"}
+GroupRight.superuserRight = GroupRight{model="any model";action="any action"}
 
 local UserGroup = models.Model:extend{
 	__tag = .....".UserGroup",
@@ -27,7 +28,7 @@ local UserGroup = models.Model:extend{
 	rights = references.ManyToMany{references=GroupRight;relatedName="groups"},
 	__tostring = function (self) return tostring(self.title) end;
 	hasRight = function (self, model, action)
-		local superuserRight = superuserRight
+		local superuserRight = GroupRight:getSuperuserRight()
 		for _, v in ipairs(self.rights:getValue()) do
 			if (v.model == superuserRight.model and v.action == superuserRight.action)
 			or (v.model == model and v.action == action) then

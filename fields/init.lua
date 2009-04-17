@@ -223,6 +223,15 @@ local Login = Text:extend{
 	end
 }
 
+local Ip = Text:extend{
+	__tag = function (self, params)
+		params = params or {}
+		params.minLength = 7
+		params.maxLength = 15
+		Text.init(self, params)
+	end;
+}
+
 local Id = Int:extend{
 	__tag = .....".Id",
 	init = function (self, params)
@@ -294,7 +303,7 @@ local Datetime = Field:extend{
 			return self.defaultValue
 		end
 		if self:getAutoNow() then
-			return os.date("%Y-%m-%d %H:%M:%S")
+			return os.time()--os.date("%Y-%m-%d %H:%M:%S")
 		end
 		return nil
 	end;
@@ -384,6 +393,7 @@ return {
 	Text = Text,
 	Int = Int,
 	Boolean=Boolean;
+	Ip=Ip;
 	Login = Login,
 	Id = Id,
 	Button = Button;
