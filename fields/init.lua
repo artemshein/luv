@@ -323,7 +323,7 @@ local Datetime = Field:extend{
 			self.value = value
 		end
 	end;
-	tostring = function (self)
+	__tostring = function (self)
 		return os.date(self.defaultFormat, self:getValue())
 	end;
 }

@@ -5,15 +5,21 @@
 	<form id="items">
 	<table><thead>
 		<th></th>
-	{% local _, field for _, field in ipairs(fields) do %}
+	{% for _, field in ipairs(displayFields) do %}
 		<th>{{ capitalize(model:getField(field):getLabel()) }}</th>
 	{% end %}
 	</thead>
-	{% local record for _, record in ipairs(p:getPage(page):getValue()) do %}
+	{% for _, record in ipairs(p:getPage(page):getValue()) do %}
 		<tr class="record">
 			<td width="10"><input type="checkbox" name="items" value="{{ record.pk }}" /></td>
-		{% for _, field in ipairs(fields) do %}
-			<td class="activeLink" onclick="selectRecord('{{ record.pk }}')">{{ html.escape(tostring(record[field] or "")) }}</td>
+		{% for _, field in ipairs(displayFields) do %}
+			<td class="activeLink" onclick="selectRecord('{{ record.pk }}')">
+				{% if record:getField(field):isKindOf(fields.Datetime) then %}
+					{{ record:getField(field) }}
+				{% else %}
+					{{ html.escape(tostring(record[field] or "")) }}
+				{% end %}
+			</td>
 		{% end %}
 		</tr>
 	{% end %}

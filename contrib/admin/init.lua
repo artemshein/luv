@@ -1,6 +1,7 @@
 require "luv.string"
 local io, ipairs, tostring, pairs, table, tonumber, string = io, ipairs, tostring, pairs, table, tonumber, string
 local debug, unpack, type, rawget, select = debug, unpack, type, rawget, select
+local os = os
 local Object, auth, models, html = require "luv.oop".Object, require "luv.contrib.auth", require "luv.db.models", require "luv.utils.html"
 local fields = require "luv.fields"
 local forms = require "luv.forms"
@@ -225,7 +226,8 @@ local AdminSite = Object:extend{
 					local page = tonumber(luv:getPost "page") or 1
 					luv:assign{
 						model=model;page=page;
-						fields=admin:getDisplayList();
+						displayFields=admin:getDisplayList();
+						fields=fields;date=os.date;
 						p=models.Paginator(model, 10);
 						title=string.capitalize(model:getLabelMany());
 					}

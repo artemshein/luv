@@ -204,7 +204,7 @@ local Model = Struct:extend{
 					if "nil" == type(val) then
 						val = v:getDefaultValue()
 					end
-					if val  and v:isKindOf(fields.Datetime) then
+					if val and v:isKindOf(fields.Datetime) then
 						val = os.date("%Y-%m-%d %H:%M:%S", val)
 					end
 					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
@@ -248,6 +248,9 @@ local Model = Struct:extend{
 					local val = v:getValue()
 					if "nil" == type(val) then
 						val = v:getDefaultValue()
+					end
+					if val and v:isKindOf(fields.Datetime) then
+						val = os.date("%Y-%m-%d %H:%M:%S", val)
 					end
 					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				end
