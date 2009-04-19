@@ -1,6 +1,7 @@
 require "luv.table"
 require "luv.string"
 require "luv.debug"
+local os = os
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
@@ -144,7 +145,7 @@ local Model = Struct:extend{
 		if not field:isRequired() then
 			return "?n"
 		end
-		if field:isKindOf(fields.Text) then
+		if field:isKindOf(fields.Text) or field:isKindOf(fields.Datetime) then
 			return "?"
 		elseif field:isKindOf(fields.Int) then
 			return "?d"
@@ -190,7 +191,6 @@ local Model = Struct:extend{
 			Exception"Validation error!":throw()
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
-		local _, v
 		for _, v in ipairs(self:getFields()) do
 			if not v:isKindOf(references.ManyToMany) and not (v:isKindOf(references.OneToOne) and v:isBackLink()) and not v:isKindOf(references.OneToMany) then
 				if v:isKindOf(references.ManyToOne) or v:isKindOf(references.OneToOne) then
@@ -203,6 +203,9 @@ local Model = Struct:extend{
 					local val = v:getValue()
 					if "nil" == type(val) then
 						val = v:getDefaultValue()
+					end
+					if val  and v:isKindOf(fields.Datetime) then
+						val = os.date("%Y-%m-%d %H:%M:%S", val)
 					end
 					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				end

@@ -292,9 +292,11 @@ local Image = Button:extend{
 
 local Datetime = Field:extend{
 	__tag = .....".Datetime";
-	setParams = function (self, params)
+	defaultFormat = "%Y-%m-%d %H:%M:%S";
+	init = function (self, params)
 		params = params or {}
 		self:setAutoNow(params.autoNow)
+		Field.init(self, params)
 	end;
 	getAutoNow = function (self) return self.autoNow end;
 	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
@@ -306,12 +308,6 @@ local Datetime = Field:extend{
 			return os.time()--os.date("%Y-%m-%d %H:%M:%S")
 		end
 		return nil
-	end;
-	getValue = function (self)
-		if not self.value then
-			return self:getDefaultValue()
-		end
-		return self.value
 	end;
 	setValue =  function (self, value)
 		if "string" == type(value) then
@@ -326,6 +322,9 @@ local Datetime = Field:extend{
 		else
 			self.value = value
 		end
+	end;
+	tostring = function (self)
+		return os.date(self.defaultFormat, self:getValue())
 	end;
 }
 

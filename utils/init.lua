@@ -43,14 +43,14 @@ local sendEmail = function (from, to, subject, body, server)
 	local mime = require "mime"
 	local ltn12 = require "ltn12"
 	-- Mime.encode BASE64 have a bug, so no UTF8 for now =(
-	local subject64 = mime.encode"base64"(subject)
-	local body64 = ltn12.source.chain(
+	--local subject64 = subject --mime.encode"base64"(subject)
+	--[[local body64 = ltn12.source.chain(
 		ltn12.source.string(body),
 		ltn12.filter.chain(
 			mime.encode("base64"),
 			mime.wrap()
 		)
-	)()
+	)()]]
 
 	return smtp.send{
 		from = from;
@@ -59,15 +59,17 @@ local sendEmail = function (from, to, subject, body, server)
 			headers = {
 				from = from;
 				to = to;
-				subject = "=?utf8?b?"..subject64.."?=";
+				subject = subject; --"=?utf8?b?"..subject64.."?=";
 			};
+			body = body;
+			--[[
 			body = {{
 				headers = {
-					["content-type"] = 'text/plain; charset="utf-8"';
-					["content-transfer-encoding"] = "BASE64";
+					["content-type"] = 'text/plain; charset="latin1"';
+					--["content-transfer-encoding"] = "BASE64";
 				};
-				body = body64;
-			}};
+				body = body;
+			}};]]
 		};
 		server = server;
 	}
