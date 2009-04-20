@@ -92,7 +92,7 @@ string.trim = function (self)
 end
 
 string.escape = function (self)
-	return string.gsub(self, "\"", "\\\"")
+	return string.gsub(self, '"', '\"')
 end
 
 --[[
@@ -136,6 +136,7 @@ string.serialize = function (self, seen)
 end
 
 string.unserialize = function (self)
+	io.write(string.len(self), "return "..self)
 	return assert(loadstring("return "..self))()
 end
 

@@ -5,6 +5,10 @@ local pairs, require, select, unpack, string, table, debug, type, rawget, rawset
 local _G, error = _G, error
 local oop, exceptions, utils, sessions, fs, ws, sessions = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
+local crypt = require "luv.crypt"
+local backend = require "luv.cache.backend"
+local Memory, NamespaceWrapper = backend.Memory, backend.NamespaceWrapper
+local Slot = require "luv.cache.frontend".Slot
 
 module(...)
 
@@ -126,6 +130,27 @@ local Profiler = Object:extend{
 	getStat = function (self) return self.stat end;
 }
 
+local TemplateSlot = Slot:extend{
+	__tag = .....".TemplateSlot";
+	init = function (self, luv, template, params)
+		self.luv = luv
+		self.template = template
+		return Slot.init(self, NamespaceWrapper(luv:getCacher(), "Template"), tostring(crypt.Md5(template..string.serialize(params))))
+	end;
+	displayCached = function (self)
+		local res = self:get()
+		if not res then return false end
+		io.write(res)
+		return true
+	end;
+	display = function (self)
+		local res = self.luv:fetch(self.template)
+		self:set(res)
+		io.write(res)
+		return self
+	end;
+}
+
 local Core = Object:extend{
 	__tag = .....".Core",
 	version = Version(0, 6, 0, "alpha"),
@@ -142,6 +167,7 @@ local Core = Object:extend{
 		--
 		self.wsApi = (wsApi or ws.Cgi()):setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
 		self.urlconf = UrlConf(self.wsApi)
+		self:setCacher(Memory())
 	end,
 	getWsApi = function (self) return self.wsApi end,
 	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end,
@@ -265,6 +291,12 @@ local Core = Object:extend{
 		end
 		return self
 	end;
+	-- Caching
+	getCacher = function (self) return self.cacher end;
+	setCacher = function (self, cacher) self.cacher = cacher return self end;
+	createTemplateSlot = function (self, template, params)
+		return TemplateSlot(self, template, params)
+	end;
 }
 
 local Struct = Object:extend{
@@ -362,6 +394,7 @@ local init = function (params)
 	core:setSession(sessions.Session(core:getWsApi(), sessions.SessionFile(params.sessionDir)))
 	core:setDsn(params.dsn)
 	core:setDebugger(params.debugger)
+	if params.cacher then core:setCacher(params.cacher) end
 	return core
 end
 
