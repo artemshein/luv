@@ -29,6 +29,11 @@ local Memcached = TestCase:extend{
 		self.assertNil(m:get "testKey".a[3])
 		self.assertEquals(m:get "testKey".abc[1], "ef")
 		self.assertEquals(m:get "testKey".abc.da, 144)
+		local str = [[multiple
+		lines
+		string]]
+		m:set("testKey", str)
+		self.assertEquals(m:get "testKey", str)
 	end;
 	testNamespaceWrapper = function (self)
 		local one, two = cache.NamespaceWrapper(self.memcached, "One"), cache.NamespaceWrapper(self.memcached, "Two")

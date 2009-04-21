@@ -1,3 +1,5 @@
+local ipairs = ipairs
+local Object = require "luv.oop".Object
 local Exception = require "luv.exceptions".Exception
 
 module(...)
@@ -54,7 +56,7 @@ local SlotThru = Object:extend{
 
 local Slot = Object:extend{
 	__tag = .....".Slot";
-	init = function (self, id, backend, lifetime)
+	init = function (self, backend, id, lifetime)
 		self.id = id
 		self.lifetime = lifetime
 		self.backend = backend
@@ -62,12 +64,11 @@ local Slot = Object:extend{
 	end;
 	get = function (self) return self.backend:get(self.id) end;
 	set = function (self, data)
-		local tags, _, tag = {}
+		local tags
 		for _, tag in ipairs(self.tags) do
 			table.insert(tags, tag:getNativeId())
 		end
-		local raw = serialize(data)
-		return self.backend:set(id, raw, tags, self.lifetime)
+		return self.backend:set(self.id, data, tags, self.lifetime)
 	end;
 	delete = function (self) self.backend:delete(self.id) end;
 	addTag = function (self, tag)
@@ -78,3 +79,5 @@ local Slot = Object:extend{
 	end;
 	thru = function (self, obj) return SlotThru(self, obj) end;
 }
+
+return {Slot=Slot;Tag=Tag}

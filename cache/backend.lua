@@ -2,6 +2,7 @@ require "luv.table"
 require "luv.string"
 local table, tostring, string, io, pairs, ipairs, os, tonumber = table, tostring, string, io, pairs, ipairs, os, tonumber
 local type, math = type, math
+local debug = debug
 local Object = require "luv.oop".Object
 local socket = require "socket.core"
 local json = require "luv.utils.json"
@@ -16,6 +17,7 @@ module(...)
 
 local Backend = Object:extend{
 	__tag = .....".Backend";
+	logger = function () end;
 	get = Object.abstractMethod;
 	set = Object.abstractMethod;
 	delete = Object.abstractMethod;
@@ -23,6 +25,28 @@ local Backend = Object:extend{
 	getDefaultLifetime = Object.abstractMethod;
 	setDefaultLifetime = Object.abstractMethod;
 	setLogger = Object.abstractMethod;
+}
+
+local Memory = Backend:extend{
+	__tag = .....".Memory";
+	init = function (self)
+		self.storage = {}
+	end;
+	get = function (self, id)
+		local data = self.storage[id]
+		if not data then self.logger("not found "..id) return nil end
+		self.logger("get "..id)
+		return unserialize(data)
+	end;
+	set = function (self, id, data) self.logger("set "..id) self.storage[id] = serialize(data) end;
+	delete = function (self, id) self.logger("delete "..id) self.storage[id] = nil end;
+	clear = function (self) self.logger("clear") self.storage = {} end;
+	getDefaultLifetime = function () return 0 end;
+	setDefaultLifetime = function () return self end;
+	setLogger = function (self, logger)
+		self.logger = logger
+		return self
+	end;
 }
 
 local NamespaceWrapper = Backend:extend{
@@ -85,8 +109,7 @@ local TagEmuWrapper = Backend:extend{
 			end
 		end
 		local combined = {tagsWithVersion; data}
-		local serialized = serialize(combined)
-		return self.backend:set(id, serialized, nil, specificLifetime)
+		return self.backend:set(id, combined, nil, specificLifetime)
 	end;
 	clearTags = function (self, tags)
 		if "table" == type(tags) then
@@ -101,9 +124,8 @@ local TagEmuWrapper = Backend:extend{
 	delete = function (self, id) return self.backend:delete(id) end;
 	mangleTag = function (self, tag) return self.prefix.."_"..self.version.."_"..tag end;
 	loadOrTest = function (self, id, doNotTestCacheValidity, returnTrueIfValid)
-		local serialized = self.backend:get(id, doNotTestCacheValidity)
-		if not serialized then return nil end
-		local combined = unserialize(serialized)
+		local combined = self.backend:get(id, doNotTestCacheValidity)
+		if not combined then return nil end
 		if "table" ~= type(combined) then return nil end
 		if "table" == type(combined[1]) then
 			local tag, savedTagVersion
@@ -160,7 +182,7 @@ local Memcached = Backend:extend{
 			Exception"Send failed":throw()
 		end
 		local res = self.socket:receive"*l" -- Optimize me? "*a"
-		if "END" == res then return nil end
+		if "END" == res then self.logger("not found "..id) return nil end
 		if not string.beginsWith(res, "VALUE") then
 			Exception("Not a valid answer "..res):throw()
 		end
@@ -170,6 +192,8 @@ local Memcached = Backend:extend{
 			Exception"Receive failed":throw()
 		end
 		self.socket:receive"*l"
+		self.logger("get "..id)
+		io.write(string.len(res), res)
 		return unserialize(res)
 	end;
 	set = function (self, id, data, tags, specificLifetime)
@@ -178,6 +202,7 @@ local Memcached = Backend:extend{
 			Exception"Tags unsupported. Use TagEmuWrapper instead.":throw()
 		end
 		local serialized = serialize(data)
+		io.write(string.len(serialized), serialized)
 		if not self.socket:send("set "..id.." 0 "..tostring(specificLifetime or self.defaultLifetime).." "..tostring(string.len(serialized)).."\r\n"..serialized.."\r\n") then
 			Exception"Send failed":throw()
 		end
@@ -189,12 +214,14 @@ local Memcached = Backend:extend{
 			Exception"Send failed":throw()
 		end
 		local res = self.socket:receive"*l"
+		self.logger("delete "..id)
 		return (res == "DELETED\r\n" or res == "NOT_FOUND\r\n")
 	end;
 	clear = function (self)
 		if not self.socket:send "flush_all\r\n" then
 			Exception"Send failed":throw()
 		end
+		self.logger("clear")
 		return self.socket:receive "*l" == "OK\r\n"
 	end;
 	getDefaultLifetime = function (self) return self.defaultLifetime end;
@@ -208,4 +235,4 @@ local Memcached = Backend:extend{
 	end;
 }
 
-return {Backend=Backend;NamespaceWrapper=NamespaceWrapper;TagEmuWrapper=TagEmuWrapper;Memcached=Memcached}
+return {Backend=Backend;NamespaceWrapper=NamespaceWrapper;TagEmuWrapper=TagEmuWrapper;Memcached=Memcached;Memory=Memory}
