@@ -1,3 +1,5 @@
+local Exception = require "luv.exceptions".Exception
+
 module(...)
 
 -- Main idea has been stolen from dklab.ru PHP classes.
@@ -5,7 +7,7 @@ module(...)
 
 local Tag = Object:extend{
 	__tag = .....".Tag";
-	init = function (self, id, backend)
+	init = function (self, backend, id)
 		self.id = id
 		seld.backend = backend
 	end;
@@ -16,7 +18,6 @@ local Tag = Object:extend{
 	getBackend = function (self) return self.backend end;
 }
 
---[[ TODO
 local SlotThru = Object:extend{
 	__tag = .....".SlotThru";
 	init = function (self, slot, obj)
@@ -27,15 +28,29 @@ local SlotThru = Object:extend{
 		local parent = rawget(self, "parent")
 		local res = parent[field]
 		if res then return res end
-		res = rawget(self, "slot"):get()
-		if not res then
-			local obj = rawget(self, "obj")
-			if obj then
-				res = obj[field]
-			end
+		if not rawget(self, "method") then
+			self.method = field
+		else
+			Exception "Can't index twice!":throw()
 		end
+		return self
 	end;
-}]]
+	__call = function (self, ...)
+		local res = self.slot:get()
+		if not rawget(self, "method") then
+			Exception "Index first!":throw()
+		end
+		if not res then
+			if self.obj then
+				res = self.obj[self.method](self.obj, ...)
+			else
+				res = self.method(...)
+			end
+			self.slot:save(res)
+		end
+		return res
+	end;
+}
 
 local Slot = Object:extend{
 	__tag = .....".Slot";
@@ -45,26 +60,21 @@ local Slot = Object:extend{
 		self.backend = backend
 		self.tags = {}
 	end;
-	get = function (self)
-		return unserialize(self.backend:get(self.id))
-	end;
+	get = function (self) return self.backend:get(self.id) end;
 	set = function (self, data)
 		local tags, _, tag = {}
 		for _, tag in ipairs(self.tags) do
 			table.insert(tags, tag:getNativeId())
 		end
 		local raw = serialize(data)
-		return self.backend:set(raw, id, tags, self.lifetime)
+		return self.backend:set(id, raw, tags, self.lifetime)
 	end;
 	delete = function (self) self.backend:delete(self.id) end;
 	addTag = function (self, tag)
-		if tag:getBackend() =~ self.backend then
+		if tag:getBackend() ~= self.backend then
 			Exception"Backends for tag and slot must be the same":throw()
 		end
 		table.insert(self.tags, tag)
 	end;
-	--[[ TODO
-	thru = function (self, obj)
-		return SlotThru(self, obj)
-	end;]]
+	thru = function (self, obj) return SlotThru(self, obj) end;
 }

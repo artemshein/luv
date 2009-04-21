@@ -44,7 +44,7 @@ end
 local abstractMethod = function () error("Method must be implemented first! "..debug.traceback()) end
 
 local Object = {
-	__tag = ...,
+	__tag = .....".Object",
 	isObject = true,
 	init = abstractMethod,
 	extend = function (self, tbl)
@@ -73,6 +73,4 @@ local Object = {
 	singleton = function (self) return self end
 }
 
-return {
-	Object = Object
-}
+return {Object=Object}

@@ -140,5 +140,5 @@ return TestCase:extend{
 		self.assertEquals(#a, 5)
 		a.a = {1, 2, 3}
 		self.assertEquals(#a, 3)]]
-	end
+	end;
 }
