@@ -136,7 +136,7 @@ string.serialize = function (self, seen)
 end
 
 string.unserialize = function (self)
-	io.write(string.len(self), "return "..self)
+	--io.write(string.len(self), "return "..self)
 	return assert(loadstring("return "..self))()
 end
 

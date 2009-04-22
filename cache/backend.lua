@@ -1,10 +1,10 @@
-require "luv.table"
-require "luv.string"
-local table, tostring, string, io, pairs, ipairs, os, tonumber = table, tostring, string, io, pairs, ipairs, os, tonumber
+local table = require "luv.table"
+local string = require "luv.string"
+local debug = require "luv.debug"
+local tostring, io, pairs, ipairs, os, tonumber = tostring, io, pairs, ipairs, os, tonumber
 local type, math = type, math
-local debug = debug
 local Object = require "luv.oop".Object
-local socket = require "socket.core"
+local socket = require "socket"
 local json = require "luv.utils.json"
 local serialize, unserialize = string.serialize, string.unserialize
 local Exception = require "luv.exceptions".Exception
