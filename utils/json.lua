@@ -9,7 +9,7 @@ local function to (self, seen)
 	if "boolean" == type(self) then
 		return self and "true" or "false"
 	elseif "string" == type(self) then
-		return "\""..string.escape(self).."\""
+		return string.format("%q", self)
 	elseif "number" == type(self) then
 		return tostring(self)
 	elseif "table" == type(self) then
@@ -25,7 +25,7 @@ local function to (self, seen)
 				end
 				if ("table" == vType and not table.find(seen, v)) or "table" ~= vType then
 					if "string" == type(k) then
-						res = res.."\""..string.escape(k).."\":"..to(v, seen)
+						res = res..string.format("%q", k)..":"..to(v, seen)
 					else
 						res = res..k..":"..to(v, seen)
 					end
