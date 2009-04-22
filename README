@@ -30,14 +30,17 @@ Luv includes:
 - Fields (with Validators), Models & Forms;
 - URLconf (URL to action binding);
 - Widgets (representation layer);
-- Automatic AdminSite panel.
+- Automatic AdminSite panel;
 - Databases:
 	- MySQL only in this version;
 	- placeholders;
 	- DBMS agnostic interface;
 	- Models with relations;
 	- auto back links for reference fields;
-- Cache (Memcached) & cache wrappers (namespaces & tags support).
+- Caching:
+	- Memcached support (with native multiget);
+	- cache wrappers (namespaces & tags support);
+	- templates caching frontend.
 - will be more...
 
 What's new
@@ -45,6 +48,8 @@ What's new
 
 Version 0.6alpha
 ----------------
++ Cache backend multiget support (native for Memcached).
++ Templates caching frontend.
 
 Version 0.5alpha [DONE]
 ----------------
@@ -109,7 +114,7 @@ Version 1.0 [Q4 2009 - Q1 2010]
 
 Version 0.6alpha [apr 2009]
 ----------------
-- Caching for models (SQL select) and templates.
+- Caching for models (SQL select).
 - i18n.
 
 How to install

@@ -2,13 +2,15 @@ local table = require "luv.table"
 local string = require "luv.string"
 local debug = require "luv.debug"
 local tostring, io, pairs, ipairs, os, tonumber = tostring, io, pairs, ipairs, os, tonumber
-local type, math = type, math
+local type, math, unpack = type, math, unpack
 local Object = require "luv.oop".Object
 local socket = require "socket"
+local select = select
 local json = require "luv.utils.json"
 local serialize, unserialize = string.serialize, string.unserialize
 local Exception = require "luv.exceptions".Exception
 local crypt = require "luv.crypt"
+local mime = require "mime"
 
 module(...)
 
@@ -55,16 +57,22 @@ local NamespaceWrapper = Backend:extend{
 		self.backend = backend
 		self.namespace = namespace
 	end;
-	get = function (self, id, doNotTestCacheValidity)
-		return self.backend:get(self:mangleId(id), doNotTestCacheValidity)
+	get = function (self, ...)
+		local keysCount = select("#", ...)
+		local res = self.backend:get(unpack(table.imap({...}, function (id) return self:mangleId(id) end)))
+		if 1 == keysCount then
+			return res
+		end
+		local result = {}
+		for i = 1, keysCount do
+			local key = select(i, ...)
+			result[key] = res[self:mangleId(key)]
+		end
+		return result
 	end;
 	set = function (self, id, data, tags, specificLifetime)
-		if tags then
-			tags = table.copy(tags)
-			local i, v
-			for i, v in ipairs(tags) do
-				tags[i] = self:mangleId(v)
-			end
+		if "table" == type(tags) then
+			tags = table.imap(tags, function (tag) return self:mangleId(tag) end)
 		end
 		return self.backend:set(self:mangleId(id), data, tags, specificLifetime)
 	end;
@@ -72,10 +80,7 @@ local NamespaceWrapper = Backend:extend{
 		return self.backend:delete(self:mangleId(id))
 	end;
 	clearTags = function (self, tags)
-		local _, tag
-		for _, tag in ipairs(tags) do
-			self.backend:delete(self:mangleId(tag))
-		end
+		return self.backend:clearTags(table.imap(tags, function (tag) return self:mangleId(tag) end))
 	end;
 	clear = function (self) return self.backend:clean() end;
 	mangleId = function (self, id) return self.namespace.."_"..id end;
@@ -91,53 +96,67 @@ local TagEmuWrapper = Backend:extend{
 	init = function (self, backend)
 		self.backend = backend
 	end;
-	get = function (self, id, doNotTestCacheValidity)
-		return self:loadOrTest(id, doNotTestCacheValidity)
+	test = function (self, combined)
+		if combined and "table" == type(combined) and "table" == type(combined[1]) and not table.isEmpty(combined[1]) then
+			local tags = table.keys(combined[1])
+			local tagsActual = self.backend:get(unpack(tags))
+			if "table" ~= type(tagsActual) then
+				tagsActual = {[tags[1]] = tagsActual}
+			end
+			for tag, savedTagVersion in pairs(combined[1]) do
+				if tagsActual[tag] ~= savedTagVersion then
+					return false
+				end
+			end
+		end
+		return true
+	end;
+	get = function (self, ...)
+		local keysCount = select("#", ...)
+		local values = self.backend:get(...)
+		if 1 == keysCount then
+			values = {[select(1, ...)] = values}
+		end
+		local result = {}
+		for i = 1, keysCount do
+			local key = select(i, ...)
+			if "table" == type(values[key]) and not table.isEmpty(values[key]) and self:test(values[key]) then
+				result[key] = values[key][2]
+			end
+		end
+		if 1 == keysCount then
+			result = result[select(1, ...)]
+		end
+		return result
 	end;
 	set = function (self, id, data, tags, specificLifetime)
+		local tagsActual = {}
 		local tagsWithVersion = {}
 		if "table" == type(tags) then
-			local _, tag
+			tags = table.imap(tags, function (tag) return self:mangleTag(tag) end)
+			tagsActual = self.backend:get(unpack(tags))
+			if "table" ~= type(tagsActual) or 1 == #tagsActual then
+				tagsActual = {[tags[1]] = tagsActual}
+			end
 			for _, tag in ipairs(tags) do
-				local mangledTag = self:mangleTag(tag)
-				local tagVersion = self.backend:get(mangledTag)
+				local tagVersion = tagsActual[tag]
 				if not tagVersion then
 					tagVersion = self:generateNewTagVersion()
-					self.backend:set(mangledTag, tagVersion)
+					self.backend:set(tag, tagVersion)
 				end
 				tagsWithVersion[tag] = tagVersion
 			end
 		end
-		local combined = {tagsWithVersion; data}
-		return self.backend:set(id, combined, nil, specificLifetime)
+		return self.backend:set(id, {tagsWithVersion; data}, nil, specificLifetime)
 	end;
 	clearTags = function (self, tags)
-		if "table" == type(tags) then
-			local _, tag
-			for _, tag in ipairs(tags) do
-				self.backend:delete(self:mangleTag(tag))
-			end
+		for _, tag in ipairs(tags) do
+			self.backend:delete(self:mangleTag(tag))
 		end
 	end;
 	clear = function (self) return self.backend:clear() end;
-	test = function (self, id) return self:loadOrTest(id, false, true) end;
 	delete = function (self, id) return self.backend:delete(id) end;
 	mangleTag = function (self, tag) return self.prefix.."_"..self.version.."_"..tag end;
-	loadOrTest = function (self, id, doNotTestCacheValidity, returnTrueIfValid)
-		local combined = self.backend:get(id, doNotTestCacheValidity)
-		if not combined then return nil end
-		if "table" ~= type(combined) then return nil end
-		if "table" == type(combined[1]) then
-			local tag, savedTagVersion
-			for tag, savedTagVersion in pairs(combined[1]) do
-				local actualTagVersion = self.backend:get(self:mangleTag(tag))
-				if actualTagVersion ~= savedTagVersion then
-					return nil
-				end
-			end
-		end
-		return returnTrueIfValid and true or combined[2]
-	end;
 	generateNewTagVersion = function (self)
 		self.counter = self.counter or 0
 		self.counter = self.counter + 1
@@ -177,34 +196,51 @@ local Memcached = Backend:extend{
 			Exception("Couldn't connect to "..options.servers[1].host.." on "..options.servers[1].port):throw()
 		end
 	end;
-	get = function (self, id, doNotTestCacheValidity)
-		if not self.socket:send("get "..id.."\r\n") then
-			Exception"Send failed":throw()
+	get = function (self, ...)
+		local keysCount = select("#", ...)
+		local keys
+		if keysCount < 1 then
+			Exception "One or more keys expected!":throw()
 		end
-		local res = self.socket:receive"*l" -- Optimize me? "*a"
-		if "END" == res then self.logger("not found "..id) return nil end
-		if not string.beginsWith(res, "VALUE") then
-			Exception("Not a valid answer "..res):throw()
+		if keysCount == 1 then
+			keys = select(1, ...)
+		else
+			keys = table.join({...}, " ")
 		end
-		local _, key, options, size = string.split(res, " ")
-		res = self.socket:receive(tonumber(size))
-		if not res then
-			Exception"Receive failed":throw()
+		if not self.socket:send("get "..keys.."\r\n") then
+			Exception "Send failed":throw()
 		end
-		self.socket:receive"*l"
-		self.logger("get "..id)
-		io.write(string.len(res), res)
-		return unserialize(res)
+		local result = {}
+		for i = 1, keysCount do
+			local answer = self.socket:receive "*l" -- Optimize me? "*a"
+			if "END" == answer then break end
+			if not string.beginsWith(answer, "VALUE") then
+				Exception("Not a valid answer "..answer):throw()
+			end
+			local _, key, options, size = string.split(answer, " ")
+			answer = self.socket:receive(tonumber(size))
+			if not answer then
+				Exception "Receive failed":throw()
+			end
+			result[select(i, ...)] = unserialize(mime.unb64(answer))
+			if i == keysCount then
+				self.socket:receive "*l"
+			end
+		end
+		self.logger("get "..keys)
+		if keysCount == 1 then
+			result = result[select(1, ...)]
+		end
+		return result
 	end;
 	set = function (self, id, data, tags, specificLifetime)
 		-- TODO compression flag
-		if tags and not table.isEmpty(tags) then
-			Exception"Tags unsupported. Use TagEmuWrapper instead.":throw()
+		if "table" == type(tags) and not table.isEmpty(tags) then
+			Exception "Tags unsupported. Use TagEmuWrapper instead.":throw()
 		end
-		local serialized = serialize(data)
-		io.write(string.len(serialized), serialized)
+		local serialized = (mime.b64(serialize(data)))
 		if not self.socket:send("set "..id.." 0 "..tostring(specificLifetime or self.defaultLifetime).." "..tostring(string.len(serialized)).."\r\n"..serialized.."\r\n") then
-			Exception"Send failed":throw()
+			Exception "Send failed":throw()
 		end
 		local res = self.socket:receive"*l"
 		return res == "STORED\r\n"

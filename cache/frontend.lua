@@ -77,6 +77,8 @@ local Slot = Object:extend{
 		end
 		table.insert(self.tags, tag)
 	end;
+	getLifetime = function (self) return self.lifetime end;
+	setLifetime = function (self, lifetime) self.lifetime = lifetime return self end;
 	thru = function (self, obj) return SlotThru(self, obj) end;
 }
 

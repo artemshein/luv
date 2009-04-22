@@ -134,9 +134,9 @@ local MysqlDriver = Driver:extend{
 	DropTable = DropTable,
 	init = function (self, host, login, pass, database, port, params)
 		local mysql = LuaSql.mysql()
-		self.connection = mysql:connect(database, login, pass, host, port)
+		self.connection, error = mysql:connect(database, login, pass, host, port)
 		if not self.connection then
-			Driver.Exception("Could not connect to "..host.."!"):throw()
+			Driver.Exception("Could not connect to "..login.."@"..host.." (using password: "..(pass and "yes" or "no").."): "..error):throw()
 		end
 	end,
 	getLastInsertId = function (self)

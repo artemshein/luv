@@ -2,8 +2,32 @@ local table, pairs, next, type, require, ipairs = table, pairs, next, type, requ
 
 module(...)
 
-table.ifind = function (tbl, val)
-	for k, v in ipairs(tbl) do
+table.keys = function (self)
+	local res = {}
+	for key, _ in pairs(self) do
+		table.insert(res, key)
+	end
+	return res
+end
+
+table.map = function (self, func)
+	local res = {}
+	for key, val in pairs(self) do
+		res[key] = func(val)
+	end
+	return res
+end
+
+table.imap = function (self, func)
+	local res = {}
+	for _, val in ipairs(self) do
+		table.insert(res, func(val))
+	end
+	return res
+end
+
+table.ifind = function (self, val)
+	for _, v in ipairs(self) do
 		if val == v then
 			return true
 		end
@@ -11,8 +35,8 @@ table.ifind = function (tbl, val)
 	return false
 end
 
-table.find = function (tbl, val)
-	for k, v in pairs(tbl) do
+table.find = function (self, val)
+	for k, v in pairs(self) do
 		if val == v then
 			return true
 		end
@@ -20,19 +44,29 @@ table.find = function (tbl, val)
 	return false
 end
 
-table.removeValue = function (tbl, val)
-	for k, v in pairs(tbl) do
+table.iremoveValue = function (self, val)
+	for k, v in ipairs(self) do
 		if val == v then
-			tbl[k] = nil
+			self[k] = nil
 			return true
 		end
 	end
 	return false
 end
 
-table.copy = function (tbl)
-	local res, k, v = {}
-	for k, v in pairs(tbl) do
+table.removeValue = function (self, val)
+	for k, v in pairs(self) do
+		if val == v then
+			self[k] = nil
+			return true
+		end
+	end
+	return false
+end
+
+table.copy = function (self)
+	local res = {}
+	for k, v in pairs(self) do
 		res[k] = v
 	end
 	return res
@@ -70,7 +104,7 @@ table.join = function (tbl, sp)
 	return res
 end
 
-table.size = function (tbl)
+table.size = function (tbl) -- ???
 	local count, _ = 0
 	for _ in pairs(tbl) do
 		count = count + 1
@@ -78,8 +112,8 @@ table.size = function (tbl)
 	return count
 end
 
-table.isEmpty = function (tbl)
-	return nil == next(tbl)
+table.isEmpty = function (self)
+	return nil == next(self)
 end
 
 return table

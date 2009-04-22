@@ -46,10 +46,10 @@ local Fire = Debugger:extend{
 		local res, section, msgs = "<script type=\"text/javascript\">//<![CDATA[\n"
 		for section, msgs in pairs(self.msgs) do
 			local _, info
-			res = res.."console.group(\""..string.escape(section).."\");\n"
+			res = res.."console.group("..string.format("%q", section)..");\n"
 			for _, info in ipairs(msgs) do
 				if "string" == type(info.msg) then
-					res = res.."console."..info.level.."(\""..string.escape(info.msg).."\");\n"
+					res = res.."console."..info.level.."("..string.format("%q", info.msg)..");\n"
 				else
 					res = res.."console."..info.level.."("..json.to(info.msg)..");\n"
 				end

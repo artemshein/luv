@@ -135,7 +135,7 @@ local TemplateSlot = Slot:extend{
 	init = function (self, luv, template, params)
 		self.luv = luv
 		self.template = template
-		return Slot.init(self, NamespaceWrapper(luv:getCacher(), "Template"), tostring(crypt.Md5(template..string.serialize(params))))
+		return Slot.init(self, NamespaceWrapper(luv:getCacher(), "Template"), tostring(crypt.Md5(template..string.serialize(params))), 60*60)
 	end;
 	displayCached = function (self)
 		local res = self:get()
@@ -144,6 +144,7 @@ local TemplateSlot = Slot:extend{
 		return true
 	end;
 	display = function (self)
+		self.luv:info("Template cache date "..os.date(), "Cacher")
 		local res = self.luv:fetch(self.template)
 		self:set(res)
 		io.write(res)

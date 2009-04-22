@@ -65,7 +65,7 @@ local Regexp = TestCase:extend{
 	__tag = .....".Regexp",
 	testSimple = function (self)
 		local r = Validators.Regexp"^%d%d%-%d%d%-%d%d%d%d$"
-		self.assertFalse(r:isValid"")
+		self.assertTrue(r:isValid"")
 		self.assertTrue(r:isValid"10-12-2005")
 		self.assertFalse(r:isValid"101-10-2008")
 	end

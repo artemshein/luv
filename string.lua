@@ -91,10 +91,6 @@ string.trim = function (self)
 	return string.ltrim(string.rtrim(self))
 end
 
-string.escape = function (self)
-	return string.gsub(self, '"', '\"')
-end
-
 --[[
 local urlEncodeChars = {36=true;38;43;44;47;58;59;61;63;64}
 
@@ -113,7 +109,7 @@ string.serialize = function (self, seen)
 	seen = seen or {}
 	local selfType = type(self)
 	if "string" == selfType then
-		return '"'..string.escape(self)..'"'
+		return string.format("%q", self)
 	elseif "number" == selfType or "boolean" == selfType or "nil" == selfType  then
 		return tostring(self)
 	elseif "table" == selfType then
