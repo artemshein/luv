@@ -12,43 +12,60 @@ local Slot = require "luv.cache.frontend".Slot
 
 module(...)
 
--- It's very dumbas algo, I know :), I will rewrite it soon
-local function dropModel (model, models)
-	model:setDb(db)
-	-- Drop constraints
-	local constraintModels, _, v = model:getConstraintModels()
-	for _, v in ipairs(constraintModels) do
-		local index = table.find(models, v)
-		if  index then
-			models[index] = nil
-			dropModel(v, models)
+local function constructTablesList (models)
+	local references = require "luv.fields.references"
+	local tables = {}
+	table.imap(models, function (model)
+		local tableName = model:getTableName()
+		for _, info in ipairs(tables) do
+			if info[1] == tableName then
+				return nil
+			end
 		end
-	end
-	-- Drop self
-	if not model:dropTables() then
-		return false
-	else
-		return true
-	end
+		table.insert(tables, {model:getTableName();model})
+		table.imap(model:getReferenceFields(nil, references.ManyToMany), function (field)
+			local tableName = field:getTableName()
+			for _, info in ipairs(tables) do
+				if info[1] == tableName then
+					return nil
+				end
+			end
+			table.insert(tables, {field:getTableName();field})
+			return nil
+		end)
+		return nil
+	end)
+	return tables
 end
 
--- It's the same, I know...
-local function createModel (model, models)
-	-- Create self
-	if not model:createTables() then
-		return false
-	else
-		return true
-	end
-	-- Create constraints
-	local constraintModels, _, v = model:getConstraintModels()
-	for _, v in ipairs(constraintModels) do
-		local index = table.find(models, v)
-		if index then
-			models[index] = nil
-			createModel(v, models)
+local function sortTablesList (tables)
+	local models = require "luv.db.models"
+	local references = require "luv.fields.references"
+	local size, i = #tables, 1
+	while i < size-1 do
+		local iTbl, iObj = unpack(tables[i])
+		for j = i+1, size do
+			local jTbl, jObj = unpack(tables[j])
+			if jObj:isKindOf(models.Model) then
+				local o2o = jObj:getReferenceField(iObj, references.OneToOne)
+				if jObj:getReferenceField(iObj, references.ManyToOne)
+				or (o2o and not jObj:getField(o2o):isBackLink()) then
+					tables[i], tables[j] = tables[j], tables[i]
+					break
+				end
+			else
+				if jObj:getRefModel():getTableName() == iTbl
+				or jObj:getContainer():getTableName() == iTbl then
+					tables[i], tables[j] = tables[j], tables[i]
+					break
+				end
+			end
+			if j == size then
+				i = i+1
+			end
 		end
 	end
+	return tables
 end
 
 local UrlConf = Object:extend{
@@ -210,20 +227,17 @@ local Core = Object:extend{
 	-- URL conf
 	dispatch = function (self, urlconf) return self.urlconf:dispatch(urlconf) end,
 	-- Models
-	iterateModels = function (self, modelsList, iterator)
-		local modelsList = modelsList or {}
-		local models, result, k, v = {}, true
-		for k, v in ipairs(modelsList) do
-			modelsList[k] = nil
-			iterator(v, modelsList)
-		end
-		--return result
-	end,
 	dropModels = function (self, models)
-		self:iterateModels(table.copy(models), dropModel)
+		local tables = sortTablesList(constructTablesList(models))
+		for _, info in ipairs(tables) do
+			info[2]:dropTable()
+		end
 	end,
 	createModels = function (self, models)
-		self:iterateModels(table.copy(models), createModel)
+		local tables = sortTablesList(constructTablesList(models))
+		for i = #tables, 1, -1 do
+			tables[i][2]:createTable()
+		end
 	end,
 	-- Templater
 	addTemplatesDir = function (self, templatesDir)

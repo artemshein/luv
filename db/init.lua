@@ -1,6 +1,6 @@
 require"luv.table"
 require"luv.string"
-require"luv.debug"
+local debug = require"luv.debug"
 local string, require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select, table = string, require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select, table
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
 
@@ -386,40 +386,45 @@ local Driver = Object:extend{
 	fetchAll = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self.connection:execute(rawSql)
-		self.logger(rawSql)
 		if not cur then
 			self.error = error
+			self.logger(rawSql.." return error: "..error)
 			return nil
 		end
 		local res, row = {}, {}
 		while cur:fetch(row, "a") do
 			table.insert(res, table.copy(row))
 		end
+		self.logger(rawSql.." return "..#res.." rows")
 		return res
 	end,
 	fetchRow = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self.connection:execute(rawSql)
-		self.logger(rawSql)
 		if not cur then
 			self.error = error
+			self.logger(rawSql.." return error: "..error)
 			return nil
 		end
-		return cur:fetch({}, "a")
+		local res = cur:fetch({}, "a")
+		self.logger(rawSql.." return "..string.serialize(res))
+		return res
 	end,
 	fetchCell = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self.connection:execute(rawSql)
-		self.logger(rawSql)
 		if not cur then
 			self.error = error
+			self.logger(rawSql.." return error: "..error)
 			return nil
 		end
 		local res = cur:fetch({}, "a")
 		if not res then
+			self.logger(rawSql.." return nil")
 			return nil
 		end
 		local _, v = next(res)
+		self.logger(rawSql.." return "..v)
 		return v
 	end,
 	beginTransaction = function (self) self:query "BEGIN;" return self end;
@@ -428,14 +433,17 @@ local Driver = Object:extend{
 	query = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self.connection:execute(rawSql)
-		self.logger(rawSql)
 		if not cur then
 			self.error = error
+			self.logger(rawSql.." return error: "..error)
 			return nil
 		end
 		if type(cur) == "userdata" then
-			return cur:fetch({}, "a")
+			local res = cur:fetch({}, "a")
+			self.logger(rawSql.." return "..#res.." rows")
+			return res
 		end
+		self.logger(rawSql.." return "..cur)
 		return cur
 	end,
 	getLastInsertId = Object.abstractMethod,

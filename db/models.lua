@@ -331,7 +331,7 @@ local Model = Struct:extend{
 			Exception"Unsupported field type!":throw()
 		end
 	end,
-	createTables = function (self)
+	createTable = function (self)
 		local c = self.db:CreateTable(self:getTableName())
 		-- Fields
 		local _, v, hasPk = nil, nil, false
@@ -358,6 +358,9 @@ local Model = Struct:extend{
 		if not c:exec() then
 			return false
 		end
+	end;
+	createTables = function (self)
+		self:createTable()
 		-- Create references tables
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.ManyToMany) then
@@ -365,6 +368,9 @@ local Model = Struct:extend{
 			end
 		end
 	end,
+	dropTable = function (self)
+		return self.db:DropTable(self:getTableName()):exec()
+	end;
 	dropTables = function (self)
 		local _, v
 		for _, v in ipairs(self:getFields()) do
@@ -372,7 +378,7 @@ local Model = Struct:extend{
 				v:dropTable()
 			end
 		end
-		return self.db:DropTable(self:getTableName()):exec()
+		return self:dropTable()
 	end
 }
 
