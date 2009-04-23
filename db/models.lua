@@ -140,6 +140,8 @@ local Model = Struct:extend{
 	setDb = function (self, db) rawset(self, "db", db) return self end,
 	getLabel = function (self) return self.Meta.label or self.Meta.labels[1] end,
 	getLabelMany = function (self) return self.Meta.labelMany or self.Meta.labels[2] end,
+	getOrder = function (self) return self.Meta.order end;
+	setOrder = function (self, order) self.Meta.order = order return self end;
 	-- Find
 	getFieldPlaceholder = function (self, field)
 		if not field:isRequired() then
@@ -181,6 +183,10 @@ local Model = Struct:extend{
 		local qs = require "luv.db.models".LazyQuerySet(self)
 		if limitFrom then
 			qs:limit(limitFrom, limitTo)
+		end
+		local order = self:getOrder()
+		if order then
+			qs:order("table" == type(order) and unpack(order) or order)
 		end
 		return qs
 	end;

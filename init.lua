@@ -62,6 +62,7 @@ local UrlConf = Object:extend{
 		end
 		self.tailUri = self.uri
 		self.baseUri = ""
+		self.captures = {}
 	end,
 	getWsApi = function (self) return self.wsApi end;
 	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end;

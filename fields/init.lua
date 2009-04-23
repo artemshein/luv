@@ -227,7 +227,7 @@ local Ip = Text:extend{
 	__tag = function (self, params)
 		params = params or {}
 		params.minLength = 7
-		params.maxLength = 15
+		params.maxLength = 39
 		Text.init(self, params)
 	end;
 }
