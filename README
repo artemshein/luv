@@ -1,4 +1,4 @@
-Luv 0.6alpha
+Luv 0.7alpha
 ============
 
 Luv is Lua (lua.org) MVC web-framework. Luv is open-source and
@@ -20,24 +20,24 @@ support.
 - LuaSocket for SCGI & Memcached support.
 
 Luv includes:
-- Table, string and debug extensions;
-- Prototype-based OOP;
-- Exceptions;
-- CGI, SCGI;
-- Unit-testing libs;
-- Simple & flexible template engine;
-- Debugger for FireBug & profiler;
-- Fields (with Validators), Models & Forms;
-- URLconf (URL to action binding);
-- Widgets (representation layer);
-- Automatic AdminSite panel;
-- Databases:
+- Table, string and debug extensions; [stable]
+- Prototype-based OOP; [stable]
+- Exceptions; [stable]
+- CGI, SCGI; [alpha]
+- Unit-testing libs; [beta]
+- Simple & flexible template engine; [alpha]
+- Debugger for FireBug & profiler; [alpha]
+- Fields (with Validators), Models & Forms; [alpha]
+- URLconf (URL to action binding); [alpha]
+- Widgets (representation layer); [alpha]
+- Automatic AdminSite panel; [alpha]
+- Databases: [alpha]
 	- MySQL only in this version;
 	- placeholders;
 	- DBMS agnostic interface;
 	- Models with relations;
 	- auto back links for reference fields;
-- Caching:
+- Caching: [alpha]
 	- Memcached support (with native multiget);
 	- cache wrappers (namespaces & tags support);
 	- templates caching frontend.
@@ -46,10 +46,11 @@ Luv includes:
 What's new
 ==========
 
-Version 0.6alpha
+Version 0.6alpha [DONE]
 ----------------
 + Cache backend multiget support (native for Memcached).
 + Templates caching frontend.
++ Frontend caching for models (ModelSlot, ModelSqlSlot, ModelTag).
 
 Version 0.5alpha [DONE]
 ----------------
@@ -112,9 +113,8 @@ Version 1.0 [Q4 2009 - Q1 2010]
 - Full AdminSite.
 - Much more...
 
-Version 0.6alpha [apr 2009]
+Version 0.7alpha [apr-may 2009]
 ----------------
-- Caching for models (SQL select).
 - i18n.
 
 How to install

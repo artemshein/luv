@@ -1,4 +1,7 @@
-local ipairs = ipairs
+local ipairs, io = ipairs, io
+local rawget, getmetatable = rawget, getmetatable
+local table = require "luv.table"
+local debug = require "luv.debug"
 local Object = require "luv.oop".Object
 local Exception = require "luv.exceptions".Exception
 
@@ -11,46 +14,53 @@ local Tag = Object:extend{
 	__tag = .....".Tag";
 	init = function (self, backend, id)
 		self.id = id
-		seld.backend = backend
+		self.backend = backend
 	end;
-	clean = function (self)
-		self.backend:cleanTags{self:getNativeId()}
+	clear = function (self)
+		self.backend:clearTags{self:getNativeId()}
 	end;
 	getNativeId = function (self) return self.id end;
 	getBackend = function (self) return self.backend end;
 }
 
+local slotThruCall = function (self, ...)
+	local res = self.slot:get()
+	if not rawget(self, "method") then
+		Exception "Index first!":throw()
+	end
+	if not res then
+		if self.obj then
+			res = self.obj[self.method](self.obj, ...)
+		else
+			res = self.method(...)
+		end
+		self.slot:set(res)
+	end
+	return res
+end
+
+local slotThruIndex = function (self, field)
+	local parent = rawget(self, "parent")
+	local res = parent[field]
+	if res then return res end
+	if not rawget(self, "method") then
+		self.method = field
+	else
+		Exception("Can't index twice! "..field):throw()
+	end
+	return self
+end
+
 local SlotThru = Object:extend{
 	__tag = .....".SlotThru";
 	init = function (self, slot, obj)
+		if not slot or not obj then
+			Exception "Slot and obj expected!":throw()
+		end
 		self.slot = slot
 		self.obj = obj
-	end;
-	__index = function (self, field)
-		local parent = rawget(self, "parent")
-		local res = parent[field]
-		if res then return res end
-		if not rawget(self, "method") then
-			self.method = field
-		else
-			Exception "Can't index twice!":throw()
-		end
-		return self
-	end;
-	__call = function (self, ...)
-		local res = self.slot:get()
-		if not rawget(self, "method") then
-			Exception "Index first!":throw()
-		end
-		if not res then
-			if self.obj then
-				res = self.obj[self.method](self.obj, ...)
-			else
-				res = self.method(...)
-			end
-			self.slot:save(res)
-		end
-		return res
+		getmetatable(self).__call = slotThruCall
+		getmetatable(self).__index = slotThruIndex
 	end;
 }
 
@@ -64,7 +74,7 @@ local Slot = Object:extend{
 	end;
 	get = function (self) return self.backend:get(self.id) end;
 	set = function (self, data)
-		local tags
+		local tags = {}
 		for _, tag in ipairs(self.tags) do
 			table.insert(tags, tag:getNativeId())
 		end

@@ -153,10 +153,11 @@ local TemplateSlot = Slot:extend{
 	init = function (self, luv, template, params)
 		self.luv = luv
 		self.template = template
-		return Slot.init(self, NamespaceWrapper(luv:getCacher(), "Template"), tostring(crypt.Md5(template..string.serialize(params))), 60*60)
+		return Slot.init(self, luv:getCacher(), tostring(crypt.Md5(template..string.serialize(params))), 60*60)
 	end;
 	displayCached = function (self)
 		local res = self:get()
+		debug.dprint(res)
 		if not res then return false end
 		io.write(res)
 		return true
@@ -172,7 +173,7 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core",
-	version = Version(0, 6, 0, "alpha"),
+	version = Version(0, 7, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
 		self:setProfiler(Profiler())
@@ -201,7 +202,6 @@ local Core = Object:extend{
 		self.db = require "luv.db".Factory(dsn)
 		require "luv.db.models".Model:setDb(self.db)
 		self.db:setLogger(function (sql, result)
-			--io.write(sql)
 			self:debug(sql, "Database")
 		end)
 		return self
@@ -309,9 +309,19 @@ local Core = Object:extend{
 	end;
 	-- Caching
 	getCacher = function (self) return self.cacher end;
-	setCacher = function (self, cacher) self.cacher = cacher return self end;
+	setCacher = function (self, cacher)
+		self.cacher = cacher
+		require "luv.db.models".Model:setCacher(cacher)
+		return self
+	end;
 	createTemplateSlot = function (self, template, params)
 		return TemplateSlot(self, template, params)
+	end;
+	--[[createModelSlot = function (self, model)
+		return require "luv.db.models".ModelSlot(self:getCacher(), model)
+	end;]]
+	createModelTag = function (self, model)
+		return require "luv.db.models".ModelTag(self:getCacher(), model)
 	end;
 }
 
@@ -345,7 +355,7 @@ local Struct = Object:extend{
 		return value
 	end,
 	-- Fields
-	getField = function (self, field) return self.fieldsByName[field] end;
+	getField = function (self, field) return self.fieldsByName and self.fieldsByName[field] or nil end;
 	getFields = function (self) return self.fields end;
 	getFieldsByName = function (self) return self.fieldsByName end;
 	getValues = function (self)

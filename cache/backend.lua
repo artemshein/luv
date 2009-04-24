@@ -10,7 +10,6 @@ local json = require "luv.utils.json"
 local serialize, unserialize = string.serialize, string.unserialize
 local Exception = require "luv.exceptions".Exception
 local crypt = require "luv.crypt"
-local mime = require "mime"
 
 module(...)
 
@@ -217,20 +216,23 @@ local Memcached = Backend:extend{
 			if not string.beginsWith(answer, "VALUE") then
 				Exception("Not a valid answer "..answer):throw()
 			end
-			local _, key, options, size = string.split(answer, " ")
-			answer = self.socket:receive(tonumber(size))
+			local _, key, options, size = unpack(string.explode(answer, " "))
+			answer = self.socket:receive(tonumber(size)+2) -- plus \r\n
 			if not answer then
 				Exception "Receive failed":throw()
 			end
-			result[select(i, ...)] = unserialize(mime.unb64(answer))
+			result[select(i, ...)] = unserialize(answer)
 			if i == keysCount then
-				self.socket:receive "*l"
+				local res = self.socket:receive "*l"
+				if "END" ~= res then
+					Exception("Not a valid answer "..res.."!"):throw()
+				end
 			end
 		end
-		self.logger("get "..keys)
 		if keysCount == 1 then
 			result = result[select(1, ...)]
 		end
+		self.logger("get "..keys)
 		return result
 	end;
 	set = function (self, id, data, tags, specificLifetime)
@@ -238,12 +240,15 @@ local Memcached = Backend:extend{
 		if "table" == type(tags) and not table.isEmpty(tags) then
 			Exception "Tags unsupported. Use TagEmuWrapper instead.":throw()
 		end
-		local serialized = (mime.b64(serialize(data)))
+		local serialized = serialize(data)
 		if not self.socket:send("set "..id.." 0 "..tostring(specificLifetime or self.defaultLifetime).." "..tostring(string.len(serialized)).."\r\n"..serialized.."\r\n") then
 			Exception "Send failed":throw()
 		end
 		local res = self.socket:receive"*l"
-		return res == "STORED\r\n"
+		if res ~= "STORED" then
+			Exception("Not a valid answer "..res.."!"):throw()
+		end
+		return self
 	end;
 	delete = function (self, id)
 		if not self.socket:send("delete "..id.."\r\n") then

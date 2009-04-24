@@ -5,6 +5,8 @@ local os = os
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
+local cache = require "luv.cache.frontend"
+local crypt = require "luv.crypt"
 
 module(...)
 
@@ -15,6 +17,36 @@ local modelsEq = function (self, second)
 	end
 	return pkValue == second:getPk():getValue()
 end
+
+local ModelTag = cache.Tag:extend{
+	__tag = .....".ModelTag";
+	init = function (self, backend, model)
+		cache.Tag.init(self, backend, model:getTableName())
+	end;
+}
+
+local ModelSlot = cache.Slot:extend{
+	__tag = .....".ModelSlot";
+	init = function (self, backend, model, id)
+		cache.Slot.init(self, backend, model:getTableName().."_"..id)
+		self:addTag(ModelTag(backend, model))
+	end;
+}
+
+local ModelSqlSlot = cache.Slot:extend{
+	__tag = .....".ModelSqlSlot";
+	init = function (self, backend, model, sql)
+		if not backend or not model or not sql then
+			Exception "3 parameters expected!":throw()
+		end
+		self.sql = sql
+		cache.Slot.init(self, backend, tostring(crypt.Md5(tostring(sql))))
+		self:addTag(ModelTag(backend, model))
+	end;
+	exec = function (self)
+		return self:thru(self.sql):exec()
+	end;
+}
 
 local Model = Struct:extend{
 	__tag = .....".Model",
@@ -172,7 +204,7 @@ local Model = Struct:extend{
 			local pk = self:getPk()
 			select:where("?#="..self:getFieldPlaceholder(pk), pk:getName(), what)
 		end
-		local res = select:exec()
+		local res = self:getCacher() and ModelSqlSlot(self:getCacher(), self, select):exec() or select:exec()
 		if not res then
 			return nil
 		end
@@ -193,7 +225,6 @@ local Model = Struct:extend{
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:isValid() then
-			--debug.dprint(self:getErrors())
 			Exception"Validation error!":throw()
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
@@ -232,6 +263,7 @@ local Model = Struct:extend{
 				v:insert()
 			end
 		end
+		self:clearCacheTag()
 		return true
 	end,
 	update = function (self)
@@ -268,11 +300,13 @@ local Model = Struct:extend{
 				v:update()
 			end
 		end
+		self:clearCacheTag()
 		return true
 	end,
 	save = function (self)
 		local pk = self:getPk()
 		local pkName = pk:getName()
+		self:clearCacheTag()
 		if not pk:getValue() or not self:getDb():SelectCell(pkName):from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec() then
 			return self:insert()
 		else
@@ -282,6 +316,7 @@ local Model = Struct:extend{
 	delete = function (self)
 		local pk = self:getPk()
 		local pkName = pk:getName()
+		self:clearCacheTag()
 		return self:getDb():DeleteRow():from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec()
 	end,
 	create = function (self, ...)
@@ -289,6 +324,7 @@ local Model = Struct:extend{
 		if not obj:insert() then
 			return nil
 		end
+		self:clearCacheTag()
 		return obj
 	end,
 	-- Create and drop
@@ -369,6 +405,7 @@ local Model = Struct:extend{
 		end
 	end,
 	dropTable = function (self)
+		self:clearCacheTag()
 		return self.db:DropTable(self:getTableName()):exec()
 	end;
 	dropTables = function (self)
@@ -379,7 +416,16 @@ local Model = Struct:extend{
 			end
 		end
 		return self:dropTable()
-	end
+	end;
+	-- Caching
+	getCacher = function (self) return self.cacher end;
+	setCacher = function (self, cacher) self.cacher = cacher return self end;
+	clearCacheTag = function (self)
+		if self:getCacher() then
+			ModelTag(self:getCacher(), self):clear()
+		end
+		return self
+	end;
 }
 
 local Tree = Model:extend{
@@ -645,7 +691,6 @@ local Paginator = Object:extend{
 }
 
 return {
-	Model = Model;Tree=Tree;NestedSet=NestedSet;
-	LazyQuerySet = LazyQuerySet;
-	Paginator=Paginator;
+	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;NestedSet=NestedSet;
+	LazyQuerySet=LazyQuerySet;Paginator=Paginator;
 }
