@@ -147,8 +147,10 @@ local MysqlDriver = Driver:extend{
 		return tonumber(res.i)
 	end,
 	processPlaceholder = function (self, placeholder, value)
-		if placeholder == "?" then
-			return "'"..string.gsub(tostring(value), "'", "\\'").."'"
+		if placeholder == "?q" then
+			return "?"
+		elseif placeholder == "?" then
+			return "'"..string.gsub(tostring(value), "['?]", {["'"]="\\'";["?"]="?q"}).."'"
 		elseif placeholder == "?d" then
 			local num
 			if nil == type(value) then

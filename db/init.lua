@@ -369,7 +369,7 @@ local Driver = Object:extend{
 	processPlaceholder = Object.abstractMethod,
 	processPlaceholders = function (self, sql, ...)
 		local begPos, endPos, res, match, i, lastEnd = 0, 0, {}, nil, 1, 0
-		begPos, endPos = string.find(sql, "?[%#davn]?", lastEnd+1)
+		begPos, endPos = string.find(sql, "?[%#davnq]?", lastEnd+1)
 		while begPos do
 			local val = select(i, ...)
 			if begPos then
@@ -377,7 +377,7 @@ local Driver = Object:extend{
 				table.insert(res, self:processPlaceholder(string.slice(sql, begPos, endPos), val))
 				lastEnd = endPos
 			end
-			begPos, endPos = string.find(sql, "?[%#davn]?", lastEnd+1)
+			begPos, endPos = string.find(sql, "?[%#davnq]?", lastEnd+1)
 			i = i+1
 		end
 		table.insert(res, string.slice(sql, lastEnd+1))
@@ -407,7 +407,7 @@ local Driver = Object:extend{
 			return nil
 		end
 		local res = cur:fetch({}, "a")
-		self.logger(rawSql.." return "..string.serialize(res))
+		self.logger(rawSql.." return row")
 		return res
 	end,
 	fetchCell = function (self, ...)
