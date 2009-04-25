@@ -97,8 +97,9 @@ local Select = Widget:extend{
 		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
 		if not field:isRequired() then values = [[<option></option>]] end
-		for k, v in pairs(field:getValues()) do
-			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(tostring(fieldValue) == tostring(v:getPk():getValue()) and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
+		for k, v in pairs(field:getChoices()) do
+			local value = v.isKindOf and v:getPk():getValue() or v
+			values = values..[[<option value="]]..tostring(value)..[["]]..(tostring(fieldValue) == tostring(value) and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
 		end
 		return [[<select id="]]..html.escape(getId(form, field))
 		..[[" name="]]..html.escape(field:getName())
@@ -112,11 +113,10 @@ local MultipleSelect = Select:extend{
 	render = function (self, field, form)
 		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
-		for k, v in pairs(field:getValues()) do
+		for k, v in pairs(field:getChoices()) do
 			local founded = false
-			local _, val
 			for _, val in ipairs(fieldValue) do
-				if tostring(val) == tostring(v:getPk():getValue()) then
+				if tostring(val) == tostring(v.isKindOf and v:getPk():getValue() or v) then
 					founded = true
 					break
 				end

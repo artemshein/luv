@@ -255,9 +255,6 @@ local OneToMany = Reference:extend{
 	count = function (self)
 		return self:all():count()
 	end,
-	pairs = function (self)
-		return self:all():pairs()
-	end,
 	delete = function (self)
 		return self:all():delete()
 	end,

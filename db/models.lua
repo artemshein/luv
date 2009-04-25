@@ -602,7 +602,7 @@ local LazyQuerySet = Object:extend{
 					Exception("Operation "..op.." not supported!"):throw()
 				end
 			else
-				if not self.model:getField(name) then
+				if not self.model:getField(k) then
 					Exception("Field "..k.." not found!"):throw()
 				end
 				table.insert(filTbl, self.db:processPlaceholders("?#="..self.model:getFieldPlaceholder(self.model:getField(k)), k, v))

@@ -138,7 +138,6 @@ local Form = Struct:extend{
 		return values
 	end;
 	setValues = function (self, values)
-		local k, v
 		for k, v in pairs(self:getFieldsByName()) do
 			if v:isKindOf(fields.Image) then
 				v:setValue{x=values[k..".x"];y=values[k..".y"]}
@@ -166,9 +165,9 @@ local ModelForm = Form:extend{
 			or ((not new.Meta.fields or table.find(new.Meta.fields, k))
 				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k))) then
 				if v:isKindOf(references.OneToOne) or v:isKindOf(references.ManyToOne) then
-					new:addField(k, fields.ModelSelect{values=v:getRefModel():all():getValue();required=v:isRequired()})
+					new:addField(k, fields.ModelSelect{choices=v:getRefModel():all():getValue();required=v:isRequired()})
 				elseif v:isKindOf(references.OneToMany) or v:isKindOf(references.ManyToMany) then
-					new:addField(k, fields.ModelMultipleSelect{values=v:getRefModel():all():getValue();required=v:isRequired()})
+					new:addField(k, fields.ModelMultipleSelect{choices=v:getRefModel():all():getValue();required=v:isRequired()})
 				else
 					new:addField(k, v:clone())
 				end

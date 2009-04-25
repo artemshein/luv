@@ -1,5 +1,6 @@
 require "luv.debug"
 local debug, error = debug, error
+local require = require
 local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
 local Exception = require "luv.exceptions".Exception
@@ -37,6 +38,7 @@ local Field = Object:extend{
 		self.required = params.required or false
 		self.label = params.label
 		self:setWidget(params.widget)
+		self:setChoices(params.choices)
 		if self.required then
 			self.validators.filled = validators.Filled()
 			self:addClass "required"
@@ -57,6 +59,8 @@ local Field = Object:extend{
 	setName = function (self, name) self.name = name return self end;
 	getValue = function (self) return self.value end,
 	setValue = function (self, value) self.value = value return self end,
+	getChoices = function (self) return self.choices end;
+	setChoices = function (self, choices) self.choices = choices return self end;
 	getDefaultValue = function (self) return self.defaultValue end,
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
 	addError = function (self, error) table.insert(self.errors, error) return self end,
@@ -334,10 +338,9 @@ local ModelSelect = Field:extend{
 		if not params then
 			Exception"Values required!":throw()
 		end
-		if not params.values then
-			params = {values=params}
+		if not params.choices then
+			params = {choices=params}
 		end
-		self:setValues(params.values)
 		params.widget = params.widget or widgets.Select
 		Field.init(self, params)
 	end;
@@ -347,41 +350,33 @@ local ModelSelect = Field:extend{
 		end
 		return Field.setValue(self, value)
 	end;
-	getValues = function (self) return self.values end;
-	setValues = function (self, values) self.values = values return self end;
 }
 
 local ModelMultipleSelect = Field:extend{
 	__tag = .....".ModelMultipleSelect";
 	init = function (self, params)
 		if not params then
-			Exception"Values required!":throw()
+			Exception"Choices required!":throw()
 		end
-		if not params.values then
-			params = {values=params}
+		if not params.choices then
+			params = {choices=params}
 		end
-		self:setValues(params.values)
 		params.widget = params.widget or widgets.MultipleSelect
 		Field.init(self, params)
 	end;
-	getValues = function (self) return self.values end;
-	setValues = function (self, values) self.values = values return self end;
 	setValue = function (self, value)
-		if "table" ~= type(value) then
+		if "table" ~= type(value) or  value.isKindOf then
 			value = {value}
 		end
-		if "table" == type(value) then
-			local resValue = {}
-			local k, v
-			for k, v in pairs(value) do
-				if "table" == type(v) then
-					table.insert(resValue, v:getPk():getValue())
-				else
-					table.insert(resValue, v)
-				end
+		local resValue = {}
+		for k, v in pairs(value) do
+			if "table" == type(v) then
+				table.insert(resValue, v:getPk():getValue())
+			else
+				table.insert(resValue, v)
 			end
-			value = resValue
 		end
+		value = resValue
 		return Field.setValue(self, value)
 	end;
 	getValue = function (self) return self.value or {} end;

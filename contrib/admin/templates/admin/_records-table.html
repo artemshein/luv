@@ -6,7 +6,8 @@
 	<table><thead>
 		<th></th>
 	{% for _, field in ipairs(displayFields) do %}
-		<th>{{ capitalize(model:getField(field):getLabel()) }}</th>
+		{% local f = model:getField(field) %}
+		<th>{{ capitalize(f and f:getLabel() or admin[field][1]) }}</th>
 	{% end %}
 	</thead>
 	{% for _, record in ipairs(p:getPage(page):getValue()) do %}
@@ -14,10 +15,15 @@
 			<td width="10"><input type="checkbox" name="items" value="{{ record.pk }}" /></td>
 		{% for _, field in ipairs(displayFields) do %}
 			<td class="activeLink" onclick="selectRecord('{{ record.pk }}')">
-				{% if record:getField(field):isKindOf(fields.Datetime) then %}
-					{{ record:getField(field) }}
+				{% local f = record:getField(field) %}
+				{% if f then %}
+					{% if f:isKindOf(fields.Datetime) then %}
+						{{ record:getField(field) }}
+					{% else %}
+						{{ html.escape(tostring(record[field] or "")) }}
+					{% end %}
 				{% else %}
-					{{ html.escape(tostring(record[field] or "")) }}
+					{{ admin[field][2](record) }}
 				{% end %}
 			</td>
 		{% end %}

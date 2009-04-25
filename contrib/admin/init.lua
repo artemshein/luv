@@ -207,7 +207,7 @@ local AdminSite = Object:extend{
 				local model = admin:getModel()
 				luv:assign{
 					pairs=pairs;ipairs=ipairs;tostring=tostring;capitalize=string.capitalize;html=html;urlConf=urlConf;user=user;
-					modelUri=urlConf:getBaseUri().."/"..urlConf:getCapture(1);model=model;
+					modelUri=urlConf:getBaseUri().."/"..urlConf:getCapture(1);admin=admin;model=model;
 				}
 				if model:isKindOf(models.Tree) then
 					local node = luv:getPost "node"

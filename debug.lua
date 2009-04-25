@@ -5,7 +5,7 @@ module(...)
 
 debug.dump = function (obj, depth, tab, seen)
 	local res, tab = "", tab or ""
-	local depth = depth or 10
+	local depth = depth or 1
 	local seen = seen or {}
 	if type(obj) == "nil" then
 		res = res.."nil"
@@ -22,7 +22,12 @@ debug.dump = function (obj, depth, tab, seen)
 		if tag then
 			res = res..tag
 		else
-			res = res..tostring(obj)
+			local mt = getmetatable(obj)
+			if not mt or not mt.__tostring then
+				res = res..tostring(obj)
+			else
+				res = res.."table"
+			end
 		end
 		if table.find(seen, obj) then
 			res = res.."[RECURSION]"

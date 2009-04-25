@@ -361,7 +361,12 @@ local Struct = Object:extend{
 		local res = {}
 		local k, v
 		for k, v in pairs(self:getFieldsByName()) do
-			res[k] = v:getValue()
+			local value = v:getValue()
+			if "table" == type(value) and value.isKindOf and value:isKindOf(require "luv.fields.references".OneToMany) then
+				res[k] = value:all():getValue()
+			else
+				res[k] = v:getValue()
+			end
 		end
 		return res
 	end,
