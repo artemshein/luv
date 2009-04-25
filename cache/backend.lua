@@ -24,6 +24,7 @@ local Backend = Object:extend{
 	set = Object.abstractMethod;
 	delete = Object.abstractMethod;
 	clear = Object.abstractMethod;
+	clearTags = Object.abstractMethod;
 	getDefaultLifetime = Object.abstractMethod;
 	setDefaultLifetime = Object.abstractMethod;
 	setLogger = Object.abstractMethod;
@@ -43,6 +44,11 @@ local Memory = Backend:extend{
 	set = function (self, id, data) self.logger("set "..id) self.storage[id] = serialize(data) end;
 	delete = function (self, id) self.logger("delete "..id) self.storage[id] = nil end;
 	clear = function (self) self.logger("clear") self.storage = {} end;
+	clearTags = function (self, tags)
+		for _, tag in ipairs(tags) do
+			self:delete(tag)
+		end
+	end;
 	getDefaultLifetime = function () return 0 end;
 	setDefaultLifetime = function () return self end;
 	setLogger = function (self, logger)
@@ -260,6 +266,7 @@ local Memcached = Backend:extend{
 		self.logger("clear")
 		return self.socket:receive "*l" == "OK\r\n"
 	end;
+	clearTags = function () Exception"Tags unsupported. Use TagEmuWrapper instead.":throw() end;
 	getDefaultLifetime = function (self) return self.defaultLifetime end;
 	setDefaultLifetime = function (self, defaultLifetime)
 		self.defaultLifetime = defaultLifetime
