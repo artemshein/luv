@@ -573,10 +573,12 @@ local LazyQuerySet = Object:extend{
 				k = self.model:getPkName()
 			end
 			if string.find(k, "__") then
-				local vals = string.explode(k, "__")
-				local name, op = vals[1], vals[2]
+				local name, op = unpack(string.explode(k, "__"))
 				if name == "pk" then
 					name = self.model:getPkName()
+				end
+				if not self.model:getField(name) then
+					Exception("Field "..name.." not found!"):throw()
 				end
 				if op == "exact" then
 					table.insert(filTbl, self.db:processPlaceholders("?#="..self.model:getFieldPlaceholder(self.model:getField(name)), name, v))
@@ -600,6 +602,9 @@ local LazyQuerySet = Object:extend{
 					Exception("Operation "..op.." not supported!"):throw()
 				end
 			else
+				if not self.model:getField(name) then
+					Exception("Field "..k.." not found!"):throw()
+				end
 				table.insert(filTbl, self.db:processPlaceholders("?#="..self.model:getFieldPlaceholder(self.model:getField(k)), k, v))
 			end
 		end

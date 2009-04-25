@@ -157,7 +157,6 @@ local TemplateSlot = Slot:extend{
 	end;
 	displayCached = function (self)
 		local res = self:get()
-		debug.dprint(res)
 		if not res then return false end
 		io.write(res)
 		return true

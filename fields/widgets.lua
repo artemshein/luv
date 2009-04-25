@@ -71,7 +71,7 @@ local Button = Input:extend{
 	render = function (self, field, form, tail)
 		tail = tail or ""
 		if field:getOnClick() then
-			tail = tail..[[ onClick="]]..string.escape(field:getOnClick())..[["]]
+			tail = tail..[[ onClick=]]..string.format("%q", field:getOnClick())
 		end
 		return Input.render(self, field, form, tail)
 	end;

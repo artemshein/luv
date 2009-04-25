@@ -4,6 +4,7 @@ local os, table, pairs, ipairs, io, debug, tostring, type = os, table, pairs, ip
 local string = string
 local Object = require "luv.oop".Object
 local json = require "luv.utils.json"
+local html = require "luv.utils.html"
 
 module(...)
 
@@ -49,7 +50,7 @@ local Fire = Debugger:extend{
 			res = res.."console.group("..string.format("%q", section)..");\n"
 			for _, info in ipairs(msgs) do
 				if "string" == type(info.msg) then
-					res = res.."console."..info.level.."("..string.format("%q", info.msg)..");\n"
+					res = res.."console."..info.level.."("..string.format("%q", html.escape(info.msg))..");\n"
 				else
 					res = res.."console."..info.level.."("..json.to(info.msg)..");\n"
 				end
