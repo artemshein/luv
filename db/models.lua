@@ -435,6 +435,7 @@ local Tree = Model:extend{
 	getParent = Model.abstractMethod;
 	removeChildren = Model.abstractMethod;
 	addChild = Model.abstractMethod;
+	addChildren = Model.abstractMethod;
 	childrenCount = Model.abstractMethod;
 	findRoot = Model.abstractMethod;
 }

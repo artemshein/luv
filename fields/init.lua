@@ -156,8 +156,9 @@ local Phone = Text:extend{
 	__tag = .....".Phone";
 	init = function (self, params)
 		params = params or {}
-		params.minLength = 12
-		params.maxLength = 12
+		params.minLength = 11
+		params.maxLength = 11
+		params.widget = params.widget or widgets.PhoneInput
 		Text.init(self, params)
 	end;
 }

@@ -27,27 +27,27 @@ table.imap = function (self, func)
 end
 
 table.ifind = function (self, val)
-	for _, v in ipairs(self) do
+	for k, v in ipairs(self) do
 		if val == v then
-			return true
+			return k
 		end
 	end
-	return false
+	return nil
 end
 
 table.find = function (self, val)
 	for k, v in pairs(self) do
 		if val == v then
-			return true
+			return k
 		end
 	end
-	return false
+	return nil
 end
 
 table.iremoveValue = function (self, val)
 	for k, v in ipairs(self) do
 		if val == v then
-			self[k] = nil
+			table.remove(self, k)
 			return true
 		end
 	end

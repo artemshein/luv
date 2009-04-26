@@ -55,6 +55,13 @@ local TextInput = Input:extend{
 	end
 }
 
+local PhoneInput = TextInput:extend{
+	__tag = .....".PhoneInput";
+	render = function (self, ...)
+		return "+"..TextInput.render(self, ...)
+	end;
+}
+
 local HiddenInput = TextInput:extend{
 	__tag = .....".HiddenInput",
 	type = "hidden"
@@ -132,7 +139,8 @@ local MultipleSelect = Select:extend{
 
 return {
 	TextArea=TextArea;
-	TextInput = TextInput,
+	TextInput = TextInput;
+	PhoneInput=PhoneInput;
 	HiddenInput = HiddenInput,
 	PasswordInput = PasswordInput,
 	Button = Button,
