@@ -38,11 +38,16 @@ local Checkbox = Input:extend{
 	__tag = .....".Checkbox";
 	type = "checkbox";
 	render = function (self, field, form)
-		local tail
+		local tail = ""
 		if field:getValue() then
 			tail = [[ checked="checked"]]
 		end
-		return Input.render(self, field, form, tail)
+		local classes = field:getClasses()
+		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())
+		..[[" id="]]..html.escape(getId(form, field))
+		..[[" value="1]]
+		..(classes and ([[" class="]]..table.join(classes, " ")) or "")
+		..[["]]..tail..[[ />]]
 	end;
 }
 
@@ -106,7 +111,7 @@ local Select = Widget:extend{
 		if not field:isRequired() then values = [[<option></option>]] end
 		for k, v in pairs(field:getChoices()) do
 			local value = v.isKindOf and v:getPk():getValue() or v
-			values = values..[[<option value="]]..tostring(value)..[["]]..(tostring(fieldValue) == tostring(value) and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
+			values = values..[[<option value="]]..tostring(k)..[["]]..(tostring(k) == tostring(fieldValue) and [[ selected="selected"]] or "")..[[>]]..html.escape(tostring(v))..[[</option>]]
 		end
 		return [[<select id="]]..html.escape(getId(form, field))
 		..[[" name="]]..html.escape(field:getName())

@@ -225,7 +225,8 @@ local Model = Struct:extend{
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:isValid() then
-			Exception"Validation error!":throw()
+			local errors = self:getErrors()
+			Exception("Validation error! "..debug.dump(errors)):throw()
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
 		for _, v in ipairs(self:getFields()) do

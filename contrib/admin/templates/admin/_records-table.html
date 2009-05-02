@@ -20,7 +20,13 @@
 					{% if f:isKindOf(fields.Datetime) then %}
 						{{ record:getField(field) }}
 					{% else %}
-						{{ html.escape(tostring(record[field] or "")) }}
+						{% local choices = f:getChoices() %}
+						{% local value = record[field] %}
+						{% if choices then %}
+							{{ html.escape(tostring(value and choices[value] or "")) }}
+						{% else %}
+							{{ html.escape(tostring(value or "")) }}
+						{% end %}
 					{% end %}
 				{% else %}
 					{{ admin[field][2](record) }}
