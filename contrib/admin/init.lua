@@ -1,4 +1,5 @@
 require "luv.string"
+local tr = tr
 local io, ipairs, tostring, pairs, table, tonumber, string = io, ipairs, tostring, pairs, table, tonumber, string
 local debug, unpack, type, rawget, select = debug, unpack, type, rawget, select
 local os = os
@@ -27,7 +28,7 @@ local ModelAdmin = Object:extend{
 		if self.displayList then
 			return self.displayList
 		end
-		local res, name, field = {}
+		local res, field = {}
 		for name, _ in pairs(self:getModel():getFieldsByName()) do
 			table.insert(res, name)
 		end
@@ -47,19 +48,19 @@ local ModelAdmin = Object:extend{
 local ActionLog = models.Model:extend{
 	__tag = .....".ActionLog";
 	Meta = {labels={"action log";"action logs"}};
-	datetime = fields.Datetime{autoNow=true;label="Date and time";required=true};
+	datetime = fields.Datetime{autoNow=true;label="date and time";required=true};
 	user = references.ManyToOne{references=auth.models.User;required=true;relatedName="actionLogs"};
 	type = fields.Text{required=true};
 	message = fields.Text{maxLength=false;required=true};
 	__tostring = function (self) return tostring(self.message) end;
 	logCreate = function (self, baseUri, user, admin, record)
-		self:create{user=user;type="create";message="Created "..record:getLabel().." "..[[<a href="]]..baseUri.."/"..admin:getPath().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
+		self:create{user=user;type=(tr "creating");message="Created "..record:getLabel().." "..[[<a href="]]..baseUri.."/"..admin:getPath().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
 	end;
 	logSave = function (self, baseUri, user, admin, record)
-		self:create{user=user;type="save";message="Edited "..record:getLabel().." "..[[<a href="]]..baseUri.."/"..admin:getPath().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
+		self:create{user=user;type=(tr "changing");message="Edited "..record:getLabel().." "..[[<a href="]]..baseUri.."/"..admin:getPath().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
 	end;
 	logDelete = function (self, baseUri, user, admin, record)
-		self:create{user=user;type="delete";message="Deleted "..record:getLabel().." "..tostring(record).." by "..tostring(user).."."}
+		self:create{user=user;type=(tr "deleting");message="Deleted "..record:getLabel().." "..tostring(record).." by "..tostring(user).."."}
 	end;
 }
 
@@ -122,7 +123,7 @@ local AdminSite = Object:extend{
 				local user = auth.models.User:getAuthUser(luv:getSession(), form)
 				if user and user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri()):sendHeaders() end
 				luv:assign{
-					capitalize=string.capitalize;title="Authorisation";
+					capitalize=string.capitalize;title="authorisation";
 					ipairs=ipairs;tostring=tostring;form=form;user=user;
 				}
 				luv:display "admin/login.html"
@@ -137,7 +138,7 @@ local AdminSite = Object:extend{
 				if not admin then ws.Http404():throw() end
 				local model = admin:getModel()
 				if not user:canCreate(model) then ws.Http403():throw() end
-				local form = admin:getForm():addField("create", fields.Submit "Create")(luv:getPostData()):setAction(urlConf:getUri())
+				local form = admin:getForm():addField("create", fields.Submit(string.capitalize(tr "create")))(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted("create") and form:isValid() then
 					if model:isKindOf(models.Tree) then
@@ -171,13 +172,12 @@ local AdminSite = Object:extend{
 						end
 					end
 				end
-				luv:debug(luv:getPostData())
-				luv:debug(form:getErrors())
 				luv:assign{
 					ipairs=ipairs;capitalize=string.capitalize;
 					tostring=tostring;html=html;
 					user=user;model=model;urlConf=urlConf;
-					title="Create "..model:getLabel();
+					title=model:getLabel();
+					titleIcon=admin:getBigIcon();
 					form=form;userMsgs=msgsStack:getMsgs();
 				}
 				luv:display "admin/create.html"
@@ -229,7 +229,7 @@ local AdminSite = Object:extend{
 						displayFields=admin:getDisplayList();
 						fields=fields;date=os.date;
 						p=models.Paginator(model, 10);
-						title=string.capitalize(model:getLabelMany());
+						title=model:getLabelMany();
 					}
 					luv:display "admin/_records-table.html"
 				end
@@ -243,7 +243,7 @@ local AdminSite = Object:extend{
 				if not model:isKindOf(models.Tree) then ws.Http404:throw() end
 				local record = model:find(urlConf:getCapture(2))
 				if not record then ws.Http404():throw() end
-				local form = admin:getForm():addField("create", fields.Submit "Create")(luv:getPostData()):setAction(urlConf:getUri())
+				local form = admin:getForm():addField("create", fields.Submit(string.capitalize(tr "create")))(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted "create" and form:isValid() then
 					local child = model()
@@ -261,7 +261,8 @@ local AdminSite = Object:extend{
 					ipairs=ipairs;capitalize=string.capitalize;
 					tostring=tostring;html=html;
 					user=user;model=model;urlConf=urlConf;
-					title="Create "..model:getLabel();
+					title=model:getLabel();
+					titleIcon=admin:getBigIcon();
 					form=form;userMsgs=msgsStack:getMsgs();
 				}
 				luv:display "admin/create.html"
@@ -276,9 +277,9 @@ local AdminSite = Object:extend{
 				if not record then ws.Http404():throw() end
 				local form = admin:getForm()
 				if user:canDelete(model) then
-					form:addField("delete", fields.Submit{defaultValue="Delete";onClick="return confirm('O\\'RLY?')"})
+					form:addField("delete", fields.Submit{defaultValue=string.capitalize(tr "delete");onClick="return confirm('O\\'RLY?')"})
 				end
-				form:addField("save", fields.Submit "Save")
+				form:addField("save", fields.Submit(string.capitalize(tr "save")))
 				form = form(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted "save" then
@@ -302,8 +303,9 @@ local AdminSite = Object:extend{
 				luv:assign{
 					ipairs=ipairs;capitalize=string.capitalize;
 					tostring=tostring;html=html;
-					user=user;model=model;urlConf=urlConf;
-					title="Edit "..model:getLabel();
+					user=user;record=record;urlConf=urlConf;
+					title=model:getLabel();
+					titleIcon=admin:getBigIcon();
 					form=form;userMsgs=msgsStack:getMsgs();
 				}
 				luv:display "admin/edit.html"
@@ -319,7 +321,7 @@ local AdminSite = Object:extend{
 					user=user;
 					model=model;
 					urlConf=urlConf;
-					title=string.capitalize(model:getLabelMany());
+					title=model:getLabelMany();
 					titleIcon=admin:getBigIcon();
 					isTree=model:isKindOf(models.Tree);
 				}

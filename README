@@ -20,7 +20,7 @@ support.
 - LuaSocket for SCGI & Memcached support.
 
 Luv includes:
-- Table, string and debug extensions; [stable]
+- Table, string (with UTF-8 support) and debug extensions; [stable]
 - Prototype-based OOP; [stable]
 - Exceptions; [stable]
 - CGI, SCGI; [alpha]
@@ -45,6 +45,11 @@ Luv includes:
 
 What's new
 ==========
+
+Version 0.7alpha
+----------------
++ UTF-8 support.
++ i18n support.
 
 Version 0.6alpha [DONE]
 ----------------
@@ -115,7 +120,7 @@ Version 1.0 [Q4 2009 - Q1 2010]
 
 Version 0.7alpha [apr-may 2009]
 ----------------
-- i18n.
+- Bugfixes.
 
 How to install
 ==============

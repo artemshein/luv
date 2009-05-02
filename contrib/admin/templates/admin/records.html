@@ -12,24 +12,24 @@
 				<a href="{{ modelUrl }}/add">
 					<img src="/images/admin/page_add.png" width="16" height="16" alt="Add" />
 				</a>
-				<a href="{{ modelUrl }}/create">Create {{ model:getLabel() }}</a>
+				<a href="{{ modelUrl }}/create">{{ capitalize(tr "create") }}</a>
 			</div>
 			{% end %}
-			<a href="{{ urlConf:getBaseUri() }}">&larr; Back to main</a>
+			<a href="{{ urlConf:getBaseUri() }}">&larr; {{ capitalize(tr "back to main") }}</a>
 		</div>
 		<div id="records">
 		</div>
 	</div>
 	<div class="span-6 last">
 		<div id="recordsActions">
-			<h2>Actions</h2>
+			<h2>{{ capitalize(tr "actions") }}</h2>
 			{% if not isTree then %}
 			<ul>
-				<li><a href="javascript:void(0)" onclick="luv.checkMultipleCheckboxesByName('items')">Select all</a></li>
-				<li><a href="javascript:void(0)" onclick="luv.clearMultipleCheckboxesByName('items')">Deselect all</a></li>
+				<li><a href="javascript:void(0)" onclick="luv.checkMultipleCheckboxesByName('items')">{{ capitalize(tr "select all") }}</a></li>
+				<li><a href="javascript:void(0)" onclick="luv.clearMultipleCheckboxesByName('items')">{{ capitalize(tr "deselect all") }}</a></li>
 				<li><div class="button" onclick="deleteSelected();">
 					<img src="/images/admin/remove.png" width="16" height="16" alt="" />
-					<a href="javascript:void(0)">Delete selected</a>
+					<a href="javascript:void(0)">{{ capitalize(tr "delete selected") }}</a>
 				</div></li>
 			</ul>
 			{% else %}

@@ -1,5 +1,6 @@
 require "luv.string"
 require "luv.debug"
+local tr = tr
 local ipairs, io, string, debug = ipairs, io, string, debug
 local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
 local references = require "luv.fields.references"
@@ -30,7 +31,7 @@ local Form = Widget:extend{
 		if not id then
 			return string.capitalize(field:getLabel())..":"
 		end
-		return [[<label for="]]..html.escape(id)..[[">]]..string.capitalize(field:getLabel())..[[</label>:]]
+		return [[<label for="]]..html.escape(id)..[[">]]..string.capitalize(tr(field:getLabel()))..[[</label>:]]
 	end;
 	renderLabelCheckbox = function (self, form, field)
 		if not field:getLabel() then
@@ -40,7 +41,7 @@ local Form = Widget:extend{
 		if not id then
 			return field:getLabel()
 		end
-		return [[<label for="]]..html.escape(id)..[[">]]..field:getLabel()..[[</label>]]
+		return [[<label for="]]..html.escape(id)..[[">]]..tr(field:getLabel())..[[</label>]]
 	end;
 	renderField = function (self, form, field)
 		return field:asHtml(form)

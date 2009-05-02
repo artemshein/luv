@@ -1,4 +1,5 @@
 require "luv.debug"
+local tr = tr
 local io, type, require, math, tostring, string, debug = io, type, require, math, tostring, string, debug
 local ipairs = ipairs
 local models, fields, references, forms, managers, crypt, widgets = require "luv.db.models", require "luv.fields", require "luv.fields.references", require "luv.forms", require "luv.managers", require "luv.crypt", require "luv.fields.widgets"
@@ -41,7 +42,7 @@ local UserGroup = models.Model:extend{
 
 local User = models.Model:extend{
 	__tag = .....".User",
-	Meta = {labels={"user", "users"}};
+	Meta = {labels={"user";"users"}};
 	sessId = "LUV_AUTH",
 	secretSalt = "",
 	-- Fields
@@ -138,7 +139,7 @@ local LoginForm = forms.Form:extend{
 	Meta = {fields={"login";"password";"authorise"}};
 	login = User:getField "login",
 	password = fields.Text{label="password";maxLength=32;minLength=6;widget=widgets.PasswordInput;required=true};
-	authorise = fields.Submit{defaultValue="Authorise"}
+	authorise = fields.Submit{defaultValue=string.capitalize(tr "log in")}
 }
 
 local modelsAdmins
@@ -177,7 +178,7 @@ local getModelsAdmins = function ()
 					login = User:getField "login":clone();
 					name = User:getField "name":clone();
 					password = fields.Text{minLength=6;maxLength=32;widget=widgets.PasswordInput};
-					password2 = fields.Text{minLength=6;maxLength=32;label="Repeat password";widget=widgets.PasswordInput};
+					password2 = fields.Text{minLength=6;maxLength=32;label="repeat password";widget=widgets.PasswordInput};
 					group = fields.ModelSelect(UserGroup:all():getValue());
 					isActive = User:getField "isActive":clone();
 					isValid = function (self)

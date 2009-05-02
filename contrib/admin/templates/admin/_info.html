@@ -1,8 +1,8 @@
 <div class="span-24 last" style="border:#AAA solid 0;border-bottom-width:1px">
-	<div class="span-16"><h1>{% if titleIcon then %}<img src="{{ titleIcon.path }}" width="{{ titleIcon.width }}" height="{{ titleIcon.height }}" /> {% end %}{{ capitalize(title) }}</h1></div>
+	<div class="span-16"><h1 style="margin:8px 0 12px 0">{% if titleIcon then %}<img src="{{ titleIcon.path }}" width="{{ titleIcon.width }}" height="{{ titleIcon.height }}" /> {% end %}{{ capitalize(tr(title)) }}</h1></div>
 	<div id="userInfo" class="span-8 last">
-		You are &mdash; <a href="{{ baseUri }}/user/{{ user.id }}/edit"><img src="/images/admin/user.png" width="16" height="16" alt="" /></a>
+		{{ capitalize(tr "you are") }} <a href="{{ baseUri }}/user/{{ user.id }}/edit"><img src="/images/admin/user.png" width="16" height="16" alt="{{ tr "user" }}" /></a>
 		<a href="{{ urlConf:getBaseUri() }}/user/{{ user.id }}">{{ user }}</a>.
-		[ <a href="{{ urlConf:getBaseUri() }}/logout">logout</a> &rarr; ]
+		[ <a href="{{ urlConf:getBaseUri() }}/logout">{{ tr "log out" }}</a> &rarr; ]
 	</div>
 </div>

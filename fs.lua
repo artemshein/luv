@@ -95,19 +95,21 @@ local Path = Object:extend{
 		or string.endsWith(self.path, "\\") then
 			if string.beginsWith(path, "/")
 			or string.beginsWith(path, "\\") then
-				return self(self.path..string.slice(path, 2))
+				return self.parent(self.path..string.slice(path, 2))
 			else
-				return self(self.path..path)
+				return self.parent(self.path..path)
 			end
 		else
 			if string.beginsWith(path, "/")
 			or string.beginsWith(path, "\\") then
-				return self(self.path..path)
+				return self.parent(self.path..path)
 			else
-				return self(self.path..DIR_SEP..path)
+				return self.parent(self.path..DIR_SEP..path)
 			end
 		end
+		return self
 	end;
+	__tostring = function (self) return self.path end;
 }
 
 return {File=File;Dir=Dir;Path=Path;}

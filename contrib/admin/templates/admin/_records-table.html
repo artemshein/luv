@@ -7,7 +7,7 @@
 		<th></th>
 	{% for _, field in ipairs(displayFields) do %}
 		{% local f = model:getField(field) %}
-		<th>{{ capitalize(f and f:getLabel() or admin[field][1]) }}</th>
+		<th>{{ capitalize(tr(f and f:getLabel() or admin[field][1])) }}</th>
 	{% end %}
 	</thead>
 	{% for _, record in ipairs(p:getPage(page):getValue()) do %}

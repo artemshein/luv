@@ -1,11 +1,11 @@
 {{ include "admin/_header.html" }}
 
 <div class="span-24 last" style="border:#CCC solid 0;border-bottom-width:1px">
-	<h1>{{ capitalize(title) }}</h1>
+	<h1>{{ capitalize(tr(title)) }}</h1>
 </div>
 
 <div class="span-24 last">
-	{% local _, error for _, error in ipairs(form:getErrors()) do %}
+	{% for _, error in ipairs(form:getErrors()) do %}
 		{{ error }}
 	{% end %}
 	{{ form }}

@@ -3,9 +3,9 @@
 {{ include "admin/_info.html" }}
 {% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
 <div class="span-24 last">
-	<div id="chainMenu"><a href="{{ urlConf:getBaseUri() }}">&larr; Back to main</a> | <a href="{{ modelUrl }}">{{ capitalize(model:getLabelMany()) }}</a></div>
+	<div id="chainMenu"><a href="{{ urlConf:getBaseUri() }}">&larr; {{ capitalize(tr "back to main") }}</a> | <a href="{{ modelUrl }}">{{ capitalize(tr(record:getLabelMany())) }}</a></div>
 	{{ include "admin/_user-msgs.html" }}
-	<h2>Edit {{ model:getLabel() }}</h2>
+	<h2>{{ record }}</h2>
 	<script type="text/javascript" language="JavaScript">//<![CDATA[
 		function formCallback (errors)
 		{
@@ -13,7 +13,7 @@
 			else
 			{
 				hideErrors();
-				alert('New record was successfully added!');
+				alert('{{ tr "New record was successfully added." }}');
 				Luv.clearForm('form');
 			}
 		}

@@ -322,6 +322,10 @@ local Core = Object:extend{
 	createModelTag = function (self, model)
 		return require "luv.db.models".ModelTag(self:getCacher(), model)
 	end;
+	-- I18n
+	getI18n = function (self) return self.i18n end;
+	setI18n = function (self, i18n) self.i18n = i18n return self end;
+	tr = function (self, str) return self.i18n:tr(str) or str end;
 }
 
 local Struct = Object:extend{
@@ -425,6 +429,7 @@ local init = function (params)
 	core:setDsn(params.dsn)
 	core:setDebugger(params.debugger)
 	if params.cacher then core:setCacher(params.cacher) end
+	if params.i18n then core:setI18n(params.i18n) end
 	return core
 end
 

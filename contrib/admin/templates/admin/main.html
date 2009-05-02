@@ -5,11 +5,11 @@
 <div class="span-24 last">
 	<div class="span-18">
 		<ul id="modelsList">
-		{% local category, admins for category, admins in pairs(categories) do %}
+		{% for category, admins in pairs(categories) do %}
 			<li>
-				<h2>{{ capitalize(category) }}</h2>
+				<h2>{{ capitalize(tr(category)) }}</h2>
 				<ul>
-				{% local _, admin for _, admin in ipairs(admins) do %}
+				{% for _, admin in ipairs(admins) do %}
 					{% local model = admin:getModel() %}
 					{% local name = model:getLabelMany() %}
 					{% local modelUrl = urlConf:getBaseUri().."/"..admin:getPath() %}
@@ -17,18 +17,18 @@
 						{% if not admin:isTree() then %}
 						<div class="button" style="float:right">
 							<a href="{{ modelUrl }}/create">
-								<img src="/images/admin/page_add.png" width="16" height="16" alt="Create" />
+								<img src="/images/admin/page_add.png" width="16" height="16" alt="{{ capitalize(tr "create") }}" />
 							</a>
-							<a href="{{ modelUrl }}/create">Create</a>
+							<a href="{{ modelUrl }}/create">{{ capitalize(tr "create") }}</a>
 						</div>
 						{% end %}
 						{% if admin:getSmallIcon() then %}
 							{% local icon = admin:getSmallIcon() %}
 							<a href="{{ modelUrl }}">
-								<img src="{{ icon.path }}" width="{{ icon.width }}" height="{{ icon.height }}" alt="{{ capitalize(name) }}" />
+								<img src="{{ icon.path }}" width="{{ icon.width }}" height="{{ icon.height }}" alt="{{ capitalize(tr(name)) }}" />
 							</a>
 						{% end %}
-						<a href="{{ modelUrl }}">{{ capitalize(name) }}</a>
+						<a href="{{ modelUrl }}">{{ capitalize(tr(name)) }}</a>
 					</li>
 				{% end %}
 				</ul>
@@ -38,12 +38,12 @@
 	</div>
 	<div class="span-6 last">
 		<div id="actionsHistory">
-			<h2>Last actions</h2>
+			<h2>{{ capitalize(tr "last actions") }}</h2>
 			{% if isEmpty(actionLogs) then %}
-			<ul><li>No actions.</li></ul>
+			<ul><li>{{ tr "No actions." }}</li></ul>
 			{% else %}
 			<ul>
-				{% local _, actionLog for _, actionLog in ipairs(actionLogs) do %}
+				{% for _, actionLog in ipairs(actionLogs) do %}
 				<li>{{ actionLog }}</li>
 				{% end %}
 			</ul>

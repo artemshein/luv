@@ -1,4 +1,6 @@
 require"luv.debug"
+require "luv.utf8data"
+require "luv.utf8"
 local table = require "luv.table"
 local string, table, unpack, select, debug, error, loadstring, assert = string, table, unpack, select, debug, error, loadstring, assert
 local type, tostring, pairs, io = type, tostring, pairs, io
@@ -9,7 +11,7 @@ string.slice = string.sub
 
 string.capitalize = function (self)
 	if string.len(self) == 0 then return self end
-	return string.upper(string.slice(self, 1, 1))..string.slice(self, 2)
+	return string.utf8upper(string.utf8sub(self, 1, 1))..string.utf8sub(self, 2)
 end
 
 string.beginsWith = function (str, beg)
