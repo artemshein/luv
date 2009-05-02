@@ -25,7 +25,7 @@ label.required {font-weight:bold;background:none}
 #errors{background:#FEE;padding:8px;border:solid 1px #FCC}
 #errors h4{font-weight:bold;font-size:16px;margin:0 0 8px 0}
 
-#userInfo{text-align:right;padding-top:16px}
+#userInfo{text-align:right;padding-top:20px}
 #userInfo img{vertical-align:middle}
 
 #modelsList{border:solid 1px #AAA;border-width:0 1px}
@@ -33,6 +33,7 @@ label.required {font-weight:bold;background:none}
 #modelsList, #modelsList li{list-style-type:none}
 #modelsList li h2, #actionsHistory h2, #recordsActions h2{font-size:17px;color:#444;font-family:Calibri;margin:0;background-color:#EEF;padding:4px 10px;border-bottom:solid 1px #AAA}
 #modelsList li ul li{padding:8px 16px;border-bottom:solid 1px #AAA}
+#modelsList li ul li.even{background-color:#EFEFEF}
 #modelsList div.addButton{float: right}
 #modelsList img{vertical-align:middle;margin-right:2px}
 
