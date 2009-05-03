@@ -10,6 +10,8 @@ local crypt = require "luv.crypt"
 
 module(...)
 
+local MODULE = ...
+
 local modelsEq = function (self, second)
 	local pkValue = self:getPk():getValue()
 	if pkValue == nil then
@@ -307,7 +309,6 @@ local Model = Struct:extend{
 	save = function (self)
 		local pk = self:getPk()
 		local pkName = pk:getName()
-		self:clearCacheTag()
 		if not pk:getValue() or not self:getDb():SelectCell(pkName):from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec() then
 			return self:insert()
 		else
@@ -517,6 +518,69 @@ local NestedSet = Tree:extend{
 	end;
 }
 
+local function operandToString (op)
+	if "string" == type(op) then
+		return "?"
+	elseif "number" == type(op) then
+		return "?d"
+	else
+		return tostring(op)
+	end
+end
+
+local function operandValues (op)
+	if "string" == type(op) or "number" == type(op) then
+		return {op}
+	else
+		return op:getValues()
+	end
+end
+
+local F = Object:extend{
+	__tag = .....".F";
+	init = function (self, field) self.field = field end;
+	__add = function (self, op2) return require(MODULE).FAdd(self, op2) end;
+	__sub = function (self, op2) return require(MODULE).FSub(self, op2) end;
+	__tostring = function (self) return "?#" end;
+	getValues = function (self) return {self.field} end;
+}
+
+local FSub = F:extend{
+	__tag = .....".FSub";
+	init = function (self, op1, op2)
+		self.op1 = op1
+		self.op2 = op2
+	end;
+	__add = function (self, op2) return require(MODULE).FAdd(self, op2) end;
+	__sub = function (self, op2) return self.parent(self, op2) end;
+	__tostring = function (self) return operandToString(self.op1).."-"..operandToString(self.op2) end;
+	getValues = function (self)
+		local res = operandValues(self.op1)
+		for _, value in ipairs(operandValues(self.op2)) do
+			table.insert(res, value)
+		end
+		return res
+	end;
+}
+
+local FAdd = F:extend{
+	__tag = .....".FAdd";
+	init = function (self, op1, op2)
+		self.op1 = op1
+		self.op2 = op2
+	end;
+	__add = function (self, op2) return self.parent(self, op2) end;
+	__sub = function (self, op2) return FSub(self, op2) end;
+	__tostring = function (self) return operandToString(self.op1).."+"..operandToString(self.op2) end;
+	getValues = function (self)
+		local res = operandValues(self.op1)
+		for _, value in ipairs(operandValues(self.op2)) do
+			table.insert(res, value)
+		end
+		return res
+	end;
+}
+
 local LazyQuerySet = Object:extend{
 	__tag = .....".LazyQuerySet",
 	init = function (self, model, func)
@@ -574,41 +638,40 @@ local LazyQuerySet = Object:extend{
 			if type(k) == "number" then
 				k = self.model:getPkName()
 			end
+			local name, op
 			if string.find(k, "__") then
-				local name, op = unpack(string.explode(k, "__"))
-				if name == "pk" then
-					name = self.model:getPkName()
-				end
-				if not self.model:getField(name) then
-					Exception("Field "..name.." not found!"):throw()
-				end
-				if op == "exact" then
-					table.insert(filTbl, self.db:processPlaceholders("?#="..self.model:getFieldPlaceholder(self.model:getField(name)), name, v))
-				elseif op == "lt" then
-					table.insert(filTbl, self.db:processPlaceholders("?#<"..self.model:getFieldPlaceholder(self.model:getField(name)), name, v))
-				elseif op == "lte" then
-					table.insert(filTbl, self.db:processPlaceholders("?#<="..self.model:getFieldPlaceholder(self.model:getField(name)), name, v))
-				elseif op == "gt" then
-					table.insert(filTbl, self.db:processPlaceholders("?#>"..self.model:getFieldPlaceholder(self.model:getField(name)), name, v))
-				elseif op == "gte" then
-					table.insert(filTbl, self.db:processPlaceholders("?#>="..self.model:getFieldPlaceholder(self.model:getField(name)), name, v))
-				elseif op == "in" then
-					table.insert(filTbl, self.db:processPlaceholders("?# IN (?a)", name, v))
-				elseif op == "beginswith" then
-					table.insert(filTbl, self.db:processPlaceholders("?# LIKE ?", name, v.."%"))
-				elseif op == "endswith" then
-					table.insert(filTbl, self.db:processPlaceholders("?# LIKE ?", name, "%"..v))
-				elseif op == "contains" then
-					table.insert(filTbl, self.db:processPlaceholders("?# LIKE ?", name, "%"..v.."%"))
-				else
-					Exception("Operation "..op.." not supported!"):throw()
-				end
+				name, op = unpack(string.explode(k, "__"))
 			else
-				if not self.model:getField(k) then
-					Exception("Field "..k.." not found!"):throw()
-				end
-				table.insert(filTbl, self.db:processPlaceholders("?#="..self.model:getFieldPlaceholder(self.model:getField(k)), k, v))
+				name = k
+				op = "exact"
 			end
+			if name == "pk" then
+				name = self.model:getPkName()
+			end
+			if not self.model:getField(name) then
+				Exception("Field "..name.." not found!"):throw()
+			end
+			local expr, values
+			if "table" == type(v) and v.isKindOf and v:isKindOf(F) then
+				expr = self.db:processPlaceholders(tostring(v), unpack(v:getValues()))
+				values = {name}
+			else
+				expr = self.model:getFieldPlaceholder(self.model:getField(name))
+				values = {name;v}
+			end
+			if op == "exact" then expr = "?#="..expr
+			elseif op == "lt" then expr = "?#<"..expr
+			elseif op == "lte" then expr = "?#<="..expr
+			elseif op == "gt" then expr = "?#>"..expr
+			elseif op == "gte" then expr = "?#>="..expr
+			elseif op == "in" then expr = "?# IN (?a)"
+			elseif op == "beginswith" then values[2] = values[2].."%" expr = "?# LIKE ?"
+			elseif op == "endswith" then values[2] = "%"..values[2] expr = "?# LIKE ?"
+			elseif op == "contains" then values[2] = "%"..values[2].."%" expr = "?# LIKE ?"
+			else
+				Exception("Operation "..op.." not supported!"):throw()
+			end
+			table.insert(filTbl, self.db:processPlaceholders(expr, unpack(values)))
 		end
 		return table.join(filTbl, ") AND (")
 	end,
@@ -699,5 +762,5 @@ local Paginator = Object:extend{
 
 return {
 	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;NestedSet=NestedSet;
-	LazyQuerySet=LazyQuerySet;Paginator=Paginator;
+	LazyQuerySet=LazyQuerySet;Paginator=Paginator;F=F;FAdd=FAdd;FSub=FSub;
 }

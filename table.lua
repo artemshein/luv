@@ -21,7 +21,10 @@ end
 table.imap = function (self, func)
 	local res = {}
 	for _, val in ipairs(self) do
-		table.insert(res, func(val))
+		local newVal = func(val)
+		if newVal then
+			table.insert(res, func(val))
+		end
 	end
 	return res
 end

@@ -38,7 +38,7 @@ local Field = Object:extend{
 		self.required = params.required or false
 		self.label = params.label
 		self:setWidget(params.widget)
-		self:setChoices(params.choices)
+		if params.choices then self:setChoices(params.choices) end
 		if self.required then
 			self.validators.filled = validators.Filled()
 			self:addClass "required"
@@ -59,7 +59,12 @@ local Field = Object:extend{
 	setName = function (self, name) self.name = name return self end;
 	getValue = function (self) return self.value end,
 	setValue = function (self, value) self.value = value return self end,
-	getChoices = function (self) return self.choices end;
+	getChoices = function (self)
+		if "function" == type(self.choices) then
+			self.choices = self.choices(self)
+		end
+		return self.choices
+	end;
 	setChoices = function (self, choices) self.choices = choices return self end;
 	getDefaultValue = function (self) return self.defaultValue end,
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
@@ -159,6 +164,7 @@ local Phone = Text:extend{
 		params.minLength = 11
 		params.maxLength = 11
 		params.widget = params.widget or widgets.PhoneInput
+		params.regexp = "^[0-9]+$"
 		Text.init(self, params)
 	end;
 }

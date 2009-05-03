@@ -41,13 +41,15 @@ local Memory = Backend:extend{
 		self.logger("get "..id)
 		return unserialize(data)
 	end;
-	set = function (self, id, data) self.logger("set "..id) self.storage[id] = serialize(data) end;
+	set = function (self, id, data, tags)
+		if tags then Exception"Tags unsupported!":throw(); end
+		self.logger("set "..id)
+		self.storage[id] = serialize(data)
+	end;
 	delete = function (self, id) self.logger("delete "..id) self.storage[id] = nil end;
 	clear = function (self) self.logger("clear") self.storage = {} end;
 	clearTags = function (self, tags)
-		for _, tag in ipairs(tags) do
-			self:delete(tag)
-		end
+		table.imap(tags, function (tag) self:delete(tag) end)
 	end;
 	getDefaultLifetime = function () return 0 end;
 	setDefaultLifetime = function () return self end;

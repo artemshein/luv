@@ -7,7 +7,7 @@ local oop, exceptions, utils, sessions, fs, ws, sessions = require"luv.oop", req
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 local crypt = require "luv.crypt"
 local backend = require "luv.cache.backend"
-local Memory, NamespaceWrapper = backend.Memory, backend.NamespaceWrapper
+local Memory, NamespaceWrapper, TagEmuWrapper = backend.Memory, backend.NamespaceWrapper, backend.TagEmuWrapper
 local Slot = require "luv.cache.frontend".Slot
 
 module(...)
@@ -186,7 +186,7 @@ local Core = Object:extend{
 		--
 		self.wsApi = (wsApi or ws.Cgi()):setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
 		self.urlconf = UrlConf(self.wsApi)
-		self:setCacher(Memory())
+		self:setCacher(TagEmuWrapper(Memory()))
 	end,
 	getWsApi = function (self) return self.wsApi end,
 	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end,
@@ -399,7 +399,7 @@ local Struct = Object:extend{
 			if not v:isValid() then
 				local _, e for _, e in ipairs(v:getErrors()) do
 					local label = v:getLabel()
-					self:addError(string.gsub(e, "%%s", label and string.capitalize(label) or v:getName()))
+					self:addError(string.gsub(_G.tr(e), "%%s", label and string.capitalize(_G.tr(label)) or string.capitalize(_G.tr(v:getName()))))
 				end
 				return false
 			end
