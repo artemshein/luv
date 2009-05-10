@@ -1,8 +1,9 @@
 require "luv.string"
 require "luv.table"
-local tostring, debug, io = tostring, debug, io
+local tostring, debug, io, type = tostring, debug, io, type
 local string, table, pairs, ipairs = string, table, pairs, ipairs
 local Widget, html = require"luv".Widget, require"luv.utils.html"
+local json = require "luv.utils.json"
 
 module(...)
 
@@ -12,6 +13,7 @@ end
 
 local Input = Widget:extend{
 	__tag = .....".Input";
+	init = function () end;
 	render = function (self, field, form, tail)
 		tail = tail or ""
 		local classes = field:getClasses()
@@ -25,6 +27,7 @@ local Input = Widget:extend{
 
 local TextArea = Widget:extend{
 	__tag = .....".TextArea";
+	init = function () end;
 	render = function (self, field, form)
 		local classes = field:getClasses()
 		return [[<textarea name="]]..html.escape(field:getName())
@@ -53,7 +56,7 @@ local Checkbox = Input:extend{
 
 local TextInput = Input:extend{
 	__tag = .....".TextInput",
-	type = "text",
+	type = "text";
 	render = function (self, field, form)
 		local tail = [[ maxlength="]]..field:getMaxLength()..[["]]
 		return Input.render(self, field, form, tail)
@@ -105,18 +108,24 @@ local ImageButton = Button:extend{
 
 local Select = Widget:extend{
 	__tag = .....".Select";
+	init = function () end;
 	render = function (self, field, form)
 		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
 		if not field:isRequired() then values = [[<option></option>]] end
-		for k, v in pairs(field:getChoices()) do
+		local choices = field:getChoices()
+		if 'function' == type(choices) then
+			choices = choices()
+		end
+		for k, v in pairs(choices) do
 			local value = v.isKindOf and v:getPk():getValue() or v
 			values = values..[[<option value="]]..tostring(k)..[["]]..(tostring(k) == tostring(fieldValue) and [[ selected="selected"]] or "")..[[>]]..html.escape(tostring(v))..[[</option>]]
 		end
-		return [[<select id="]]..html.escape(getId(form, field))
-		..[[" name="]]..html.escape(field:getName())
-		..(classes and ([[" class="]]..table.join(classes, " ")) or "")
-		..[[">]]..values..[[</select>]];
+		return [[<select id=]]..string.format("%q", html.escape(getId(form, field)))
+		..' name='..string.format("%q", html.escape(field:getName()))
+		..(field:getOnChange() and (' onchange='..string.format("%q", field:getOnChange())) or '')
+		..(classes and (' class='..string.format("%q", table.join(classes, ' '))) or '')
+		..'>'..values..'</select>';
 	end;
 }
 
@@ -125,7 +134,11 @@ local MultipleSelect = Select:extend{
 	render = function (self, field, form)
 		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
-		for k, v in pairs(field:getChoices()) do
+		local choices = field:getChoices()
+		if 'function' == type(choices) then
+			choices = choices()
+		end
+		for k, v in pairs(choices) do
 			local founded = false
 			for _, val in ipairs(fieldValue) do
 				if tostring(val) == tostring(v.isKindOf and v:getPk():getValue() or v) then
@@ -133,13 +146,44 @@ local MultipleSelect = Select:extend{
 					break
 				end
 			end
-			values = values..[[<option value="]]..tostring(v:getPk():getValue())..[["]]..(founded and [[ selected="selected"]] or "")..[[>]]..tostring(v)..[[</option>]]
+			values = values..'<option value='..string.format("%q", tostring(v:getPk():getValue()))..(founded and ' selected="selected"' or '')..'>'..tostring(v)..'</option>'
 		end
-		return [[<select multiple="multiple" id="]]..html.escape(getId(form, field))
-		..[[" name="]]..html.escape(field:getName())
-		..(classes and ([[" class="]]..table.join(classes, " ")) or "")
-		..[[">]]..values..[[</select>]];
+		return [[<select multiple="multiple" id=]]..string.format("%q", html.escape(getId(form, field)))
+		..' name='..string.format("%q", html.escape(field:getName()))
+		..(field:getOnChange() and (' onchange='..string.format("%q", field:getOnChange())) or '')
+		..(classes and (' class='..string.format("%q", table.join(classes, ' '))) or '')
+		..'>'..values..'</select>';
 	end;
+}
+
+local NestedSetSelect = Select:extend{
+	__tag = .....".NestedSetSelect";
+	render = function (self, field, form)
+		local data, minLevel = {}
+		local choices = field:getChoices()
+		if 'function' == type(choices) then
+			choices = choices()
+		end
+		for _, v in ipairs(choices) do
+			local level = v.level
+			minLevel = (minLevel and (minLevel < level and minLevel or level)) or level
+			data[v.pk] = {value=v.pk;label=tostring(v);hasChildren=v:hasChildren();left=v.left;right=v.right;level=v.level}
+		end
+		local id = getId(form, field)
+		local value = field:getValue()
+		return
+		'<div id='..string.format("%q", id.."Back")..'></div>'
+		..Select.render(self, field, form)
+		..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'
+		..'var nestedSetData = nestedSetData || {};\nnestedSetData["'..id..'"] = {"minLevel": '..minLevel..', "data": '
+		..json.serialize(data)
+		..'};\nluv.nestedSetSelect('..string.format("%q", id)..(value and (', luv.nestedSetGetParentFor('..string.format('%q', id)..', '..string.format('%q', value)..')') or '')..');'
+		..(value and ('luv.setFieldValue('..string.format('%q', id)..', '..string.format('%q', value)..');') or '')..'\n//]]></script>'
+	end;
+}
+
+local Datetime = TextInput:extend{
+	__tag = .....'.Datetime';
 }
 
 return {
@@ -154,4 +198,6 @@ return {
 	Checkbox=Checkbox;
 	Select=Select;
 	MultipleSelect=MultipleSelect;
+	NestedSetSelect=NestedSetSelect;
+	Datetime=Datetime;
 }

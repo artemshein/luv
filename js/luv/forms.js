@@ -243,4 +243,49 @@
 			luv.sendForm(formId, buttonId, callback);
 		return false;
 	}
+	// NestedSetSelect field widget
+	luv.nestedSetFilter = function (fieldId, filter)
+	{
+		var html = '<option value=""></option>';
+		$.each(nestedSetData[fieldId].data, function (key, value)
+		{
+			if (filter(key, value))
+				html += '<option value="' + value.value + '">' + value.label + '</option>';
+		});
+		$('#' + fieldId).html(html);
+	}
+	luv.nestedSetGetParentFor = function (fieldId, id)
+	{
+		var val = nestedSetData[fieldId].data[id];
+		var parentKey;
+		$.each(nestedSetData[fieldId].data, function (key, value)
+		{
+			if (value.level == val.level-1 && value.left < val.left && value.right > val.right)
+			{
+				parentKey = key;
+				return false;
+			}
+		});
+		return parentKey;
+	}
+	luv.nestedSetSelect = function (fieldId, id)
+	{
+		if (id)
+		{
+			var val = nestedSetData[fieldId].data[id];
+			if (!val.hasChildren)
+				return;
+			luv.nestedSetFilter(fieldId, function (key, value) { return value.left > val.left && value.right < val.right && value.level == val.level + 1; });
+			var parentId = luv.nestedSetGetParentFor(fieldId, id);
+			if (parentId)
+				$('#' + fieldId + 'Back').html('<a href="#" onclick="luv.nestedSetSelect(\'' + fieldId + '\', \'' + parentId + '\'); return false;">&laquo; Назад</a>');
+			else
+				$('#' + fieldId + 'Back').html('<a href="#" onclick="luv.nestedSetSelect(\'' + fieldId + '\'); return false;">&laquo; Назад</a>');
+		}
+		else
+		{
+			luv.nestedSetFilter(fieldId, function (key, value) { return value.level == nestedSetData[fieldId].minLevel; });
+			$('#' + fieldId + 'Back').html('');
+		}
+	}
 })();

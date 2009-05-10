@@ -1,5 +1,5 @@
 require"luv.string"
-local string, type = string, type
+local string, type, tostring = string, type, tostring
 
 module(...)
 

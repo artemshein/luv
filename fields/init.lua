@@ -38,6 +38,8 @@ local Field = Object:extend{
 		self.required = params.required or false
 		self.label = params.label
 		self:setWidget(params.widget)
+		self:setOnClick(params.onClick)
+		self:setOnChange(params.onChange)
 		if params.choices then self:setChoices(params.choices) end
 		if self.required then
 			self.validators.filled = validators.Filled()
@@ -59,12 +61,7 @@ local Field = Object:extend{
 	setName = function (self, name) self.name = name return self end;
 	getValue = function (self) return self.value end,
 	setValue = function (self, value) self.value = value return self end,
-	getChoices = function (self)
-		if "function" == type(self.choices) then
-			self.choices = self.choices(self)
-		end
-		return self.choices
-	end;
+	getChoices = function (self) return self.choices end;
 	setChoices = function (self, choices) self.choices = choices return self end;
 	getDefaultValue = function (self) return self.defaultValue end,
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
@@ -101,6 +98,10 @@ local Field = Object:extend{
 	getWidget = function (self) return self.widget end,
 	setWidget = function (self, widget) self.widget = widget return self end,
 	asHtml = function (self, form) return self.widget:render(self, form or self:getContainer()) end;
+	getOnClick = function (self) return self.onClick end;
+	setOnClick = function (self, onClick) self.onClick = onClick return self end;
+	getOnChange = function (self) return self.onChange end;
+	setOnChange = function (self, onChange) self.onChange = onChange return self end;
 }
 
 local Text = Field:extend{
@@ -264,14 +265,6 @@ local Button = Text:extend{
 		params.widget = params.widget or widgets.Button
 		Text.init(self, params)
 	end;
-	setParams = function (self, params)
-		Text.setParams(self, params)
-		if params.onClick then
-			self:setOnClick(params.onClick)
-		end
-	end;
-	getOnClick = function (self) return self.onClick end;
-	setOnClick = function (self, onClick) self.onClick = onClick return self end;
 }
 
 local Submit = Button:extend{
@@ -306,8 +299,10 @@ local Datetime = Field:extend{
 	defaultFormat = "%Y-%m-%d %H:%M:%S";
 	init = function (self, params)
 		params = params or {}
+		params.widget = params.widget or widgets.Datetime()
 		self:setAutoNow(params.autoNow)
 		Field.init(self, params)
+		self.validators.length = validators.Length(19, 19)
 	end;
 	getAutoNow = function (self) return self.autoNow end;
 	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
@@ -322,14 +317,18 @@ local Datetime = Field:extend{
 	end;
 	setValue =  function (self, value)
 		if "string" == type(value) then
-			self.value = os.time{
-				year=tonumber(string.slice(value, 1, 4));
-				month=tonumber(string.slice(value, 6, 7));
-				day=tonumber(string.slice(value, 9, 10));
-				hour=tonumber(string.slice(value, 12, 13));
-				min=tonumber(string.slice(value, 15, 16));
-				sec=tonumber(string.slice(value, 18, 19));
-			}
+			if string.match(value, '^%d%d%d%d-%d%d-%d%d %d%d:%d%d:%d%d$') then
+				self.value = os.time{
+					year=tonumber(string.slice(value, 1, 4));
+					month=tonumber(string.slice(value, 6, 7));
+					day=tonumber(string.slice(value, 9, 10));
+					hour=tonumber(string.slice(value, 12, 13));
+					min=tonumber(string.slice(value, 15, 16));
+					sec=tonumber(string.slice(value, 18, 19));
+				}
+			else
+				self.value = nil
+			end
 		else
 			self.value = value
 		end
@@ -337,6 +336,8 @@ local Datetime = Field:extend{
 	__tostring = function (self)
 		return os.date(self.defaultFormat, self:getValue())
 	end;
+	getMinLength = function (self) return self.validators.length:getMinLength() end;
+	getMaxLength = function (self) return self.validators.length:getMaxLength() end;
 }
 
 local ModelSelect = Field:extend{
@@ -389,6 +390,27 @@ local ModelMultipleSelect = Field:extend{
 	getValue = function (self) return self.value or {} end;
 }
 
+local NestedSetSelect = Field:extend{
+	__tag = .....".NestedSetSelect";
+	init = function (self, params)
+		if not params then
+			Exception"Values required!":throw()
+		end
+		if not params.choices then
+			params = {choices=params}
+		end
+		params.widget = params.widget or widgets.NestedSetSelect
+		params.onChange = 'luv.nestedSetSelect(this.id, luv.getFieldRawValue(this.id));'
+		Field.init(self, params)
+	end;
+	setValue = function (self, value)
+		if "table" == type(value) then
+			value = value:getPk():getValue()
+		end
+		return Field.setValue(self, value)
+	end;
+}
+
 return {
 	Field = Field,
 	Text = Text,
@@ -405,4 +427,5 @@ return {
 	Phone=Phone;
 	Url=Url;File=File;
 	ModelSelect=ModelSelect;ModelMultipleSelect=ModelMultipleSelect;
+	NestedSetSelect=NestedSetSelect;
 }

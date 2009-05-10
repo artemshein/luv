@@ -52,7 +52,7 @@ local Fire = Debugger:extend{
 				if "string" == type(info.msg) then
 					res = res.."console."..info.level.."("..string.format("%q", html.escape(info.msg))..");\n"
 				else
-					res = res.."console."..info.level.."("..json.to(info.msg)..");\n"
+					res = res.."console."..info.level.."("..json.serialize(info.msg)..");\n"
 				end
 			end
 			res = res.."console.groupEnd();\n"

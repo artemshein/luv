@@ -42,7 +42,7 @@ local function sortTablesList (tables)
 	local models = require "luv.db.models"
 	local references = require "luv.fields.references"
 	local size, i = #tables, 1
-	while i < size-1 do
+	while i < size do
 		local iTbl, iObj = unpack(tables[i])
 		for j = i+1, size do
 			local jTbl, jObj = unpack(tables[j])
@@ -227,8 +227,7 @@ local Core = Object:extend{
 	dispatch = function (self, urlconf) return self.urlconf:dispatch(urlconf) end,
 	-- Models
 	dropModels = function (self, models)
-		local tables = sortTablesList(constructTablesList(models))
-		for _, info in ipairs(tables) do
+		for _, info in ipairs(sortTablesList(constructTablesList(models))) do
 			info[2]:dropTable()
 		end
 	end,
@@ -401,10 +400,9 @@ local Struct = Object:extend{
 					local label = v:getLabel()
 					self:addError(string.gsub(_G.tr(e), "%%s", label and string.capitalize(_G.tr(label)) or string.capitalize(_G.tr(v:getName()))))
 				end
-				return false
 			end
 		end
-		return true
+		return table.isEmpty(self:getErrors())
 	end,
 	addError = function (self, error) table.insert(self.errors, error) return self end,
 	setErrors = function (self, errors) self.errors = errors return self end,

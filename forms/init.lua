@@ -51,7 +51,20 @@ local Form = Struct:extend{
 				self:setValues(values)
 			end
 		end
-	end,
+	end;
+	addField = function (self, k, v)
+		if v:isKindOf(references.OneToOne) or v:isKindOf(references.ManyToOne) then
+			if v:getRefModel():isKindOf(models.NestedSet) then
+				Struct.addField(self, k, fields.NestedSetSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+			else
+				Struct.addField(self, k, fields.ModelSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+			end
+		elseif v:isKindOf(references.OneToMany) or v:isKindOf(references.ManyToMany) then
+			Struct.addField(self, k, fields.ModelMultipleSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+		else
+			Struct.addField(self, k, v:clone())
+		end
+	end;
 	getAction = function (self) return self.Meta.action or "" end,
 	setAction = function (self, action) self.Meta.action = action return self end,
 	getId = function (self)
@@ -164,13 +177,7 @@ local ModelForm = Form:extend{
 			if v:isKindOf(fields.Button)
 			or ((not new.Meta.fields or table.find(new.Meta.fields, k))
 				and (not new.Meta.exclude or not table.find(new.Meta.exclude, k))) then
-				if v:isKindOf(references.OneToOne) or v:isKindOf(references.ManyToOne) then
-					new:addField(k, fields.ModelSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
-				elseif v:isKindOf(references.OneToMany) or v:isKindOf(references.ManyToMany) then
-					new:addField(k, fields.ModelMultipleSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
-				else
-					new:addField(k, v:clone())
-				end
+				new:addField(k, v)
 			end
 		end
 		return new
@@ -178,6 +185,28 @@ local ModelForm = Form:extend{
 	getModel = function (self) return self.Meta.model end;
 	getPk = function (self) return self:getModel():getPk() end;
 	getPkName = function (self) return self:getModel():getPkName() end;
+	initModel = function (self, model)
+		if not model:isKindOf(self:getModel()) then
+			Exception 'Instance of Meta.model expected':throw()
+		end
+		for k, v in pairs(model:getFieldsByName()) do
+			if (not new.Meta.fields or table.find(new.Meta.fields, k))
+			and (not new.Meta.exclude or not table.find(new.Meta.exclude, k)) then
+				model[k] = self[k]
+			end
+		end
+	end;
+	initForm = function (self, model)
+		if not model:isKindOf(self:getModel()) then
+			Exception 'Instance of Meta.model expected':throw()
+		end
+		for k, v in pairs(model:getFieldsByName()) do
+			if (not new.Meta.fields or table.find(new.Meta.fields, k))
+			and (not new.Meta.exclude or not table.find(new.Meta.exclude, k)) then
+				self[k] = model[k]
+			end
+		end
+	end;
 }
 
 return {

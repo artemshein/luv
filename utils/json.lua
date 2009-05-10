@@ -4,7 +4,7 @@ local type, pairs, table, string, tostring = type, pairs, table, string, tostrin
 
 module(...)
 
-local function to (self, seen)
+local function serialize (self, seen)
 	local seen = seen or {}
 	if "boolean" == type(self) then
 		return self and "true" or "false"
@@ -25,9 +25,9 @@ local function to (self, seen)
 				end
 				if ("table" == vType and not table.find(seen, v)) or "table" ~= vType then
 					if "string" == type(k) then
-						res = res..string.format("%q", k)..":"..to(v, seen)
+						res = res..string.format("%q", k)..":"..serialize(v, seen)
 					else
-						res = res..k..":"..to(v, seen)
+						res = res..k..":"..serialize(v, seen)
 					end
 				end
 			end
@@ -39,4 +39,4 @@ local function to (self, seen)
 	end
 end
 
-return {to=to}
+return {serialize=serialize}
