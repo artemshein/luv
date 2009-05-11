@@ -41,8 +41,8 @@ local ModelAdmin = Object:extend{
 		return self.form
 	end;
 	isTree = function (self) return self:getModel():isKindOf(models.Tree) end;
-	initModelByForm = function (self, model, form) model:setValues(form:getValues()) return self end;
-	initFormByModel = function (self, form, model) form:setValues(model:getValues()) return self end;
+	initModelByForm = function (self, model, form) form:initModel(model) return self end;
+	initFormByModel = function (self, form, model) form:initForm(model) return self end;
 }
 
 local ActionLog = models.Model:extend{
@@ -206,7 +206,7 @@ local AdminSite = Object:extend{
 				if not admin then ws.Http404():throw() end
 				local model = admin:getModel()
 				luv:assign{
-					pairs=pairs;ipairs=ipairs;tostring=tostring;capitalize=string.capitalize;html=html;urlConf=urlConf;user=user;
+					type=type;pairs=pairs;ipairs=ipairs;tostring=tostring;capitalize=string.capitalize;html=html;urlConf=urlConf;user=user;
 					modelUri=urlConf:getBaseUri().."/"..urlConf:getCapture(1);admin=admin;model=model;
 				}
 				if model:isKindOf(models.Tree) then

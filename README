@@ -50,6 +50,7 @@ Version 0.7alpha
 ----------------
 + UTF-8 support.
 + i18n support.
++ NestedSetSelect form field & field widget.
 
 Version 0.6alpha [DONE]
 ----------------

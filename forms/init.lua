@@ -190,8 +190,8 @@ local ModelForm = Form:extend{
 			Exception 'Instance of Meta.model expected':throw()
 		end
 		for k, v in pairs(model:getFieldsByName()) do
-			if (not new.Meta.fields or table.find(new.Meta.fields, k))
-			and (not new.Meta.exclude or not table.find(new.Meta.exclude, k)) then
+			if (not self.Meta.fields or table.find(self.Meta.fields, k))
+			and (not self.Meta.exclude or not table.find(self.Meta.exclude, k)) then
 				model[k] = self[k]
 			end
 		end
@@ -201,8 +201,8 @@ local ModelForm = Form:extend{
 			Exception 'Instance of Meta.model expected':throw()
 		end
 		for k, v in pairs(model:getFieldsByName()) do
-			if (not new.Meta.fields or table.find(new.Meta.fields, k))
-			and (not new.Meta.exclude or not table.find(new.Meta.exclude, k)) then
+			if (not self.Meta.fields or table.find(self.Meta.fields, k))
+			and (not self.Meta.exclude or not table.find(self.Meta.exclude, k)) then
 				self[k] = model[k]
 			end
 		end

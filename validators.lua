@@ -1,6 +1,6 @@
-require"luv.string"
+local string = require"luv.string"
 require "luv.debug"
-local type, tonumber, tostring, string, table, ipairs = type, tonumber, tostring, string, table, ipairs
+local type, tonumber, tostring, table, ipairs = type, tonumber, tostring, table, ipairs
 local debug = debug
 local Object = require"luv.oop".Object
 
@@ -81,9 +81,9 @@ local Length = Validator:extend{
 		elseif type(value) ~= "string" then
 			value = ""
 		end
-		if (self.maxLength ~= 0 and string.len(value) > self.maxLength)
-		or (self.minLength and string.len(value) < self.minLength) then
-			self:addError "Field \"%s\" has incorrect length."
+		if (self.maxLength ~= 0 and string.utf8len(value) > self.maxLength)
+		or (self.minLength and string.utf8len(value) < self.minLength) then
+			self:addError 'Field "%s" has incorrect length.'
 			return false
 		end
 		return true

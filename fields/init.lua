@@ -40,6 +40,7 @@ local Field = Object:extend{
 		self:setWidget(params.widget)
 		self:setOnClick(params.onClick)
 		self:setOnChange(params.onChange)
+		self:setHint(params.hint)
 		if params.choices then self:setChoices(params.choices) end
 		if self.required then
 			self.validators.filled = validators.Filled()
@@ -102,6 +103,8 @@ local Field = Object:extend{
 	setOnClick = function (self, onClick) self.onClick = onClick return self end;
 	getOnChange = function (self) return self.onChange end;
 	setOnChange = function (self, onChange) self.onChange = onChange return self end;
+	getHint = function (self) return self.hint end;
+	setHint = function (self, hint) self.hint = hint return self end;
 }
 
 local Text = Field:extend{
@@ -302,7 +305,6 @@ local Datetime = Field:extend{
 		params.widget = params.widget or widgets.Datetime()
 		self:setAutoNow(params.autoNow)
 		Field.init(self, params)
-		self.validators.length = validators.Length(19, 19)
 	end;
 	getAutoNow = function (self) return self.autoNow end;
 	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
@@ -336,8 +338,8 @@ local Datetime = Field:extend{
 	__tostring = function (self)
 		return os.date(self.defaultFormat, self:getValue())
 	end;
-	getMinLength = function (self) return self.validators.length:getMinLength() end;
-	getMaxLength = function (self) return self.validators.length:getMaxLength() end;
+	getMinLength = function (self) return 19 end;
+	getMaxLength = function (self) return 19 end;
 }
 
 local ModelSelect = Field:extend{

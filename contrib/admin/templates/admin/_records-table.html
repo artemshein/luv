@@ -21,6 +21,7 @@
 						{{ record:getField(field) }}
 					{% else %}
 						{% local choices = f:getChoices() %}
+						{% if 'function' == type(choices) then choices = choices() end %}
 						{% local value = record[field] %}
 						{% if choices then %}
 							{{ html.escape(tostring(value and choices[value] or "")) }}
