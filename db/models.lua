@@ -446,13 +446,14 @@ local NestedSet = Tree:extend{
 	__tag = .....".NestedSet";
 	hasChildren = function (self) return self.right-self.left > 1 end;
 	getChildren = function (self)
-		return self.parent:all():filter{left__gte=self.left;right__lte=self.right;level=self.level+1}:getValue()
+		return self.parent:all():filter{left__gt=self.left;right__lt=self.right;level=self.level+1}:getValue()
 	end;
 	getParent = function (self)
 		if 0 == self.level then
-			return false
+			return nil
 		end
-		return self:find{left__le=self.left;right__ge=self.right;level=self.level-1}
+		-- TODO: rewrite to find{}
+		return self.parent:all(1):filter{left__lt=self.left;right__gt=self.right;level=self.level-1}:getValue()[1]
 	end;
 	removeChildren = function (self)
 		if not self:hasChildren() then

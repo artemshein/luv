@@ -182,7 +182,7 @@ local ManyToOne = Reference:extend{
 	end;
 	getValue = function (self)
 		local valType = type(self.value)
-		if valType ~= nil and valType ~= "table" then
+		if self.value and valType ~= "table" then
 			self:setValue(self:getRefModel():find(self.value))
 		end
 		return Reference.getValue(self)

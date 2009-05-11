@@ -1,6 +1,7 @@
 require "luv.string"
 require "luv.table"
 local tostring, debug, io, type = tostring, debug, io, type
+local os = os
 local string, table, pairs, ipairs = string, table, pairs, ipairs
 local Widget, html = require"luv".Widget, require"luv.utils.html"
 local json = require "luv.utils.json"
@@ -190,6 +191,20 @@ local NestedSetSelect = Select:extend{
 
 local Datetime = TextInput:extend{
 	__tag = .....'.Datetime';
+	format = "%Y-%m-%d %H:%M:%S";
+	init = function () end;
+	render = function (self, field, form, tail)
+		tail = tail or ''
+		local classes = field:getClasses()
+		return
+		'<input type='..string.format('%q', self.type)
+		..' name='..string.format('%q', html.escape(field:getName()))
+		..' id='..string.format('%q', html.escape(getId(form, field)))
+		..' value='..string.format('%q', html.escape(os.date(self.format, field:getValue() or field:getDefaultValue())))
+		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..tail..' />'
+		..(field:getHint() and (' '..field:getHint()) or '')
+	end
 }
 
 return {

@@ -319,18 +319,14 @@ local Datetime = Field:extend{
 	end;
 	setValue =  function (self, value)
 		if "string" == type(value) then
-			if string.match(value, '^%d%d%d%d-%d%d-%d%d %d%d:%d%d:%d%d$') then
-				self.value = os.time{
-					year=tonumber(string.slice(value, 1, 4));
-					month=tonumber(string.slice(value, 6, 7));
-					day=tonumber(string.slice(value, 9, 10));
-					hour=tonumber(string.slice(value, 12, 13));
-					min=tonumber(string.slice(value, 15, 16));
-					sec=tonumber(string.slice(value, 18, 19));
-				}
-			else
-				self.value = nil
-			end
+			self.value = os.time{
+				year=tonumber(string.slice(value, 1, 4));
+				month=tonumber(string.slice(value, 6, 7));
+				day=tonumber(string.slice(value, 9, 10));
+				hour=tonumber(string.slice(value, 12, 13));
+				min=tonumber(string.slice(value, 15, 16));
+				sec=tonumber(string.slice(value, 18, 19));
+			}
 		else
 			self.value = value
 		end
