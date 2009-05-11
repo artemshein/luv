@@ -203,7 +203,7 @@ local ManyToOne = Reference:extend{
 	end;
 	getRelatedName = function (self)
 		if not self.relatedName then
-			self.relatedName = self:getContainer():getLabelMany()
+			self.relatedName = string.replace(self:getContainer():getLabelMany(), ' ', '_')
 		end
 		return Reference.getRelatedName(self)
 	end;
@@ -291,7 +291,7 @@ local OneToMany = Reference:extend{
 	end;
 	getRelatedName = function (self)
 		if not self.relatedName then
-			self.relatedName = self:getContainer():getLabel()
+			self.relatedName = string.replace(self:getContainer():getLabel()' ', '_')
 		end
 		return Reference.getRelatedName(self)
 	end;
