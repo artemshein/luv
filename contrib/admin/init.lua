@@ -138,7 +138,7 @@ local AdminSite = Object:extend{
 				if not admin then ws.Http404():throw() end
 				local model = admin:getModel()
 				if not user:canCreate(model) then ws.Http403():throw() end
-				local form = admin:getForm():addField("create", fields.Submit(string.capitalize(tr "create")))(luv:getPostData()):setAction(urlConf:getUri())
+				local form = admin:getForm():addField('create', fields.Submit(string.capitalize(tr 'create')))(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted("create") and form:isValid() then
 					if model:isKindOf(models.Tree) then

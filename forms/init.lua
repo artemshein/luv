@@ -64,6 +64,7 @@ local Form = Struct:extend{
 		else
 			Struct.addField(self, k, v:clone())
 		end
+		return self
 	end;
 	getAction = function (self) return self.Meta.action or "" end,
 	setAction = function (self, action) self.Meta.action = action return self end,
