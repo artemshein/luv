@@ -1,6 +1,6 @@
 require "luv.debug"
 local debug, error = debug, error
-local require = require
+local require, try = require, try
 local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
 local Exception = require "luv.exceptions".Exception
@@ -319,20 +319,27 @@ local Datetime = Field:extend{
 	end;
 	setValue =  function (self, value)
 		if "string" == type(value) then
-			self.value = os.time{
-				year=tonumber(string.slice(value, 1, 4));
-				month=tonumber(string.slice(value, 6, 7));
-				day=tonumber(string.slice(value, 9, 10));
-				hour=tonumber(string.slice(value, 12, 13));
-				min=tonumber(string.slice(value, 15, 16));
-				sec=tonumber(string.slice(value, 18, 19));
-			}
+			try(function()
+				self.value = os.time{
+					year=tonumber(string.slice(value, 1, 4));
+					month=tonumber(string.slice(value, 6, 7));
+					day=tonumber(string.slice(value, 9, 10));
+					hour=tonumber(string.slice(value, 12, 13));
+					min=tonumber(string.slice(value, 15, 16));
+					sec=tonumber(string.slice(value, 18, 19));
+				}
+			end):catch(function() -- Invalid date format
+				self.value = nil
+			end)
 		else
 			self.value = value
 		end
 	end;
 	__tostring = function (self)
-		return os.date(self.defaultFormat, self:getValue())
+		if self:getValue() then
+			return os.date(self.defaultFormat, self:getValue())
+		end
+		return ''
 	end;
 	getMinLength = function (self) return 19 end;
 	getMaxLength = function (self) return 19 end;

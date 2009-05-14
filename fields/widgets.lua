@@ -196,11 +196,15 @@ local Datetime = TextInput:extend{
 	render = function (self, field, form, tail)
 		tail = tail or ''
 		local classes = field:getClasses()
+		local value = field:getValue() or field:getDefaultValue()
+		if value then
+			value = os.date(self.format, value)
+		end
 		return
 		'<input type='..string.format('%q', self.type)
 		..' name='..string.format('%q', html.escape(field:getName()))
 		..' id='..string.format('%q', html.escape(getId(form, field)))
-		..' value='..string.format('%q', html.escape(os.date(self.format, field:getValue() or field:getDefaultValue())))
+		..' value='..string.format('%q', html.escape(value or ''))
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
 		..tail..' />'
 		..(field:getHint() and (' '..field:getHint()) or '')

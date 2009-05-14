@@ -190,7 +190,9 @@ local ManyToOne = Reference:extend{
 	setValue = function (self, value)
 		if type(value) == "table" and not value:isKindOf(self:getRefModel()) then
 			Exception("Instance of "..self.ref.." or nil required!"):throw()
-		elseif value ~= nil and type(value) ~= "table" and not self:getRefModel():getPk():isValid(value) then
+		elseif value ~= nil and value ~= '' and type(value) ~= "table" and not self:getRefModel():getPk():isValid(value) then
+			debug.dprint(self)
+			debug.dprint(value)
 			Exception"Invalid field value!":throw()
 		end
 		return Reference.setValue(self, value)
