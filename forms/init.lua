@@ -204,7 +204,11 @@ local ModelForm = Form:extend{
 		for k, v in pairs(model:getFieldsByName()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, k))
 			and (not self.Meta.exclude or not table.find(self.Meta.exclude, k)) then
-				self[k] = model[k]
+				if v:isKindOf(references.ManyToMany) or v:isKindOf(references.OneToMany) then
+					self[k] = model[k]:all():getValue()
+				else
+					self[k] = model[k]
+				end
 			end
 		end
 	end;

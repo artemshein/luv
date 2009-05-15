@@ -41,8 +41,6 @@ local ModelAdmin = Object:extend{
 		return self.form
 	end;
 	isTree = function (self) return self:getModel():isKindOf(models.Tree) end;
-	initModelByForm = function (self, model, form) form:initModel(model) return self end;
-	initFormByModel = function (self, form, model) form:initForm(model) return self end;
 }
 
 local ActionLog = models.Model:extend{
@@ -149,7 +147,7 @@ local AdminSite = Object:extend{
 							local record = model()
 							record.left = 1
 							record.right = 2
-							admin:initModelByForm(record, form)
+							form:initModel(record)
 							if record:save() then
 								ActionLog:logCreate(urlConf:getBaseUri(), user, admin, record)
 								msgsStack:okMsg(string.capitalize(model:getLabel()).." was created successfully!")
@@ -161,7 +159,7 @@ local AdminSite = Object:extend{
 						end
 					else
 						local record = model()
-						admin:initModelByForm(record, form)
+						form:initModel(record)
 						if record:save() then
 							ActionLog:logCreate(urlConf:getBaseUri(), user, admin, record)
 							msgsStack:okMsg(string.capitalize(model:getLabel()).." was created successfully!")
@@ -247,7 +245,7 @@ local AdminSite = Object:extend{
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted "create" and form:isValid() then
 					local child = model()
-					admin:initModelByForm(child, form)
+					form:initModel(child)
 					if record:addChild(child) then
 						ActionLog:logCreate(urlConf:getBaseUri(), user, admin, child)
 						msgsStack:okMsg(string.capitalize(model:getLabel()).." was created successfully!")
@@ -284,7 +282,7 @@ local AdminSite = Object:extend{
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted "save" then
 					if form:isValid() then
-						admin:initModelByForm(record, form)
+						form:initModel(record)
 						if record:save() then
 							ActionLog:logSave(urlConf:getBaseUri(), user, admin, record)
 							msgsStack:okMsg(string.capitalize(model:getLabel()).." was saved successfully!")
@@ -298,7 +296,7 @@ local AdminSite = Object:extend{
 					ActionLog:logDelete(urlConf:getBaseUri(), user, admin, record)
 					luv:setResponseHeader("Location", urlConf:getBaseUri().."/"..urlConf:getCapture(1)):sendHeaders()
 				else
-					admin:initFormByModel(form, record)
+					form:initForm(record)
 				end
 				luv:assign{
 					ipairs=ipairs;capitalize=string.capitalize;

@@ -378,7 +378,7 @@ local ModelMultipleSelect = Field:extend{
 		Field.init(self, params)
 	end;
 	setValue = function (self, value)
-		if "table" ~= type(value) or  value.isKindOf then
+		if "table" ~= type(value) or value.isKindOf then
 			value = {value}
 		end
 		local resValue = {}

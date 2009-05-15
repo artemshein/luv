@@ -176,8 +176,8 @@ local getModelsAdmins = function ()
 				smallIcon = {path="/images/icons/auth/community_users16.png";width=16;height=16};
 				bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
 				displayList = {"login";"name";"group"};
-				form = forms.Form:extend{
-					Meta = {fields={"id";"login";"password";"password2";"name";"group";"isActive"}};
+				form = forms.ModelForm:extend{
+					Meta = {model = User;fields={"id";"login";"password";"password2";"name";"group";"isActive"}};
 					id = User:getField "id":clone();
 					login = User:getField "login":clone();
 					name = User:getField "name":clone();
@@ -198,7 +198,7 @@ local getModelsAdmins = function ()
 						return true
 					end;
 				};
-				initModelByForm = function (self, model, form)
+				initModel = function (self, model, form)
 					model.id = form.id
 					model.login = form.login
 					model.name = form.name
