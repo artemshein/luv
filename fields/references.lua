@@ -1,7 +1,6 @@
-require "luv.string"
-require "luv.debug"
-local debug = debug
-local type, require, pairs, table, select, string, io = type, require, pairs, table, select, string, io
+local string = require "luv.string"
+local debug = require "luv.debug"
+local type, require, pairs, table, select, io = type, require, pairs, table, select, io
 local fields, Exception = require"luv.fields", require"luv.exceptions".Exception
 local widgets = require "luv.fields.widgets"
 
@@ -13,7 +12,7 @@ local Reference = fields.Field:extend{
 	__tag = .....".Reference",
 	init = function (self, params)
 		if self.parent.parent == fields.Field then
-			Exception"Instantiate of abstract class is not allowed!":throw()
+			Exception"Instantiate of abstract class is not allowed!"
 		end
 		local Model = require "luv.db.models".Model
 		if ("table" == type(params) and params.isObject and params:isKindOf(Model)) or "string" == type(params) then
@@ -24,12 +23,12 @@ local Reference = fields.Field:extend{
 	setParams = function (self, params)
 		if "table" == type(params)  then
 			self.toField = params.toField
-			if "table" ~= type(params.references) then Exception "References must be a Model!":throw() end
+			if "table" ~= type(params.references) then Exception "References must be a Model!" end
 			self.refModel = params.references
 			self.relatedName = params.relatedName
 			fields.Field.setParams(self, params)
 		else
-			self.refModel = params or Exception"References required!":throw()
+			self.refModel = params or Exception"References required!"
 		end
 	end,
 	getRelatedName = function (self) return self.relatedName end,
@@ -65,7 +64,7 @@ local ManyToMany = Reference:extend{
 				if "table" ~= type(v) or not v.isObject or not v:isKindOf(refModel) then
 					local obj = refModel:find(v)
 					if not obj then
-						Exception"Table of field references instances required!":throw()
+						Exception"Table of field references instances required!"
 					else
 						value[k] = obj
 					end
@@ -114,7 +113,7 @@ local ManyToMany = Reference:extend{
 		if self.value then
 			local container, refModel = self:getContainer(), self:getRefModel()
 			if not container:getPk():getValue() then
-				Exception"Primary key value must be set first!":throw()
+				Exception"Primary key value must be set first!"
 			end
 			if not table.isEmpty(self.value) then
 				local s, _, v = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
@@ -130,7 +129,7 @@ local ManyToMany = Reference:extend{
 		if self.value then
 			local container, refModel = self:getContainer(), self:getRefModel()
 			if not container:getPk():getValue() then
-				Exception"Primary key value must be set first!":throw()
+				Exception"Primary key value must be set first!"
 			end
 			container:getDb():Delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
 			if "table" == type(self.value) and not table.isEmpty(self.value) then
@@ -189,11 +188,11 @@ local ManyToOne = Reference:extend{
 	end,
 	setValue = function (self, value)
 		if type(value) == "table" and not value:isKindOf(self:getRefModel()) then
-			Exception("Instance of "..self.ref.." or nil required!"):throw()
+			Exception("Instance of "..self.ref.." or nil required!")
 		elseif value ~= nil and value ~= '' and type(value) ~= "table" and not self:getRefModel():getPk():isValid(value) then
 			debug.dprint(self)
 			debug.dprint(value)
-			Exception"Invalid field value!":throw()
+			Exception"Invalid field value!"
 		end
 		return Reference.setValue(self, value)
 	end,
@@ -216,7 +215,7 @@ local getKeysForObjects = function (self, ...)
 	for i = 1, select("#", ...) do
 		local obj = select(i, ...)
 		if type(obj) ~= "table" or not obj.isObject or not obj:isKindOf(self:getRefModel()) then
-			Exception("Instance of "..self:getRef().." required!"):throw()
+			Exception("Instance of "..self:getRef().." required!")
 		end
 		table.insert(objKeys, obj:getPk():getValue())
 	end
@@ -239,12 +238,12 @@ local OneToMany = Reference:extend{
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local refFieldName = refModel:getReferenceField(container, require(MODULE).ManyToOne)
 		if not refFieldName then
-			Exception"Backwards reference field not founded!":throw()
+			Exception"Backwards reference field not founded!"
 		end
 		local relationFieldName = refModel:getField(refFieldName):getToField() or container:getPkName()
 		local relationField = container:getField(relationFieldName)
 		if not relationField:getValue() then
-			Exception"Relation field value must be set!":throw()
+			Exception"Relation field value must be set!"
 		end
 		return require"luv.db.models".LazyQuerySet(refModel):filter{[refFieldName]=relationField:getValue()}
 	end,
@@ -267,12 +266,12 @@ local OneToMany = Reference:extend{
 		local refModel, model = self:getRefModel(), self:getContainer()
 		local toFieldName = refModel:getReferenceField(model, require(MODULE).ManyToOne)
 		if not toFieldName then
-			Exception"Backwards reference field not founded!":throw()
+			Exception"Backwards reference field not founded!"
 		end
 		local toFieldRelationFieldName = refModel:getField(toFieldName):getToField() or model:getPkName()
 		local toFieldRelationField = model:getField(toFieldRelationFieldName)
 		if not toFieldRelationField:getValue() then
-			Exception"Relation field value must be set!":throw()
+			Exception"Relation field value must be set!"
 		end
 		local container = self:getContainer()
 		local update, i = container:getDb():Update(self:getRefModel():getTableName())
@@ -284,7 +283,7 @@ local OneToMany = Reference:extend{
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local toFieldName = refModel:getReferenceField(require(MODULE).ManyToOne, container)
 		if refModel:getField(toFieldName):isRequired() then
-			Exception"Can't remove references with required property(you should delete it or set another value instead)!":throw()
+			Exception"Can't remove references with required property(you should delete it or set another value instead)!"
 		end
 		return self:all():update{[toFieldName] = nil}
 	end;

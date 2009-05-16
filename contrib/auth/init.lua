@@ -1,9 +1,11 @@
-require "luv.debug"
+local debug = require "luv.debug"
+local string = require 'luv.string'
 local tr = tr
-local io, type, require, math, tostring, string, debug = io, type, require, math, tostring, string, debug
+local io, type, require, math, tostring = io, type, require, math, tostring
 local ipairs = ipairs
 local models, fields, references, forms, managers, crypt, widgets = require "luv.db.models", require "luv.fields", require "luv.fields.references", require "luv.forms", require "luv.managers", require "luv.crypt", require "luv.fields.widgets"
 local widgets = require "luv.fields.widgets"
+local Exception = require 'luv.exceptions'.Exception
 
 module(...)
 
@@ -56,7 +58,7 @@ local User = models.Model:extend{
 	getSecretSalt = function (self) return self.secretSalt end,
 	setSecretSalt = function (self, secretSalt) self.secretSalt = secretSalt return self end,
 	encodePassword = function (self, password, method, salt)
-		if not password then Exception "Empty password is restricted!":throw() end
+		if not password then Exception "Empty password is restricted!" end
 		method = method or "sha1"
 		if not salt then
 			salt = tostring(crypt.hash(method, math.random(2000000000)))

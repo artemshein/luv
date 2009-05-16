@@ -1,7 +1,7 @@
-require "luv.debug"
+local debug = require "luv.debug"
 local io, string, loadstring, dump, setfenv, type, pairs, table = io, string, loadstring, dump, setfenv, type, pairs, table
 local Templater, fs, Exception = require"luv.templaters".Api, require"luv.fs", require"luv.exceptions".Exception
-local tostring, debug = tostring, debug
+local tostring = tostring
 local File = fs.File
 
 module(...)
@@ -54,7 +54,7 @@ return Templater:extend{
 		res = "local s = [===["..string.gsub(res, "%%}", "\ns = s..[===[").."]===]\nreturn s"
 		local func, err = loadstring(res)
 		if not func then
-			Exception(err):throw()
+			Exception(err)
 		end
 		setfenv(func, self.internal)
 		return func()
@@ -83,7 +83,7 @@ return Templater:extend{
 				return contents
 			end
 		end
-		Exception("Template "..template.." not found!"):throw()
+		Exception("Template "..template.." not found!")
 	end;
 	fetch = function (self, template)
 		return self:compileString(self:getTemplateContents(template))

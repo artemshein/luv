@@ -1,9 +1,10 @@
-require "luv.debug"
-local debug, error = debug, error
-local require, try = require, try
+local debug = require "luv.debug"
+local error = error
+local require = require
 local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
-local Exception = require "luv.exceptions".Exception
+local exceptions = require "luv.exceptions"
+local Exception, try = exceptions.Exception, exceptions.try
 
 module(...)
 
@@ -13,7 +14,7 @@ local Field = Object:extend{
 	__tag = .....".Field",
 	init = function (self, params)
 		if self.parent.parent == Object then
-			Exception"Can not instantiate abstract class!":throw()
+			Exception"Can not instantiate abstract class!"
 		end
 		self.validators = {}
 		self.errors = {}
@@ -349,7 +350,7 @@ local ModelSelect = Field:extend{
 	__tag = .....".ModelSelect";
 	init = function (self, params)
 		if not params then
-			Exception"Values required!":throw()
+			Exception"Values required!"
 		end
 		if not params.choices then
 			params = {choices=params}
@@ -369,7 +370,7 @@ local ModelMultipleSelect = Field:extend{
 	__tag = .....".ModelMultipleSelect";
 	init = function (self, params)
 		if not params then
-			Exception"Choices required!":throw()
+			Exception"Choices required!"
 		end
 		if not params.choices then
 			params = {choices=params}
@@ -399,7 +400,7 @@ local NestedSetSelect = Field:extend{
 	__tag = .....".NestedSetSelect";
 	init = function (self, params)
 		if not params then
-			Exception"Values required!":throw()
+			Exception"Values required!"
 		end
 		if not params.choices then
 			params = {choices=params}

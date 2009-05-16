@@ -1,7 +1,6 @@
-require "luv.debug"
-require "luv.string"
-local os, table, pairs, ipairs, io, debug, tostring, type = os, table, pairs, ipairs, io, debug, tostring, type
-local string = string
+local debug = require "luv.debug"
+local string = require "luv.string"
+local os, table, pairs, ipairs, io, tostring, type = os, table, pairs, ipairs, io, tostring, type
 local Object = require "luv.oop".Object
 local json = require "luv.utils.json"
 local html = require "luv.utils.html"

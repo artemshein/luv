@@ -1,5 +1,5 @@
-require "luv.string"
-local io, os, string = io, os, string
+local string = require "luv.string"
+local io, os = io, os
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
 
 module(...)
@@ -16,7 +16,7 @@ local File = Object:extend{
 	openForReading = function (self)
 		file, err = io.open(self.filename)
 		if not file then
-			Exception(err):throw()
+			Exception(err)
 		end
 		self.handle = file
 		self.mode = "read"
@@ -25,7 +25,7 @@ local File = Object:extend{
 	openForWriting = function (self)
 		file, err = io.open(self.filename, "w")
 		if not file then
-			Exception(err):throw()
+			Exception(err)
 		end
 		self.handle = file
 		self.mode = "write"
@@ -44,13 +44,13 @@ local File = Object:extend{
 	end,
 	read = function (self, ...)
 		if not self.handle then
-			Exception"File must be opened first!":throw()
+			Exception"File must be opened first!"
 		end
 		return self.handle:read(...)
 	end,
 	write = function (self, ...)
 		if (not self.handle) or self.mode ~= "write" then
-			Exception"File must be opened in write mode!":throw()
+			Exception"File must be opened in write mode!"
 		end
 		self.handle:write(...)
 		return self
@@ -89,7 +89,7 @@ local Dir = Object:extend{
 local Path = Object:extend{
 	__tag = .....".Path";
 	init = function (self, path) self.path = path end;
-	exists = function (self) Exception "not implemented!":throw() end;
+	exists = function (self) Exception "not implemented!" end;
 	__div = function (self, path)
 		if string.endsWith(self.path, "/")
 		or string.endsWith(self.path, "\\") then

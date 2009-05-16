@@ -1,7 +1,7 @@
-require "luv.table"
-require "luv.debug"
-local math, tostring, debug = math, tostring, debug
-local require, rawset, type, pairs, ipairs, table, io = require, rawset, type, pairs, ipairs, table, io
+local table = require "luv.table"
+local debug = require "luv.debug"
+local math, tostring = math, tostring
+local require, rawset, type, pairs, ipairs, io = require, rawset, type, pairs, ipairs, io
 local luv, fields, exceptions, models = require"luv", require"luv.fields", require"luv.exceptions", require"luv.db.models"
 local references = require "luv.fields.references"
 local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
@@ -32,7 +32,7 @@ local Form = Struct:extend{
 	init = function (self, values)
 		Struct.init(self, values)
 		if not self.fields then
-			Exception"Abstract Form can't be created!":throw()
+			Exception"Abstract Form can't be created!"
 		end
 		self.Meta = self.Meta or {}
 		if not self.Meta.widget then
@@ -168,10 +168,10 @@ local ModelForm = Form:extend{
 	extend = function (self, new)
 		new = Form.extend(self, new)
 		if not new.Meta then
-			Exception"Meta must be defined!":throw()
+			Exception"Meta must be defined!"
 		end
 		if not new.Meta.model or not new.Meta.model.isObject or not new.Meta.model:isKindOf(Model) then
-			Exception"Meta.model must be defined!":throw()
+			Exception"Meta.model must be defined!"
 		end
 		local k, v
 		for k, v in pairs(new.Meta.model:getFieldsByName()) do
@@ -188,7 +188,7 @@ local ModelForm = Form:extend{
 	getPkName = function (self) return self:getModel():getPkName() end;
 	initModel = function (self, model)
 		if not model:isKindOf(self:getModel()) then
-			Exception 'Instance of Meta.model expected':throw()
+			Exception 'Instance of Meta.model expected'
 		end
 		for k, v in pairs(model:getFieldsByName()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, k))
@@ -199,7 +199,7 @@ local ModelForm = Form:extend{
 	end;
 	initForm = function (self, model)
 		if not model:isKindOf(self:getModel()) then
-			Exception 'Instance of Meta.model expected':throw()
+			Exception 'Instance of Meta.model expected'
 		end
 		for k, v in pairs(model:getFieldsByName()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, k))

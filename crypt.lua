@@ -45,6 +45,6 @@ return {
 		elseif method == "sha1" then
 			return Sha1(data)
 		end
-		Exception "Unsupported hashing algorithm!":throw()
+		Exception "Unsupported hashing algorithm!"
 	end
 }

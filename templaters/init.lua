@@ -1,5 +1,5 @@
-require "luv.string"
-local type, string, table, pairs = type, string, table, pairs
+local string = require "luv.string"
+local type, table, pairs = type, table, pairs
 local Object = require"luv.oop".Object
 
 module(...)

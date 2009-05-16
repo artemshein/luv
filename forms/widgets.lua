@@ -1,7 +1,7 @@
-require "luv.string"
-require "luv.debug"
+local string = require "luv.string"
+local debug = require "luv.debug"
 local tr = tr
-local ipairs, io, string, debug = ipairs, io, string, debug
+local ipairs, io = ipairs, io
 local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
 local references = require "luv.fields.references"
 local forms, fields, html = require "luv.forms", require "luv.fields", require "luv.utils.html"

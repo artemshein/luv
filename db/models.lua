@@ -1,8 +1,8 @@
-require "luv.table"
-require "luv.string"
-require "luv.debug"
+local table = require "luv.table"
+local string = require "luv.string"
+local debug = require "luv.debug"
 local os = os
-local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, table, string, debug, tonumber
+local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
 local cache = require "luv.cache.frontend"
@@ -39,7 +39,7 @@ local ModelSqlSlot = cache.Slot:extend{
 	__tag = .....".ModelSqlSlot";
 	init = function (self, backend, model, sql)
 		if not backend or not model or not sql then
-			Exception "3 parameters expected!":throw()
+			Exception "3 parameters expected!"
 		end
 		self.sql = sql
 		cache.Slot.init(self, backend, tostring(crypt.Md5(tostring(sql))))
@@ -57,7 +57,7 @@ local Model = Struct:extend{
 	createBackLinksFieldsFrom = function (self, model)
 		local _, v
 		for _, v in ipairs(model:getReferenceFields(self)) do
-			if not self:getField(v:getRelatedName() or Exception("relatedName required for "..v:getName().." field"):throw()) then
+			if not self:getField(v:getRelatedName() or Exception("relatedName required for "..v:getName().." field")) then
 				self:addField(v:getRelatedName(), v:createBackLink())
 			end
 		end
@@ -77,11 +77,11 @@ local Model = Struct:extend{
 						if v:isKindOf(references.OneToMany) then
 							v:setRelatedName(k)
 						elseif v:isKindOf(references.ManyToOne) then
-							Exception"Use OneToMany field on related model instead of ManyToOne or set relatedName!":throw()
+							Exception"Use OneToMany field on related model instead of ManyToOne or set relatedName!"
 						elseif v:isKindOf(references.ManyToMany) then
-							v:setRelatedName(new:getLabelMany() or Exception"LabelMany required!":throw())
+							v:setRelatedName(new:getLabelMany() or Exception"LabelMany required!")
 						else
-							v:setRelatedName(new:getLabel() or Exception"Label required!":throw())
+							v:setRelatedName(new:getLabel() or Exception"Label required!")
 						end
 					end
 					v:getRefModel():addField(v:getRelatedName(), v:createBackLink())
@@ -105,7 +105,7 @@ local Model = Struct:extend{
 	init = function (self, values)
 		Struct.init(self, values)
 		if not self.fields then
-			Exception"Abstract model can't be created (extend it first)!":throw()
+			Exception"Abstract model can't be created (extend it first)!"
 		end
 		local k, v, fields, fieldsByName = nil, nil, {}, {}
 		for k, v in pairs(self:getFieldsByName()) do
@@ -188,7 +188,7 @@ local Model = Struct:extend{
 		elseif field:isKindOf(references.ManyToOne) or field:isKindOf(references.OneToOne) then
 			return "?n"
 		else
-			Exception"Unsupported field type!":throw()
+			Exception"Unsupported field type!"
 		end
 	end,
 	find = function (self, what)
@@ -228,7 +228,7 @@ local Model = Struct:extend{
 	insert = function (self)
 		if not self:isValid() then
 			local errors = self:getErrors()
-			Exception("Validation error! "..debug.dump(errors)):throw()
+			Exception("Validation error! "..debug.dump(errors))
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
 		for _, v in ipairs(self:getFields()) do
@@ -271,7 +271,7 @@ local Model = Struct:extend{
 	end,
 	update = function (self)
 		if not self:isValid() then
-			Exception("Validation error! "..debug.dump(self:getErrors())):throw()
+			Exception("Validation error! "..debug.dump(self:getErrors()))
 		end
 		local updateRow = self:getDb():UpdateRow(self:getTableName())
 		local pk, _, v = self:getPk()
@@ -337,7 +337,7 @@ local Model = Struct:extend{
 		if self.tableName then
 			return self.tableName
 		else
-			Exception"Table name required!":throw()
+			Exception"Table name required!"
 		end
 	end,
 	setTableName = function (self, tableName) self.tableName = tableName return self end,
@@ -366,7 +366,7 @@ local Model = Struct:extend{
 		elseif field:isKindOf(references.ManyToOne) or field:isKindOf(references.OneToOne) then
 			return self:getFieldTypeSql(field:getRefModel():getField(field:getToField() or field:getRefModel():getPkName()))
 		else
-			Exception"Unsupported field type!":throw()
+			Exception"Unsupported field type!"
 		end
 	end,
 	createTable = function (self)
@@ -478,7 +478,7 @@ local NestedSet = Tree:extend{
 		return true
 	end;
 	addChild = function (self, child)
-		if not child:isKindOf(self.parent) then Exception "not valid child class":throw() end
+		if not child:isKindOf(self.parent) then Exception "not valid child class" end
 		child.level = self.level+1
 		child.left = self.left+1
 		child.right = self.left+2
@@ -650,7 +650,7 @@ local LazyQuerySet = Object:extend{
 				name = self.model:getPkName()
 			end
 			if not self.model:getField(name) then
-				Exception("Field "..name.." not found!"):throw()
+				Exception("Field "..name.." not found!")
 			end
 			local expr, values
 			if "table" == type(v) and v.isKindOf and v:isKindOf(F) then
@@ -670,7 +670,7 @@ local LazyQuerySet = Object:extend{
 			elseif op == "endswith" then values[2] = "%"..values[2] expr = "?# LIKE ?"
 			elseif op == "contains" then values[2] = "%"..values[2].."%" expr = "?# LIKE ?"
 			else
-				Exception("Operation "..op.." not supported!"):throw()
+				Exception("Operation "..op.." not supported!")
 			end
 			table.insert(filTbl, self.db:processPlaceholders(expr, unpack(values)))
 		end

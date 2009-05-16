@@ -26,7 +26,7 @@ local Tag = Object:extend{
 local slotThruCall = function (self, ...)
 	local res = self.slot:get()
 	if not rawget(self, "method") then
-		Exception "Index first!":throw()
+		Exception "Index first!"
 	end
 	if not res then
 		if self.obj then
@@ -46,7 +46,7 @@ local slotThruIndex = function (self, field)
 	if not rawget(self, "method") then
 		self.method = field
 	else
-		Exception("Can't index twice! "..field):throw()
+		Exception("Can't index twice! "..field)
 	end
 	return self
 end
@@ -55,7 +55,7 @@ local SlotThru = Object:extend{
 	__tag = .....".SlotThru";
 	init = function (self, slot, obj)
 		if not slot or not obj then
-			Exception "Slot and obj expected!":throw()
+			Exception "Slot and obj expected!"
 		end
 		self.slot = slot
 		self.obj = obj
@@ -83,7 +83,7 @@ local Slot = Object:extend{
 	delete = function (self) self.backend:delete(self.id) end;
 	addTag = function (self, tag)
 		if tag:getBackend() ~= self.backend then
-			Exception"Backends for tag and slot must be the same":throw()
+			Exception"Backends for tag and slot must be the same"
 		end
 		table.insert(self.tags, tag)
 	end;

@@ -1,7 +1,7 @@
-require"luv.table"
-require"luv.string"
-require"luv.debug"
-local pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, string, table, debug, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
+local table = require"luv.table"
+local string = require"luv.string"
+local debug = require"luv.debug"
+local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
 local _G, error = _G, error
 local oop, exceptions, utils, sessions, fs, ws, sessions = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
@@ -98,7 +98,7 @@ local UrlConf = Object:extend{
 		elseif type(action) == "table" then
 			return self:dispatch(action)
 		else
-			Exception "Invalid action!":throw()
+			Exception "Invalid action!"
 		end
 	end,
 	dispatch = function (self, urls)
@@ -141,7 +141,7 @@ local Profiler = Object:extend{
 		statSection.begin = os.clock()
 	end;
 	endSection = function (self, section)
-		local statSection = self.stat[section] or Exception "Begin profiling first!":throw()
+		local statSection = self.stat[section] or Exception "Begin profiling first!"
 		statSection.total = (statSection.total or 0) + (os.clock()-statSection.begin)
 		statSection.count = (statSection.count or 0) + 1
 	end;
@@ -382,7 +382,7 @@ local Struct = Object:extend{
 	end;
 	addField = function (self, name, field)
 		if not field:isKindOf(require "luv.fields".Field) then
-			Exception "instance of Field expected!":throw()
+			Exception "instance of Field expected!"
 		end
 		field:setContainer(self)
 		field:setName(name)

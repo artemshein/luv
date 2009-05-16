@@ -1,5 +1,5 @@
-require"luv.string"
-local string, type, tostring = string, type, tostring
+local string = require"luv.string"
+local type, tostring = type, tostring
 
 module(...)
 

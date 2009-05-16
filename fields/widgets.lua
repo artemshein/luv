@@ -1,8 +1,9 @@
-require "luv.string"
-require "luv.table"
-local tostring, debug, io, type = tostring, debug, io, type
+local string = require "luv.string"
+local table = require "luv.table"
+local debug = require 'luv.debug'
+local tostring, io, type = tostring, io, type
 local os = os
-local string, table, pairs, ipairs = string, table, pairs, ipairs
+local pairs, ipairs = pairs, ipairs
 local Widget, html = require"luv".Widget, require"luv.utils.html"
 local json = require "luv.utils.json"
 

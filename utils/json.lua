@@ -1,6 +1,6 @@
-require "luv.string"
-require "luv.table"
-local type, pairs, table, string, tostring = type, pairs, table, string, tostring
+local string = require "luv.string"
+local table = require "luv.table"
+local type, pairs, tostring = type, pairs, tostring
 
 module(...)
 

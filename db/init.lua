@@ -1,8 +1,9 @@
-require"luv.table"
-require"luv.string"
+local table = require"luv.table"
+local string = require"luv.string"
 local debug = require"luv.debug"
-local string, require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select, table = string, require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select, table
-local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
+local require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select = require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select
+local exceptions = require 'luv.exceptions'
+local Object, Exception, try = require"luv.oop".Object, exceptions.Exception, exceptions.try
 
 module(...)
 

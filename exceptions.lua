@@ -1,4 +1,4 @@
-local debug, type, error, pcall, _G = debug, type, error, pcall, _G
+local debug, type, error, pcall = debug, type, error, pcall
 local Object = require"luv.oop".Object
 
 module(...)
@@ -38,23 +38,29 @@ local ExceptionResult = Object:extend{
 				error(self.exception)
 			end
 		end
-	end
+	end;
+	finally = function (self, func)
+		func(self.exception)
+		return self
+	end;
 }
 
-_G.try = function (...)
+local function try (...)
 	return ExceptionResult(pcall(...))
 end
 
 local Exception = Object:extend{
 	__tag = .....".Exception",
-	init = function (self, message)
+	init = function (self, message, nothrow)
 		self.message = message
-		self.trace = debug.traceback("", 3)
+		self.trace = debug.traceback('', 3)
+		if not nothrow then self:throw() end
 	end,
 	throw = function (self) error(self) end,
-	__tostring = function (self) return self.message.." "..self.trace end
+	__tostring = function (self) return self.message..' '..self.trace end
 }
 
 return {
-	Exception = Exception
+	Exception = Exception;
+	try = try;
 }

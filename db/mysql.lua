@@ -1,7 +1,7 @@
-require"luv.string"
-require"luv.table"
-require"luv.debug"
-local debug, string, table, io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next = debug, string, table, io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next
+local string = require"luv.string"
+local table = require"luv.table"
+local debug = require"luv.debug"
+local io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next = io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next
 local Driver, LuaSql = require"luv.db".Driver, require"luasql.mysql"
 
 module(...)
@@ -136,7 +136,7 @@ local MysqlDriver = Driver:extend{
 		local mysql = LuaSql.mysql()
 		self.connection, error = mysql:connect(database, login, pass, host, port)
 		if not self.connection then
-			Driver.Exception("Could not connect to "..login.."@"..host.." (using password: "..(pass and "yes" or "no").."): "..error):throw()
+			Driver.Exception("Could not connect to "..login.."@"..host.." (using password: "..(pass and "yes" or "no").."): "..error)
 		end
 	end,
 	getLastInsertId = function (self)
@@ -160,7 +160,7 @@ local MysqlDriver = Driver:extend{
 			else
 				num = tonumber(value)
 			end
-			if not num then Driver.Exception"Not a valid number given!":throw() end
+			if not num then Driver.Exception"Not a valid number given!" end
 			return tostring(num)
 		elseif placeholder == "?#" then
 			if type(value) == "table" then
@@ -208,7 +208,7 @@ local MysqlDriver = Driver:extend{
 				elseif type(v) == "string" then
 					res = res..self:processPlaceholder("?", v)
 				else
-					Driver.Exception"Invalid value type!":throw()
+					Driver.Exception"Invalid value type!"
 				end
 			end
 			return res
@@ -222,12 +222,12 @@ local MysqlDriver = Driver:extend{
 				elseif type(v) == "string" then
 					res = res.."="..self:processPlaceholder("?", v)
 				else
-					Driver.Exception"Invalid value type!":throw()
+					Driver.Exception"Invalid value type!"
 				end
 			end
 			return res
 		end
-		Driver.Exception("Invalid placeholder \""..placeholder.."\"!"):throw()
+		Driver.Exception("Invalid placeholder \""..placeholder.."\"!")
 	end,
 	constructFields = function (self, fields)
 		local k, v, res = nil, nil, {}
@@ -337,7 +337,7 @@ local MysqlDriver = Driver:extend{
 				elseif type(options.default) == "number" then
 					fld = fld..self:processPlaceholder("?d", options.default)
 				else
-					Driver.Exception("Unsupported default option type \""..type(options.default).."\"!"):throw()
+					Driver.Exception("Unsupported default option type \""..type(options.default).."\"!")
 				end
 			end
 			table.insert(res, fld)
@@ -384,7 +384,7 @@ local MysqlDriver = Driver:extend{
 			elseif k == "engine" then
 				table.insert(res, "ENGINE = "..v)
 			else
-				Exception("Unsupported option "..k.."!"):throw()
+				Exception("Unsupported option "..k.."!")
 			end
 		end
 		return " "..table.join(res, " ")

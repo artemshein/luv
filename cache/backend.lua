@@ -8,7 +8,8 @@ local socket = require "socket"
 local select = select
 local json = require "luv.utils.json"
 local serialize, unserialize = string.serialize, string.unserialize
-local Exception = require "luv.exceptions".Exception
+local exceptions = require "luv.exceptions"
+local Exception, try = exceptions.Exception, exceptions.try
 local crypt = require "luv.crypt"
 local mime = require "mime"
 
@@ -42,7 +43,7 @@ local Memory = Backend:extend{
 		return unserialize(data)
 	end;
 	set = function (self, id, data, tags)
-		if tags then Exception"Tags unsupported!":throw(); end
+		if tags then Exception"Tags unsupported!" end
 		self.logger("set "..id)
 		self.storage[id] = serialize(data)
 	end;
@@ -201,14 +202,14 @@ local Memcached = Backend:extend{
 		self.socket = socket.tcp()
 		self.socket:connect(options.servers[1].host, options.servers[1].port)
 		if not self.socket then
-			Exception("Couldn't connect to "..options.servers[1].host.." on "..options.servers[1].port):throw()
+			Exception("Couldn't connect to "..options.servers[1].host.." on "..options.servers[1].port)
 		end
 	end;
 	get = function (self, ...)
 		local keysCount = select("#", ...)
 		local keys
 		if keysCount < 1 then
-			Exception "One or more keys expected!":throw()
+			Exception "One or more keys expected!"
 		end
 		if keysCount == 1 then
 			keys = select(1, ...)
@@ -216,19 +217,19 @@ local Memcached = Backend:extend{
 			keys = table.join({...}, " ")
 		end
 		if not self.socket:send("get "..keys.."\r\n") then
-			Exception "Send failed":throw()
+			Exception "Send failed"
 		end
 		local result = {}
 		for i = 1, keysCount do
 			local answer = self.socket:receive "*l" -- Optimize me? "*a"
 			if "END" == answer then break end
 			if not string.beginsWith(answer, "VALUE") then
-				Exception("Not a valid answer "..answer):throw()
+				Exception("Not a valid answer "..answer)
 			end
 			local _, key, options, size = string.split(answer, " ")
 			answer = self.socket:receive(tonumber(size))
 			if not answer then
-				Exception "Receive failed":throw()
+				Exception "Receive failed"
 			end
 			result[select(i, ...)] = unserialize(mime.unb64(answer))
 			if i == keysCount then
@@ -244,18 +245,18 @@ local Memcached = Backend:extend{
 	set = function (self, id, data, tags, specificLifetime)
 		-- TODO compression flag
 		if "table" == type(tags) and not table.isEmpty(tags) then
-			Exception "Tags unsupported. Use TagEmuWrapper instead.":throw()
+			Exception "Tags unsupported. Use TagEmuWrapper instead."
 		end
 		local serialized = (mime.b64(serialize(data)))
 		if not self.socket:send("set "..id.." 0 "..tostring(specificLifetime or self.defaultLifetime).." "..tostring(string.len(serialized)).."\r\n"..serialized.."\r\n") then
-			Exception "Send failed":throw()
+			Exception "Send failed"
 		end
 		local res = self.socket:receive"*l"
 		return res == "STORED\r\n"
 	end;
 	delete = function (self, id)
 		if not self.socket:send("delete "..id.."\r\n") then
-			Exception"Send failed":throw()
+			Exception"Send failed"
 		end
 		local res = self.socket:receive"*l"
 		self.logger("delete "..id)
@@ -263,12 +264,12 @@ local Memcached = Backend:extend{
 	end;
 	clear = function (self)
 		if not self.socket:send "flush_all\r\n" then
-			Exception"Send failed":throw()
+			Exception"Send failed"
 		end
 		self.logger("clear")
 		return self.socket:receive "*l" == "OK\r\n"
 	end;
-	clearTags = function () Exception"Tags unsupported. Use TagEmuWrapper instead.":throw() end;
+	clearTags = function () Exception"Tags unsupported. Use TagEmuWrapper instead." end;
 	getDefaultLifetime = function (self) return self.defaultLifetime end;
 	setDefaultLifetime = function (self, defaultLifetime)
 		self.defaultLifetime = defaultLifetime

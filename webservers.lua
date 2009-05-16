@@ -85,7 +85,7 @@ local Cgi = Api:extend{
 	end,
 	setResponseHeader = function (self, header, value)
 		if self.headersAlreadySent then
-			Exception "Can't change response headers. Headers already sent!":throw()
+			Exception "Can't change response headers. Headers already sent!"
 		end
 		self.responseHeaders[header] = value
 		return self
@@ -136,7 +136,7 @@ local Cgi = Api:extend{
 				end
 			end
 		else
-			Exception ("Not implemented for Content-type: "..self:getRequestHeader "CONTENT_TYPE".."!"):throw()
+			Exception ("Not implemented for Content-type: "..self:getRequestHeader "CONTENT_TYPE".."!")
 		end
 	end,
 	-- Cookies
@@ -164,7 +164,7 @@ local Cgi = Api:extend{
 	end,
 	setCookie = function (self, name, value, expires, domain, path)
 		if not name then
-			Exception "Name required!":throw()
+			Exception "Name required!"
 		end
 		local cookie = name.."="
 		self.cookies[name] = value
@@ -207,12 +207,12 @@ local Scgi = Object:extend{
 		local ch = client:receive(1)
 		local request = ""
 		while ch ~= ":" do
-			if not ch then Exception"Invalid SCGI request!":throw() end
+			if not ch then Exception"Invalid SCGI request!" end
 			request = request..ch
 			ch = client:receive(1)
 		end
 		local len = tonumber(request)
-		if not len then Exception"Invalid SCGI request!":throw() end
+		if not len then Exception"Invalid SCGI request!" end
 		request = request..ch..client:receive(len+1)
 		io.write = function (...)
 			if not self.headersAlreadySent then self:sendHeaders() end
@@ -274,17 +274,17 @@ local SocketAppServer = Object:extend{
 		self.wsApi = wsApi
 		self.host, self.port = host, port
 		if not self.host then
-			Exception"Invalid host!":throw()
+			Exception"Invalid host!"
 		end
 		if not self.port then
-			Exception"Invalid port number!":throw()
+			Exception"Invalid port number!"
 		end
 		self.server = Socket.tcp()
 		if not self.server:bind(self.host, self.port) then
-			Exception("Can't bind "..self.host..":"..self.port.." to server!"):throw()
+			Exception("Can't bind "..self.host..":"..self.port.." to server!")
 		end
 		if not self.server:listen(10) then
-			Exception"Can't listen!":throw()
+			Exception"Can't listen!"
 		end
 	end,
 	run = function (self, application)
@@ -292,7 +292,7 @@ local SocketAppServer = Object:extend{
 		while true do
 			client = self.server:accept()
 			if not client then
-				Exception"Can't accept connection!":throw()
+				Exception"Can't accept connection!"
 			end
 			local co = coroutine.create(setfenv(function ()
 				local wsApi = self.wsApi(client)

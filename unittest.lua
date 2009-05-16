@@ -1,26 +1,26 @@
-require"luv.string"
-require"luv.table"
-local pairs, io, require, os, type, unpack, string, table, tostring = pairs, io, require, os, type, unpack, string, table, tostring
-local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
-local try = try
+local string = require"luv.string"
+local table = require"luv.table"
+local pairs, io, require, os, type, unpack, tostring = pairs, io, require, os, type, unpack, tostring
+local exceptions = require 'luv.exceptions'
+local Object, Exception, try = require"luv.oop".Object, exceptions.Exception, exceptions.try
 
 module(...)
 
 local TestCase = Object:extend{
 	__tag = .....".TestCase",
 	Exception = Exception:extend{__tag = .....".Exception"},
-	assertTrue = function (test) if not test then Exception"assertTrue failed":throw() end end,
-	assertFalse = function (test) if test then Exception"assertFalse failed":throw() end end,
-	assertEquals = function (first, second) if first ~= second then Exception"assertEquals failed":throw() end end,
-	assertNotEquals = function (first, second) if first == second then Exception"assertNotEquals failed":throw() end end,
-	assertNil = function (val) if val ~= nil then Exception"assertNil failed":throw() end end,
-	assertNotNil = function (val) if val == nil then Exception"assertNotNil failed":throw() end end,
+	assertTrue = function (test) if not test then Exception"assertTrue failed" end end,
+	assertFalse = function (test) if test then Exception"assertFalse failed" end end,
+	assertEquals = function (first, second) if first ~= second then Exception"assertEquals failed" end end,
+	assertNotEquals = function (first, second) if first == second then Exception"assertNotEquals failed" end end,
+	assertNil = function (val) if val ~= nil then Exception"assertNil failed" end end,
+	assertNotNil = function (val) if val == nil then Exception"assertNotNil failed" end end,
 	assertThrows = function (func, ...)
 		local args = {...}
 		try(function()
 			func(unpack(args))
 		end):elseDo(function()
-			Exception"assertThrows failed":throw()
+			Exception"assertThrows failed"
 		end)
 	end,
 	assertNotThrows = function (func, ...)
@@ -46,7 +46,7 @@ local TestCase = Object:extend{
 				stat.total = stat.total+1
 				table.insert(stat.methods, key)
 				io.write(key, ", ")
-				try(runTest, self, self[key]):catch(Exception, errorHandler):throw()
+				try(runTest, self, self[key]):catch(Exception, errorHandler)
 			end
 		end
 		if stat.total ~= 0 then
@@ -69,7 +69,7 @@ local TestSuite = Object:extend{
 	run = function (self)
 		local testModule
 		if not self.tests then
-			Exception"No tests are defined!":throw()
+			Exception"No tests are defined!"
 		end
 		local total, failed, time = 0, 0, os.clock()
 		local runTest = function (test)

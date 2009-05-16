@@ -1,5 +1,5 @@
-require"luv.table"
-local debug, table, type, rawget, io, tostring, pairs, getmetatable = debug, table, type, rawget, io, tostring, pairs, getmetatable
+local table = require"luv.table"
+local debug, type, rawget, io, tostring, pairs, getmetatable = debug, type, rawget, io, tostring, pairs, getmetatable
 
 module(...)
 
