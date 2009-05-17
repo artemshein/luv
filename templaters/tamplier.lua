@@ -66,19 +66,18 @@ return Templater:extend{
 		io.write(self:fetchString(str))
 	end,
 	getTemplateContents = function (self, template)
-		local _, v
-		if "table" ~= type(self.templatesDirs) or table.isEmpty(self.templatesDirs) then
+		if 'table' ~= type(self.templatesDirs) or table.isEmpty(self.templatesDirs) then
 			local tpl = File(template)
 			if tpl:isExists() then
-				local contents = tpl:openForReading():read("*a")
+				local contents = tpl:openForReading():read '*a'
 				tpl:close()
 				return contents
 			end
 		end
 		for _, v in pairs(self.templatesDirs) do
-			local tpl = File(v..template)
+			local tpl = File(v / template)
 			if tpl:isExists() then
-				local contents = tpl:openForReading():read("*a")
+				local contents = tpl:openForReading():read '*a'
 				tpl:close()
 				return contents
 			end

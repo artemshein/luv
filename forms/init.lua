@@ -80,7 +80,7 @@ local Form = Struct:extend{
 	isSubmitted = function (self, value)
 		local _, v
 		for _, v in ipairs(self:getFields()) do
-			if v:isKindOf(fields.Image) and v:getValue() then
+			if v:isKindOf(fields.ImageButton) and v:getValue() then
 				return v:getValue()
 			elseif v:isKindOf(fields.Submit) then
 				local fVal = v:getValue()
@@ -153,7 +153,7 @@ local Form = Struct:extend{
 	end;
 	setValues = function (self, values)
 		for k, v in pairs(self:getFieldsByName()) do
-			if v:isKindOf(fields.Image) then
+			if v:isKindOf(fields.ImageButton) then
 				v:setValue{x=values[k..".x"];y=values[k..".y"]}
 			else
 				v:setValue(values[k])

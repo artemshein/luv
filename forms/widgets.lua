@@ -16,12 +16,19 @@ end
 local Form = Widget:extend{
 	__tag = .....".FormWidget",
 	renderFormHeader = function (self, form)
-		local id, action, method = "", "", [[ method="POST"]]
-		if form:getId() then
-			id = [[ id="]]..form:getId()..[["]]
+		local fileUploadFlag
+		for _, f in ipairs(form:getFields()) do
+			if f:getWidget():isKindOf(widgets.FileInput) then
+				fileUploadFlag = true
+			end
 		end
-		action = [[ action="]]..(form:getAction() or "")..[["]]
-		return "<form"..id..action..method..">"
+		return
+			'<form'
+			..(form:getId() and (' id='..string.format('%q', form:getId())) or '')
+			..' action='..string.format('%q', form:getAction() or '')
+			..' method="POST"'
+			..(fileUploadFlag and ' enctype="multipart/form-data"' or '')
+			..'>'
 	end,
 	renderLabel = function (self, form, field)
 		if not field:getLabel() then

@@ -1,8 +1,8 @@
 local debug = require "luv.debug"
 local string = require 'luv.string'
-local tr = tr
 local io, type, require, math, tostring = io, type, require, math, tostring
 local ipairs = ipairs
+local tr = tr
 local models, fields, references, forms, managers, crypt, widgets = require "luv.db.models", require "luv.fields", require "luv.fields.references", require "luv.forms", require "luv.managers", require "luv.crypt", require "luv.fields.widgets"
 local widgets = require "luv.fields.widgets"
 local Exception = require 'luv.exceptions'.Exception
@@ -145,7 +145,7 @@ local LoginForm = forms.Form:extend{
 	Meta = {fields={"login";"password";"authorise"}};
 	login = User:getField "login",
 	password = fields.Text{label="password";maxLength=32;minLength=6;widget=widgets.PasswordInput;required=true};
-	authorise = fields.Submit{defaultValue=string.capitalize(tr "log in")}
+	authorise = fields.Submit{defaultValue=string.capitalize(tr 'log in')}
 }
 
 local modelsAdmins

@@ -12,6 +12,8 @@ local Slot = require "luv.cache.frontend".Slot
 
 module(...)
 
+local MODULE = (...)
+
 local function constructTablesList (models)
 	local references = require "luv.fields.references"
 	local tables = {}
@@ -172,19 +174,13 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core",
-	version = Version(0, 7, 0, "alpha"),
+	version = Version(0, 8, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
 		self:setProfiler(Profiler())
 		self:beginProfiling("Luv")
-		-- Init random seed
-		local seed, i, str = os.time(), nil, tostring(tostring(self))
-		for i = 1, string.len(str) do
-			seed = seed + string.byte(str, i)
-		end
-		math.randomseed(seed)
 		--
-		self.wsApi = (wsApi or ws.Cgi()):setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
+		self.wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
 		self.urlconf = UrlConf(self.wsApi)
 		self:setCacher(TagEmuWrapper(Memory()))
 	end,
@@ -421,7 +417,7 @@ local Widget = Object:extend{
 }
 
 local init = function (params)
-	local core = Core(params.wsApi)
+	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
 	core:setTemplater(require "luv.templaters.tamplier" (params.templatesDirs))
 	core:setSession(sessions.Session(core:getWsApi(), sessions.SessionFile(params.sessionDir)))
 	core:setDsn(params.dsn)
@@ -431,6 +427,17 @@ local init = function (params)
 	return core
 end
 
+initRandom = function ()
+	-- Init random seed
+	local seed, i, str = os.time(), nil, tostring(tostring(MODULE))
+	for i = 1, string.len(str) do
+		seed = seed + string.byte(str, i)
+	end
+	math.randomseed(seed)
+end
+
+initRandom()
+
 return {
 	oop = oop,
 	exceptions = exceptions,
@@ -439,6 +446,6 @@ return {
 	UrlConf = UrlConf,
 	Struct = Struct,
 	Widget = Widget,
-	init = init
+	init = init;
 }
 	

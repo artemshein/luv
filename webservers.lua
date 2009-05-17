@@ -1,8 +1,10 @@
-require "luv.debug"
-require "luv.string"
-local io, os, string, pairs, debug, ipairs, tonumber = io, os, string, pairs, debug, ipairs, tonumber
-local type, table = type, table
+local debug = require "luv.debug"
+local string = require "luv.string"
+local io, os, pairs, ipairs, tonumber = io, os, pairs, ipairs, tonumber
+local type, table, math, tostring = type, table, math, tostring
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
+local fs = require 'luv.fs'
+local crypt = require 'luv.crypt'
 
 module(...)
 
@@ -12,7 +14,9 @@ local Http403 = Http4xx:extend{__tag = .....".Http403"}
 local Http404 = Http4xx:extend{__tag = .....".Http404"}
 
 local Api = Object:extend{
-	__tag = .....".Api",
+	__tag = .....".Api";
+	getTmpDir = Object.abstractMethod;
+	setTmpDir = Object.abstractMethod;
 	getRequestHeader = Object.abstractMethod,
 	getResponseHeader = Object.abstractMethod,
 	setResponseHeader = Object.abstractMethod,
@@ -27,6 +31,47 @@ local Api = Object:extend{
 	setCookie = Object.abstractMethod,
 	getCookies = Object.abstractMethod;
 	sendHeaders = Object.abstractMethod;
+	parseMultipartFormData = function (self, boundary, stream)
+		postData = string.explode(stream, boundary)
+		for i = 2, #postData-1 do
+			local headersStr, data = string.split(postData[i], '\r\n\r\n')
+			local headers = {}
+			for _, header in ipairs(string.explode(headersStr, '\r\n')) do
+				local name, value = string.split(header, ':')
+				headers[string.lower(name)] = value
+			end
+			-- Process headers
+			local contentDispValues = string.explode(headers['content-disposition'], ';')
+			if 'form-data' ~= string.trim(contentDispValues[1]) then
+				Exception 'Invalid Content-Disposition value'
+			end
+			local key, isFile
+			for i = 2, #contentDispValues do
+				local n, v = string.split(contentDispValues[i], '=')
+				n = string.lower(string.trim(n))
+				v = string.trim(v)
+				if 'name' == n then
+					key = string.slice(v, 2, -2)
+				elseif 'filename' == n then
+					isFile = true
+					--key = string.slice(v, 2, -2)
+				end
+			end
+			-- Process value
+			data = string.slice(data, 1, -3)
+			if isFile then
+				self.post[key] = {filename=key}
+				if self:getTmpDir() then
+					self.post[key].tmpFilePath = tostring(self:getTmpDir() / tostring(crypt.Md5(math.random(2000000000))))
+					file = fs.File(self.post[key].tmpFilePath):openForWritingBinary():write(data):close()
+				else
+					self.post[key].data = data
+				end
+			else
+				self.post[key] = data
+			end
+		end
+	end;
 }
 
 local urlDecodeArr = {["+"] = " "}
@@ -50,6 +95,9 @@ local responseString = {
 	[500]="Internal Server Error";[501]="Not Implemented";[502]="Bad Gateway";[503]="Service Unavailable";[504]="Gateway Timeout";[505]="HTTP Version Not Supported";[506]="Variant Also Negotiates";[507]="Insufficient Storage";[509]="Bandwidth Limit Exceeded";[510]="Not Extended"
 }
 
+local function parseMultipartFormData (stream)
+end
+
 local Cgi = Api:extend{
 	__tag = .....".Cgi",
 	responseHeaders = {},
@@ -57,7 +105,8 @@ local Cgi = Api:extend{
 	cookies = {},
 	get = {},
 	post = {},
-	new = function (self)
+	new = function (self, tmpDir)
+		self:setTmpDir(tmpDir)
 		if not self.write then
 			self.write = io.write
 			io.write = function (...)
@@ -70,6 +119,9 @@ local Cgi = Api:extend{
 		end
 		return self
 	end,
+	--
+	getTmpDir = function (self) return self.tmpDir end;
+	setTmpDir = function (self, tmpDir) self.tmpDir = tmpDir return self end;
 	-- Headers
 	getRequestHeader = function (self, header)
 		return os.getenv(header)
@@ -115,28 +167,33 @@ local Cgi = Api:extend{
 	setPost = function (self, key, value) self.post[key] = value return self end,
 	getPostData = function (self) return self.post end,
 	parsePostData = function (self)
-		if self:getRequestHeader "REQUEST_METHOD" ~= "POST" then
+		if 'POST' ~= self:getRequestHeader 'REQUEST_METHOD' then
 			return
 		end
-		if string.beginsWith(self:getRequestHeader "CONTENT_TYPE", "application/x-www-form-urlencoded") then
-			local data = io.read(tonumber(self:getRequestHeader "CONTENT_LENGTH"))
-			data = string.explode(data, "&")
+		local contentType = self:getRequestHeader 'CONTENT_TYPE'
+		if string.beginsWith(contentType, 'application/x-www-form-urlencoded') then
+			local data = io.read(tonumber(self:getRequestHeader 'CONTENT_LENGTH'))
+			data = string.explode(data, '&')
 			local _, v
 			for _, v in ipairs(data) do
-				local key, val = string.split(v, "=")
+				local key, val = string.split(v, '=')
 				val = urlDecode(val)
 				if not self.post[key] then
 					self.post[key] = val
 				else
-					if "table" == type(self.post[key]) then
+					if 'table' == type(self.post[key]) then
 						table.insert(self.post[key], val)
 					else
 						self.post[key] = {self.post[key];val}
 					end
 				end
 			end
+		elseif string.beginsWith(contentType, 'multipart/form-data') then
+			local _, boundaryStr = string.split(contentType, ';')
+			local _, boundary = string.split(boundaryStr, '=')
+			self:parseMultipartFormData('--'..boundary, io.read '*a')
 		else
-			Exception ("Not implemented for Content-type: "..self:getRequestHeader "CONTENT_TYPE".."!")
+			Exception ('Not implemented for Content-type: '..contentType)
 		end
 	end,
 	-- Cookies

@@ -1,5 +1,6 @@
 local string = require "luv.string"
-local io, os = io, os
+local io, os, tostring = io, os, tostring
+local debug = require 'luv.debug'
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
 
 module(...)
@@ -11,19 +12,28 @@ local Exception = Exception:extend{__tag = .....".Exception"}
 local File = Object:extend{
 	__tag = .....".File",
 	init = function (self, filename)
-		self.filename = filename
+		self.filename = tostring(filename)
 	end,
 	openForReading = function (self)
 		file, err = io.open(self.filename)
+		if not file then
+			Exception(err..' '..self.filename)
+		end
+		self.handle = file
+		self.mode = "read"
+		return self
+	end,
+	openForReadingBinary = function (self)
+		file, err = io.open(self.filename, 'rb')
 		if not file then
 			Exception(err)
 		end
 		self.handle = file
 		self.mode = "read"
 		return self
-	end,
+	end;
 	openForWriting = function (self)
-		file, err = io.open(self.filename, "w")
+		file, err = io.open(self.filename, 'w')
 		if not file then
 			Exception(err)
 		end
@@ -31,6 +41,15 @@ local File = Object:extend{
 		self.mode = "write"
 		return self
 	end,
+	openForWritingBinary = function (self)
+		file, err = io.open(self.filename, 'wb')
+		if not file then
+			Exception(err)
+		end
+		self.handle = file
+		self.mode = "write"
+		return self
+	end;
 	isExists = function (self)
 		if self.handle then
 			return true
@@ -48,13 +67,21 @@ local File = Object:extend{
 		end
 		return self.handle:read(...)
 	end,
+	readAndClose = function (self, ...)
+		local res = self:read(...)
+		self:close()
+		return res
+	end;
+	openReadAndClose = function (self, ...)
+		return self:openForReading():readAndClose(...)
+	end;
 	write = function (self, ...)
 		if (not self.handle) or self.mode ~= "write" then
 			Exception"File must be opened in write mode!"
 		end
 		self.handle:write(...)
 		return self
-	end,
+	end;
 	close = function (self, ...)
 		if self.handle then
 			self.handle:close(...)
@@ -69,7 +96,7 @@ local File = Object:extend{
 local Dir = Object:extend{
 	__tag = .....".Dir",
 	init = function (self, name)
-		self:setName(name)
+		self:setName(tostring(name))
 	end,
 	getName = function (self) return self.name end,
 	setName = function (self, name)
@@ -91,6 +118,7 @@ local Path = Object:extend{
 	init = function (self, path) self.path = path end;
 	exists = function (self) Exception "not implemented!" end;
 	__div = function (self, path)
+		path = tostring(path)
 		if string.endsWith(self.path, "/")
 		or string.endsWith(self.path, "\\") then
 			if string.beginsWith(path, "/")

@@ -1,8 +1,9 @@
 local debug = require "luv.debug"
 local error = error
-local require = require
+local require, tostring = require, tostring
 local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
+local fs = require 'luv.fs'
 local exceptions = require "luv.exceptions"
 local Exception, try = exceptions.Exception, exceptions.try
 
@@ -157,8 +158,45 @@ local File = Text:extend{
 	__tag = .....".File";
 	init = function (self, params)
 		params = params or {}
-		params.maxLength = 255;
+		params.maxLength = 255
+		params.widget = widgets.FileInput()
 		Text.init(self, params)
+	end;
+	setValue = function (self, val)
+		if 'table' == type(val) then
+			val = val.tmpFilePath
+		end
+		Text.setValue(self, val)
+	end;
+	getValue = function (self) return tostring(Text.getValue(self)) end;
+	moveTo = function (self, path)
+		if not self.value then
+			return false
+		end
+		local tmpFile = fs.File(self.value):openForReading()
+		fs.File(path):openForWritingBinary():write(tmpFile:read '*a'):close()
+		tmpFile:close():delete()
+		self.value = path
+		return true
+	end;
+}
+
+local Image = File:extend{
+	__tag = .....'.Image';
+	moveToWithExt = function (self, path)
+		if not self.value then
+			return false
+		end
+		local ext = require 'luv.images'.detectFormat(self.value)
+		if not ext then
+			return false
+		end
+		path = tostring(path)..'.'..ext
+		local tmpFile = fs.File(self.value):openForReading()
+		fs.File(path):openForWritingBinary():write(tmpFile:read '*a'):close()
+		tmpFile:close():delete()
+		self.value = path
+		return true
 	end;
 }
 
@@ -283,7 +321,7 @@ local Submit = Button:extend{
 	end
 }
 
-local Image = Button:extend{
+local ImageButton = Button:extend{
 	__tag = .....".Image";
 	init = function (self, params)
 		params = params or {}
@@ -426,12 +464,12 @@ return {
 	Login = Login,
 	Id = Id,
 	Button = Button;
-	Image = Image;
+	ImageButton = ImageButton;
 	Submit = Submit;
 	Datetime=Datetime;
 	Email=Email;
 	Phone=Phone;
-	Url=Url;File=File;
+	Url=Url;File=File;Image=Image;
 	ModelSelect=ModelSelect;ModelMultipleSelect=ModelMultipleSelect;
 	NestedSetSelect=NestedSetSelect;
 }

@@ -22,6 +22,9 @@ string.beginsWith = function (str, beg)
 end
 
 string.endsWith = function (str, search)
+	if 'string' ~= type(str) or 'string' ~= type(search) then
+		error('String expected '..debug.traceback())
+	end
 	if string.slice(str, -string.len(search)) ~= search then
 		return false
 	end

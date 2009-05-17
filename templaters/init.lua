@@ -19,9 +19,6 @@ local Api = Object:extend{
 		end
 	end,
 	addTemplatesDir = function (self, dir)
-		if not string.endsWith(dir, "/") and not string.endsWith(dir, "\\") then
-			dir = dir.."/"
-		end
 		table.insert(self.templatesDirs, dir)
 	end,
 	display = abstractMethod,

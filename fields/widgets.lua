@@ -2,8 +2,8 @@ local string = require "luv.string"
 local table = require "luv.table"
 local debug = require 'luv.debug'
 local tostring, io, type = tostring, io, type
-local os = os
-local pairs, ipairs = pairs, ipairs
+local os, tr = os, tr
+local pairs, ipairs, require = pairs, ipairs, require
 local Widget, html = require"luv".Widget, require"luv.utils.html"
 local json = require "luv.utils.json"
 
@@ -58,6 +58,11 @@ local Checkbox = Input:extend{
 		..(classes and ([[" class="]]..table.join(classes, ' ')) or '')
 		..[["]]..tail..[[ />]]
 	end;
+}
+
+local FileInput = Input:extend{
+	__tag = .....'.FileInput';
+	type = 'file';
 }
 
 local TextInput = Input:extend{
@@ -116,6 +121,7 @@ local Select = Widget:extend{
 	__tag = .....'.Select';
 	init = function () end;
 	render = function (self, field, form)
+		local fields = require 'luv.fields'
 		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
 		if not field:isRequired() then values = [[<option></option>]] end
@@ -139,6 +145,7 @@ local Select = Widget:extend{
 local MultipleSelect = Select:extend{
 	__tag = .....'.MiltipleSelect';
 	render = function (self, field, form)
+		local fields = require 'luv.fields'
 		local classes = field:getClasses()
 		local values, fieldValue = '', field:getValue()
 		local choices = field:getChoices()
@@ -217,7 +224,8 @@ return {
 	TextInput = TextInput;
 	PhoneInput=PhoneInput;
 	HiddenInput = HiddenInput,
-	PasswordInput = PasswordInput,
+	PasswordInput = PasswordInput;
+	FileInput=FileInput;
 	Button = Button,
 	SubmitButton = SubmitButton;
 	ImageButton=ImageButton;
