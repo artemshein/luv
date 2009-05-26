@@ -109,6 +109,36 @@ local Field = Object:extend{
 	setHint = function (self, hint) self.hint = hint return self end;
 }
 
+local MultipleValues = Field:extend{
+	__tag = .....'.MultipleValues';
+	init = function (self, params)
+		if not params then
+			Exception 'choices required'
+		end
+		if not params.choices then
+			params = {choices=params}
+		end
+		params.widget = params.widget or widgets.MultipleSelect
+		Field.init(self, params)
+	end;
+	getValue = function (self) return self.value or {} end;
+	setValue = function (self, value)
+		if 'table' ~= type(value) or value.isKindOf then
+			value = {value}
+		end
+		local resValue = {}
+		for _, v in ipairs(value) do
+			if 'table' == type(v) then
+				table.insert(resValue, v:getPk():getValue())
+			else
+				table.insert(resValue, v)
+			end
+		end
+		value = resValue
+		return Field.setValue(self, value)
+	end;
+}
+
 local Text = Field:extend{
 	__tag = .....".Text",
 	setParams = function (self, params)
@@ -404,34 +434,18 @@ local ModelSelect = Field:extend{
 	end;
 }
 
-local ModelMultipleSelect = Field:extend{
-	__tag = .....".ModelMultipleSelect";
+local ModelMultipleSelect = MultipleValues:extend{
+	__tag = .....'.ModelMultipleSelect';
 	init = function (self, params)
 		if not params then
-			Exception"Choices required!"
+			Exception 'choices required'
 		end
 		if not params.choices then
 			params = {choices=params}
 		end
 		params.widget = params.widget or widgets.MultipleSelect
-		Field.init(self, params)
+		MultipleValues.init(self, params)
 	end;
-	setValue = function (self, value)
-		if "table" ~= type(value) or value.isKindOf then
-			value = {value}
-		end
-		local resValue = {}
-		for k, v in pairs(value) do
-			if "table" == type(v) then
-				table.insert(resValue, v:getPk():getValue())
-			else
-				table.insert(resValue, v)
-			end
-		end
-		value = resValue
-		return Field.setValue(self, value)
-	end;
-	getValue = function (self) return self.value or {} end;
 }
 
 local NestedSetSelect = Field:extend{
@@ -456,7 +470,8 @@ local NestedSetSelect = Field:extend{
 }
 
 return {
-	Field = Field,
+	Field = Field;
+	MultipleValues=MultipleValues;
 	Text = Text,
 	Int = Int,
 	Boolean=Boolean;

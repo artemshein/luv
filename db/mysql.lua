@@ -199,16 +199,16 @@ local MysqlDriver = Driver:extend{
 			else
 				return "NULL"
 			end
-		elseif placeholder == "?a" then
-			local _, v, res = nil, nil, ""
+		elseif placeholder == '?a' then
+			local res = ''
 			for _, v in ipairs(value) do
-				if res ~= "" then res = res..", " end
-				if type(v) == "number" then
-					res = res..self:processPlaceholder("?d", v)
-				elseif type(v) == "string" then
-					res = res..self:processPlaceholder("?", v)
+				if res ~= '' then res = res..', ' end
+				if type(v) == 'number' then
+					res = res..self:processPlaceholder('?d', v)
+				elseif type(v) == 'string' then
+					res = res..self:processPlaceholder('?', v)
 				else
-					Driver.Exception"Invalid value type!"
+					Driver.Exception 'invalid value type'
 				end
 			end
 			return res

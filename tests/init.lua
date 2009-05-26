@@ -4,7 +4,7 @@ module(...)
 
 local all = TestSuite(
 	-- Base functional
-	"luv.tests.self", "luv.tests.string", "luv.tests.table", "luv.tests.checktypes", "luv.tests.oop", "luv.tests.utils",
+	"luv.tests.self", "luv.tests.string", "luv.tests.table", 'luv.tests.function', "luv.tests.checktypes", "luv.tests.oop", "luv.tests.utils",
 	-- Crypt
 	"luv.tests.crypt",
 	-- Template engines

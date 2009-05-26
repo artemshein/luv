@@ -1,6 +1,7 @@
 local string = require "luv.string"
 local debug = require "luv.debug"
-local type, require, pairs, table, select, io = type, require, pairs, table, select, io
+local f = require 'luv.function'.f
+local type, require, pairs, table, select, io, ipairs = type, require, pairs, table, select, io, ipairs
 local fields, Exception = require"luv.fields", require"luv.exceptions".Exception
 local widgets = require "luv.fields.widgets"
 
@@ -116,7 +117,7 @@ local ManyToMany = Reference:extend{
 				Exception"Primary key value must be set first!"
 			end
 			if not table.isEmpty(self.value) then
-				local s, _, v = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
+				local s = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
 				for _, v in pairs(self.value) do
 					s:values(container:getPk():getValue(), v:getPk():getValue())
 				end
@@ -125,6 +126,21 @@ local ManyToMany = Reference:extend{
 			self.value = nil
 		end
 	end,
+	add = function (self, values)
+		local container, refModel = self:getContainer(), self:getRefModel()
+		if not container:getPk():getValue() then
+			Exception 'primary key value must be set first'
+		end
+		if 'table' ~= type(values) or values.isKindOf then
+			values = {values}
+		end
+		local s = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..', '..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
+		for _, v in ipairs(values) do
+			s:values(container:getPk():getValue(), 'table' == type(v) and v:getPk():getValue() or tostring(v))
+		end
+		s:exec()
+		self.value = nil
+	end;
 	update = function (self)
 		if self.value then
 			local container, refModel = self:getContainer(), self:getRefModel()
@@ -133,7 +149,7 @@ local ManyToMany = Reference:extend{
 			end
 			container:getDb():Delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
 			if "table" == type(self.value) and not table.isEmpty(self.value) then
-				local s, _, v = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
+				local s = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
 				for _, v in pairs(self.value) do
 					s:values(container:getPk():getValue(), v:getPk():getValue())
 				end
@@ -148,15 +164,27 @@ local ManyToMany = Reference:extend{
 		end
 		return self.value
 	end,
+	remove = function (self, values)
+		local container, refModel = self:getContainer(), self:getRefModel()
+		container:getDb():Delete():from(self:getTableName())
+			:where('?#='..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container.pk)
+			:where('?# IN (?a)', refModel:getTableName(), values)
+			:exec()
+		self.value = nil
+	end;
 	all = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local pkName = container:getPkName()
 		if not container:getPk():getValue() then
 			return nil
 		end
-		return require"luv.db.models".LazyQuerySet(self:getRefModel(), function (qs, s)
-			s:join({refTable=self:getTableName()}, {"?#.?# = ?#.?#", "refTable", qs.model:getTableName(), qs.model:getTableName(), qs.model:getPkName()}, {})
-			s:where("?#.?#="..qs.model:getFieldPlaceholder(container:getField(pkName)), "refTable", container:getTableName(), container:getField(pkName):getValue())
+		local models = require 'luv.db.models'
+		local db = require 'luv.db'
+		return models.LazyQuerySet(self:getRefModel(), function (qs, s)
+			if s:isKindOf(db.Driver.Select) then
+				s:join({refTable=self:getTableName()}, {'?#.?# = ?#.?#', 'refTable', qs.model:getTableName(), qs.model:getTableName(), qs.model:getPkName()}, {})
+				s:where('?#.?#='..qs.model:getFieldPlaceholder(container:getField(pkName)), 'refTable', container:getTableName(), container:getField(pkName):getValue())
+			end
 		end)
 	end,
 	count = function (self)
