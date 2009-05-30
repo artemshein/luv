@@ -198,7 +198,6 @@ local File = Text:extend{
 		end
 		Text.setValue(self, val)
 	end;
-	getValue = function (self) return tostring(Text.getValue(self)) end;
 	moveTo = function (self, path)
 		if not self.value then
 			return false

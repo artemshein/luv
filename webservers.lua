@@ -60,12 +60,14 @@ local Api = Object:extend{
 			-- Process value
 			data = string.slice(data, 1, -3)
 			if isFile then
-				self.post[key] = {filename=key}
-				if self:getTmpDir() then
-					self.post[key].tmpFilePath = tostring(self:getTmpDir() / tostring(crypt.Md5(math.random(2000000000))))
-					file = fs.File(self.post[key].tmpFilePath):openForWritingBinary():write(data):close()
-				else
-					self.post[key].data = data
+				if '' ~= data then
+					self.post[key] = {filename=key}
+					if self:getTmpDir() then
+						self.post[key].tmpFilePath = tostring(self:getTmpDir() / tostring(crypt.Md5(math.random(2000000000))))
+						file = fs.File(self.post[key].tmpFilePath):openForWritingBinary():write(data):close()
+					else
+						self.post[key].data = data
+					end
 				end
 			else
 				self.post[key] = data

@@ -129,7 +129,6 @@ local Select = Object:extend{
 		table.insert(joinType, {joinTable, condition})
 		-- Fields
 		if fields then
-			local k, v
 			for k, v in pairs(fields) do
 				if "number" ~= type(k) then
 					self.fieldsVal[k] = tbl.."."..v

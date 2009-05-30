@@ -63,6 +63,17 @@ local Checkbox = Input:extend{
 local FileInput = Input:extend{
 	__tag = .....'.FileInput';
 	type = 'file';
+	render = function (self, field, form, tail)
+		tail = tail or ''
+		local classes = field:getClasses()
+		return
+		'<input type='..string.format('%q', self.type)
+		..' name='..string.format('%q', html.escape(field:getName()))
+		..' id='..string.format('%q', html.escape(getId(form, field)))
+		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..tail..' />'
+		..(field:getHint() and (' '..field:getHint()) or '')
+	end
 }
 
 local TextInput = Input:extend{

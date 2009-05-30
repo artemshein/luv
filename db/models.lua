@@ -592,6 +592,7 @@ local LazyQuerySet = Object:extend{
 		self.excludes = {}
 		self.limits = {}
 		self.orders = {}
+		self.joins = {}
 		self.initFunc = func
 		getmetatable(self).__index = function (self, field)
 			local res = self.parent[field]
@@ -633,7 +634,7 @@ local LazyQuerySet = Object:extend{
 		return self
 	end;
 	applyFilterOrExclude = function (self, filter, s)
-		local filTbl, k, v = {}
+		local filTbl = {}
 		for k, v in pairs(filter) do
 			local op = "="
 			if type(k) == "number" then
@@ -653,11 +654,16 @@ local LazyQuerySet = Object:extend{
 				Exception("Field "..name.." not found!")
 			end
 			local expr, values
-			if "table" == type(v) and v.isKindOf and v:isKindOf(F) then
+			if 'table' == type(v) and v.isKindOf and v:isKindOf(F) then
 				expr = self.db:processPlaceholders(tostring(v), unpack(v:getValues()))
 				values = {name}
 			else
-				expr = self.model:getFieldPlaceholder(self.model:getField(name))
+				local field = self.model:getField(name)
+				expr = self.model:getFieldPlaceholder(field)
+				if field:isKindOf(references.OneToOne) and field:isBackLink() then
+					table.insert(self.joins, {field:getTableName();{'?#.?#=?#.?#';self.model:getTableName();self.model:getPkName();field:getRefModel():getTableName();field:getBackRefFieldName()}})
+					name = field:getRefModel():getTableName()..'.'..field:getBackRefFieldName()
+				end
 				values = {name;v}
 			end
 			if op == "exact" then expr = "?#="..expr
@@ -669,6 +675,7 @@ local LazyQuerySet = Object:extend{
 			elseif op == "beginswith" then values[2] = values[2].."%" expr = "?# LIKE ?"
 			elseif op == "endswith" then values[2] = "%"..values[2] expr = "?# LIKE ?"
 			elseif op == "contains" then values[2] = "%"..values[2].."%" expr = "?# LIKE ?"
+			elseif op == 'isnull' then expr = values[2] and '?# IS NULL' or '?# IS NOT NULL'
 			else
 				Exception("Operation "..op.." not supported!")
 			end
@@ -677,7 +684,7 @@ local LazyQuerySet = Object:extend{
 		return table.join(filTbl, ") AND (")
 	end,
 	applyFiltersAndExcludes = function (self, s)
-		local _, k, v, res
+		local res
 		for _, v in pairs(self.filters) do
 			res = self:applyFilterOrExclude(v, s)
 			if res ~= "" then
@@ -689,6 +696,10 @@ local LazyQuerySet = Object:extend{
 			if res ~= "" then
 				s:where("NOT ("..res..")")
 			end
+		end
+		-- joins
+		for _, v in ipairs(self.joins) do
+			s:join(unpack(v))
 		end
 		if self.limits.from then
 			s:limit(self.limits.from, self.limits.to)
