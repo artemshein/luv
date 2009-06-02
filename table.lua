@@ -76,11 +76,11 @@ table.copy = function (self)
 end
 
 table.deepCopy = function (tbl, seen)
-	local res, k, v = {}
+	local res = {}
 	seen = seen or {}
 	seen[tbl] = res
 	for k, v in pairs(tbl) do
-		if "table" == type(v) then
+		if 'table' == type(v) then
 			if seen[v] then
 				res[k] = seen[v]
 			else
@@ -95,10 +95,10 @@ table.deepCopy = function (tbl, seen)
 end
 
 table.join = function (tbl, sp)
-	local res, _, v = ""
-	sp = sp or ""
+	local res = ''
+	sp = sp or ''
 	for _, v in pairs(tbl) do
-		if res == "" then
+		if res == '' then
 			res = v
 		else
 			res = res..sp..v
@@ -107,8 +107,8 @@ table.join = function (tbl, sp)
 	return res
 end
 
-table.size = function (tbl) -- ???
-	local count, _ = 0
+table.size = function (tbl)
+	local count = 0
 	for _ in pairs(tbl) do
 		count = count + 1
 	end

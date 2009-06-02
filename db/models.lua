@@ -244,8 +244,14 @@ local Model = Struct:extend{
 					if "nil" == type(val) then
 						val = v:getDefaultValue()
 					end
-					if val and v:isKindOf(fields.Datetime) then
-						val = os.date("%Y-%m-%d %H:%M:%S", val)
+					if val then
+						if v:isKindOf(fields.Datetime) then
+							val = os.date("%Y-%m-%d %H:%M:%S", val)
+						elseif v:isKindOf(fields.Date) then
+							val = os.date("%Y-%m-%d", val)
+						elseif v:isKindOf(fields.Time) then
+							val = os.date("%H:%M:%S", val)
+						end
 					end
 					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				end
@@ -290,8 +296,14 @@ local Model = Struct:extend{
 					if "nil" == type(val) then
 						val = v:getDefaultValue()
 					end
-					if val and v:isKindOf(fields.Datetime) then
-						val = os.date("%Y-%m-%d %H:%M:%S", val)
+					if val then
+						if v:isKindOf(fields.Datetime) then
+							val = os.date("%Y-%m-%d %H:%M:%S", val)
+						elseif v:isKindOf(fields.Date) then
+							val = os.date("%Y-%m-%d", val)
+						elseif v:isKindOf(fields.Time) then
+							val = os.date("%H:%M:%S", val)
+						end
 					end
 					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
 				end
@@ -363,6 +375,10 @@ local Model = Struct:extend{
 			return "INT(4)"
 		elseif field:isKindOf(fields.Datetime) then
 			return "DATETIME"
+		elseif field:isKindOf(fields.Date) then
+			return "DATE"
+		elseif field:isKindOf(fields.Time) then
+			return "TIME"
 		elseif field:isKindOf(references.ManyToOne) or field:isKindOf(references.OneToOne) then
 			return self:getFieldTypeSql(field:getRefModel():getField(field:getToField() or field:getRefModel():getPkName()))
 		else

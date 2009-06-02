@@ -54,8 +54,7 @@ local Form = Widget:extend{
 		return field:asHtml(form)
 	end,
 	renderFields = function (self, form)
-		local html = ""
-		local _, v
+		local html, js = "", ""
 		-- Hidden fields first
 		for _, v in ipairs(form:getHiddenFields()) do
 			html = html..self:renderField(form, v)
@@ -63,10 +62,12 @@ local Form = Widget:extend{
 		html = html..self.beforeFields
 		-- Then visible fields
 		for _, v in ipairs(form:getVisibleFields()) do
+			local fieldHtml, fieldJs = self:renderField(form, v)
+			if fieldJs then js = js..fieldJs end
 			if v:getWidget():isKindOf(widgets.Checkbox) then
-				html = html..self.beforeLabel..self.afterLabel..self.beforeField..self:renderField(form, v).." "..self:renderLabelCheckbox(form, v)..self.afterField
+				html = html..self.beforeLabel..self.afterLabel..self.beforeField..fieldHtml.." "..self:renderLabelCheckbox(form, v)..self.afterField
 			else
-				html = html..self.beforeLabel..self:renderLabel(form, v)..self.afterLabel..self.beforeField..self:renderField(form, v)..self.afterField
+				html = html..self.beforeLabel..self:renderLabel(form, v)..self.afterLabel..self.beforeField..fieldHtml..self.afterField
 			end
 		end
 		-- Buttons
@@ -74,7 +75,7 @@ local Form = Widget:extend{
 		for _, v in ipairs(form:getButtonFields()) do
 			html = html..self:renderField(form, v)
 		end
-		return html..self.afterField..self.afterFields
+		return html..self.afterField..self.afterFields..(js and '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..js..'\n//]]></script>')
 	end,
 	renderFormEnd = function (self, form)
 		return "</form>"

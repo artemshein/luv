@@ -15,7 +15,7 @@ local Field = Object:extend{
 	__tag = .....".Field",
 	init = function (self, params)
 		if self.parent.parent == Object then
-			Exception"Can not instantiate abstract class!"
+			Exception "Can not instantiate abstract class!"
 		end
 		self.validators = {}
 		self.errors = {}
@@ -70,7 +70,7 @@ local Field = Object:extend{
 	setDefaultValue = function (self, val) self.defaultValue = val return self end,
 	addError = function (self, error) table.insert(self.errors, error) return self end,
 	addErrors = function (self, errors)
-		local _, v for _, v in ipairs(errors) do table.insert(self.errors, v) end
+		for _, v in ipairs(errors) do table.insert(self.errors, v) end
 		return self
 	end,
 	addClass = function (self, class)
@@ -118,7 +118,7 @@ local MultipleValues = Field:extend{
 		if not params.choices then
 			params = {choices=params}
 		end
-		params.widget = params.widget or widgets.MultipleSelect
+		params.widget = params.widget or widgets.MultipleSelect()
 		Field.init(self, params)
 	end;
 	getValue = function (self) return self.value or {} end;
@@ -146,9 +146,9 @@ local Text = Field:extend{
 		if false == params.maxLength then params.maxLength = 0 end
 		if not params.widget then
 			if "number" == type(params.maxLength) and (params.maxLength == 0 or params.maxLength > 65535) then
-				params.widget = widgets.TextArea
+				params.widget = widgets.TextArea()
 			else
-				params.widget = widgets.TextInput
+				params.widget = widgets.TextInput()
 			end
 		end
 		Field.setParams(self, params)
@@ -235,7 +235,7 @@ local Phone = Text:extend{
 		params = params or {}
 		params.minLength = 11
 		params.maxLength = 11
-		params.widget = params.widget or widgets.PhoneInput
+		params.widget = params.widget or widgets.PhoneInput()
 		params.regexp = "^[0-9]+$"
 		Text.init(self, params)
 	end;
@@ -245,7 +245,7 @@ local Int = Field:extend{
 	__tag = .....".Int",
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.TextInput
+		params.widget = params.widget or widgets.TextInput()
 		Field.init(self, params)
 		self.validators.int = validators.Int()
 	end,
@@ -261,7 +261,7 @@ local Boolean = Int:extend{
 	init = function (self, params)
 		params = params or {}
 		params.required = true
-		params.widget = params.widget or widgets.Checkbox
+		params.widget = params.widget or widgets.Checkbox()
 		Int.init(self, params)
 	end;
 	setValue = function (self, value)
@@ -319,7 +319,7 @@ local Id = Int:extend{
 	__tag = .....".Id",
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.HiddenInput
+		params.widget = params.widget or widgets.HiddenInput()
 		params.pk = true
 		Int.init(self, params)
 	end
@@ -333,7 +333,7 @@ local Button = Text:extend{
 			params = {defaultValue=params}
 		end
 		params.defaultValue = params.defaultValue or 1
-		params.widget = params.widget or widgets.Button
+		params.widget = params.widget or widgets.Button()
 		Text.init(self, params)
 	end;
 }
@@ -345,7 +345,7 @@ local Submit = Button:extend{
 		if "table" ~= type(params) then
 			params = {defaultValue=params}
 		end
-		params.widget = params.widget or widgets.SubmitButton
+		params.widget = params.widget or widgets.SubmitButton()
 		Button.init(self, params)
 	end
 }
@@ -358,11 +358,68 @@ local ImageButton = Button:extend{
 			params = {src=params}
 		end
 		self:setSrc(params.src)
-		params.widget = params.widget or widgets.ImageButton
+		params.widget = params.widget or widgets.ImageButton()
 		Button.init(self, params)
 	end;
 	getSrc = function (self) return self.src end;
 	setSrc = function (self, src) self.src = src return self end;
+}
+
+local Date = Field:extend{
+	__tag = .....".Date";
+	defaultFormat = "%d.%m.%Y";
+	init = function (self, params)
+		params = params or {}
+		params.widget = params.widget or widgets.DateInput()
+		self:setAutoNow(params.autoNow)
+		Field.init(self, params)
+	end;
+	getAutoNow = function (self) return self.autoNow end;
+	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
+	getDefaultValue = function (self)
+		if self.defaultValue then
+			return self.defaultValue
+		end
+		if self:getAutoNow() then
+			return os.time()
+		end
+		return nil
+	end;
+	setValue =  function (self, value)
+		if "string" == type(value) then
+			if string.match(value, "^%d%d%d%d[^%d]%d%d[^%d]%d%d") then
+				self.value = os.time{
+					year=tonumber(string.slice(value, 1, 4));
+					month=tonumber(string.slice(value, 6, 7));
+					day=tonumber(string.slice(value, 9, 10));
+					hour=0;
+					min=0;
+					sec=0;
+				}
+			elseif string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d%d%d") then
+				self.value = os.time{
+					year=tonumber(string.slice(value, 7, 10));
+					month=tonumber(string.slice(value, 4, 5));
+					day=tonumber(string.slice(value, 1, 2));
+					hour=0;
+					min=0;
+					sec=0;
+				}
+			else
+				self.value = nil
+			end
+		else
+			self.value = value
+		end
+	end;
+	__tostring = function (self)
+		if self:getValue() then
+			return os.date(self.defaultFormat, self:getValue())
+		end
+		return ''
+	end;
+	getMinLength = function (self) return 19 end;
+	getMaxLength = function (self) return 19 end;
 }
 
 local Datetime = Field:extend{
@@ -480,6 +537,7 @@ return {
 	Button = Button;
 	ImageButton = ImageButton;
 	Submit = Submit;
+	Date=Date;
 	Datetime=Datetime;
 	Email=Email;
 	Phone=Phone;

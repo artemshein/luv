@@ -27,7 +27,7 @@ local Input = Widget:extend{
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
 		..tail..' />'
 		..(field:getHint() and (' '..field:getHint()) or '')
-	end
+	end;
 }
 
 local TextArea = Widget:extend{
@@ -79,9 +79,8 @@ local FileInput = Input:extend{
 local TextInput = Input:extend{
 	__tag = .....'.TextInput';
 	type = 'text';
-	render = function (self, field, form)
-		local tail = [[ maxlength="]]..field:getMaxLength()..[["]]
-		return Input.render(self, field, form, tail)
+	render = function (self, field, form, tail)
+		return Input.render(self, field, form, (tail or '')..' maxlength='..string.format('%q', field:getMaxLength()))
 	end
 }
 
@@ -208,6 +207,28 @@ local NestedSetSelect = Select:extend{
 	end;
 }
 
+local DateInput = TextInput:extend{
+	__tag = .....".DateInput";
+	format = "%d.%m.%Y";
+	render = function (self, field, form, tail)
+		local classes = field:getClasses()
+		local value = field:getValue() or field:getDefaultValue()
+		if value then
+			value = os.date(self.format, value)
+		end
+		local html =
+		'<input type='..string.format('%q', self.type)
+		..' name='..string.format('%q', html.escape(field:getName()))
+		..' id='..string.format('%q', html.escape(getId(form, field)))
+		..' value='..string.format('%q', html.escape(value or ''))
+		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..(tail or '')..' />'
+		..(field:getHint() and (' '..field:getHint()) or '')
+		local js = (js or "").."$('#"..getId(form, field).."').datepicker();"
+		return html, js
+	end;
+}
+
 local Datetime = TextInput:extend{
 	__tag = .....'.Datetime';
 	format = "%Y-%m-%d %H:%M:%S";
@@ -237,6 +258,7 @@ return {
 	HiddenInput = HiddenInput,
 	PasswordInput = PasswordInput;
 	FileInput=FileInput;
+	DateInput=DateInput;
 	Button = Button,
 	SubmitButton = SubmitButton;
 	ImageButton=ImageButton;
