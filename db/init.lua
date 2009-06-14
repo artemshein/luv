@@ -180,7 +180,7 @@ local Select = Object:extend{
 	end;
 	exec = function (self)
 		if not self._values then
-			self._evaluate()
+			self:_evaluate()
 		end
 		return self._values
 	end;

@@ -636,6 +636,9 @@ local QuerySet = Object:extend{
 			if res then
 				return res
 			end
+			if "number" ~= type(field) then
+				return nil
+			end
 			if not rawget(self, "_evaluated") then
 				self:_evaluate()
 			end
@@ -648,15 +651,25 @@ local QuerySet = Object:extend{
 		self._values = {}
 		self._query = model:getDb():Select "*":from(self._model:getTableName())
 	end;
+	clone = function (self)
+		local obj = Object.clone(self)
+		obj._orders = table.copy(obj._orders)
+		obj._limits = table.copy(obj._limits)
+		obj._values = table.copy(obj._values)
+		obj._query = obj._query:clone()
+		return obj
+	end;
 	filter = function (self, condition)
 		local obj = self:clone()
 		obj._evaluated = false
+		obj._values = {}
 		obj._q = obj._q and (obj._q + Q(condition)) or Q(condition)
 		return obj
 	end;
 	exclude = function (self, condition)
 		local obj = self:clone()
 		obj._evaluated = false
+		obj._values = {}
 		obj._q = obj._q and (obj._q + -Q(condition)) or -Q(condition)
 		return obj
 	end;
@@ -784,7 +797,7 @@ local QuerySet = Object:extend{
 					v ="%"..v.."%"
 				elseif "isnull" == op then
 					if not v then
-						valStr = " NOT"..valStr
+						valStr = " IS NOT NULL"
 					end
 				end
 			else
@@ -854,7 +867,9 @@ local QuerySet = Object:extend{
 		return tostring(s)
 	end;
 	update = function (self, set)
-		local u = self._model:getDb():Update(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(self:getValue(), f "a.pk"))
+		local s = self._model:getDb():Select(self._model:getPkName()):from(self._model:getTableName())
+		self:_applyConditions(s)
+		local u = self._model:getDb():Update(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s:exec(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
 		local val
 		for k, v in pairs(set) do
 			if type(v) == "table" and v.isKindOf and v:isKindOf(Model) then
@@ -865,7 +880,13 @@ local QuerySet = Object:extend{
 			u:set("?#="..self._model:getFieldPlaceholder(self._model:getField(k)), k, val)
 		end
 		return u:exec()
-	end
+	end;
+	delete = function (self)
+		local s = self._model:getDb():Select(self._model:getPkName()):from(self._model:getTableName())
+		self:_applyConditions(s)
+		local u = self._model:getDb():Delete():from(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s:exec(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
+		return u:exec()
+	end;
 }
 
 --[[

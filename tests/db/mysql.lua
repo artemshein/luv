@@ -114,7 +114,7 @@ return TestCase:extend{
 	testJoins = function (self)
 		self.assertEquals(
 			tostring(self.db:Select("p.product_id", "p.product_name"):from{p="products"}:join({l="line_items"}, {"?# = ?#", "p.product_id", "l.product_id"})),
-			"SELECT `p`.`product_id`, `p`.`product_name`, `l`.* FROM `products` AS `p` JOIN `line_items` AS `l` ON `p`.`product_id` = `l`.`product_id`;"
+			"SELECT `p`.`product_id`, `p`.`product_name` FROM `products` AS `p` JOIN `line_items` AS `l` ON `p`.`product_id` = `l`.`product_id`;"
 		)
 	end
 }

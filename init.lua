@@ -196,6 +196,7 @@ local Core = Object:extend{
 		self._db = require "luv.db".Factory(dsn)
 		require "luv.db.models".Model:setDb(self._db)
 		self._db:setLogger(function (sql, result)
+			--io.write(sql, "<br />")
 			self:debug(sql, "Database")
 		end)
 		return self
@@ -259,11 +260,10 @@ local Core = Object:extend{
 	end;
 	flush = function (self)
 		self:endProfiling("Luv")
-		local section, info
 		for section, info in pairs(self:getProfiler():getStat()) do
 			self:info(section.." was executed "..tostring(info.count).." times and takes "..tostring(info.total).." secs", "Profiler")
 		end
-		self:assign{debugger=self.debugger or ""}
+		self:assign{debugger=self._debugger or ""}
 	end;
 	-- Profiler
 	getProfiler = function (self) return self._profiler end;

@@ -178,7 +178,7 @@ local ManyToMany = Reference:extend{
 			return nil
 		end
 		local models = require 'luv.db.models'
-		return models.QuerySet(refModel):filter{[self:getRelatedName().."__pk"]=container.pk}
+		return refModel:all():filter{[self:getRelatedName().."__pk"]=container.pk}
 	end,
 	count = function (self)
 		return self:all():count()
@@ -258,15 +258,7 @@ local OneToMany = Reference:extend{
 	all = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
 		local refFieldName = refModel:getReferenceField(container, require(MODULE).ManyToOne)
-		if not refFieldName then
-			Exception"Backwards reference field not founded!"
-		end
-		local relationFieldName = refModel:getField(refFieldName):getToField() or container:getPkName()
-		local relationField = container:getField(relationFieldName)
-		if not relationField:getValue() then
-			Exception"Relation field value must be set!"
-		end
-		return require"luv.db.models".QuerySet(refModel):filter{[refFieldName.."__pk"]=container.pk}
+		return refModel:all():filter{[refFieldName.."__pk"]=container.pk}
 	end,
 	filter = function (self, ...)
 		return self:all():filter(...)

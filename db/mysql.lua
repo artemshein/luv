@@ -208,7 +208,7 @@ local MysqlDriver = Driver:extend{
 				elseif type(v) == 'string' then
 					res = res..self:processPlaceholder('?', v)
 				else
-					Driver.Exception 'invalid value type'
+					Driver.Exception('invalid value type '..type(v))
 				end
 			end
 			return res

@@ -60,18 +60,12 @@ local T04Man = Model:extend{
 local validDsn = "mysql://test:test@localhost/test"
 
 return TestCase:extend{
-	__tag = ...,
-	validDsn = validDsn;
-	logger = function (sql)
-		io.write(sql, "<br />")
-	end;
+	__tag = ...;
 	setUp = function (self)
 		self.A = Model:extend{
 			title = fields.Text{unique=true},
 			Meta = {label = "a", labelMany = "as"}
 		}
-		self.A:setDb(Factory(self.validDsn))
-		self.A:getDb():setLogger(self.logger)
 		self.A:dropTables()
 		self.A:createTables()
 	end,
@@ -136,10 +130,6 @@ return TestCase:extend{
 	end;
 	testT01 = function (self)
 		local Student, Group = T01Student, T01Group
-		local db = Factory(self.validDsn)
-		db:setLogger(self.logger)
-		Student:setDb(db)
-		Group:setDb(db)
 		Student:dropTables()
 		Group:dropTables()
 		Group:createTables()
@@ -191,6 +181,7 @@ return TestCase:extend{
 		self.assertEquals(g372.students:exclude{name__in={"Max", "John", "Fil"}}:count(), 2)
 		self.assertEquals(g581.students:count(), 1)
 
+		-- Index with string keys is bad for nil object fields
 		--self.assertEquals(g372.students:all().Max.group, g372)
 		--self.assertEquals(g372.students:all().John.group, g372)
 		--self.assertEquals(g372.students:all().Peter.group, g372)
@@ -215,10 +206,6 @@ return TestCase:extend{
 	end,
 	testT02 = function (self)
 		local Article, Category = T02Article, T02Category
-		local db = Factory(self.validDsn)
-		db:setLogger(self.logger)
-		Article:setDb(db)
-		Category:setDb(db)
 		Article:dropTables()
 		Category:dropTables()
 		Article:createTables()
@@ -258,9 +245,6 @@ return TestCase:extend{
 	end,
 	testT03 = function (self)
 		local Man, Student = T03Man, T03Student
-		local db = Factory(self.validDsn)
-		Man:setDb(db)
-		Student:setDb(db)
 		Student:dropTables()
 		Man:dropTables()
 		Man:createTables()
