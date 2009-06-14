@@ -43,17 +43,6 @@ local Form = TestCase:extend{
 		local f = F(t)
 		self.assertEquals(f.title, "abc")
 		self.assertEquals(f.comments, 25)
-	end,
-	testWidgets = function (self)
-		local F = forms.Form:extend{
-			Meta = {fields={"abc"}},
-			abc = fields.Text{required=true, label="ABC"}
-		}
-		--io.write(html.escape(F():setAction("/section1/"):setId("form"):asHtml()))
-		self.assertEquals(
-			F():setAction("/section1/"):setId("form"):asHtml(),
-			[[<form id="form" action="/section1/" method="POST"><table><tbody><tr><th><label for="formAbc">ABC</label>:</th><td><input type="text" name="abc" id="formAbc" value="" class="required" maxlength="255" /></td></tr><tr><th></th><td></td></tr></tbody></table></form>]]
-		)
 	end
 }
 

@@ -1,5 +1,6 @@
+local table = require "luv.table"
 local Object = require"luv.oop".Object
-local require = require
+local require, type, getfenv, pairs = require, type, getfenv, pairs
 local debug = debug
 
 module(...)
@@ -61,7 +62,30 @@ local sendEmail = function (from, to, subject, body, server)
 	}
 end
 
+local TreeNode = Object:extend{
+	__tag = .....".TreeNode";
+	init = function (self, children, connector)
+		self.connector = connector
+		self.children = children
+	end;
+	add = function (self, child, connector)
+		if table.size(self.children) < 2 then
+			connector = self.connector
+		end
+		if connector == self.connector then
+			table.insert(self.children, child)
+		else
+			local obj = self:clone()
+			self.connector = connector
+			self.children = {obj;child}
+		end
+	end;
+	getConnector = function (self) return self.connector end;
+	getChildren = function (self) return self.children end;
+}
+
 return {
-	Version = Version;
+	Version=Version;
 	sendEmail=sendEmail;
+	TreeNode=TreeNode;
 }

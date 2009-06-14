@@ -11,12 +11,12 @@ local Select = Driver.Select:extend{
 	__tostring = function (self)
 		return
 			"SELECT "
-			..self.db:constructFields(self.fieldsVal)
-			..self.db:constructFrom(self.tables)
-			..self.db:constructJoins(self.joins)
-			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
-			..self.db:constructOrder(self.conditions.order)
-			..self.db:constructLimit(self.conditions.limit)
+			..self._db:constructFields(self._fields)
+			..self._db:constructFrom(self._tables)
+			..self._db:constructJoins(self._joins)
+			..self._db:constructWhere(self._conditions.where, self._conditions.orWhere)
+			..self._db:constructOrder(self._conditions.order)
+			..self._db:constructLimit(self._conditions.limit)
 			..";"
 	end
 }
@@ -36,9 +36,9 @@ local Insert = Driver.Insert:extend{
 	__tostring = function (self)
 		return
 			"INSERT INTO "
-			..self.db:processPlaceholder("?#", self.table)
-			.." ("..self.db:constructFields(self.fieldNames)..") VALUES "
-			..self.db:constructValues(self.fields, self.valuesData)
+			..self._db:processPlaceholder("?#", self._table)
+			.." ("..self._db:constructFields(self._fieldNames)..") VALUES "
+			..self._db:constructValues(self._fields, self._valuesData)
 			..";"
 	end
 }
@@ -48,8 +48,8 @@ local InsertRow = Driver.InsertRow:extend{
 	__tostring = function (self)
 		return
 			"INSERT INTO "
-			..self.db:processPlaceholder("?#", self.table)
-			..self.db:constructSet(self.sets)
+			..self._db:processPlaceholder("?#", self._table)
+			..self._db:constructSet(self._sets)
 			..";"
 	end
 } 
@@ -59,11 +59,11 @@ local Update = Driver.Update:extend{
 	__tostring = function (self)
 		return
 			"UPDATE "
-			..self.db:processPlaceholder("?#", self.table)
-			..self.db:constructSet(self.sets)
-			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
-			..self.db:constructOrder(self.conditions.order)
-			..self.db:constructLimit(self.conditions.limit)
+			..self._db:processPlaceholder("?#", self._table)
+			..self._db:constructSet(self._sets)
+			..self._db:constructWhere(self._conditions.where, self._conditions.orWhere)
+			..self._db:constructOrder(self._conditions.order)
+			..self._db:constructLimit(self._conditions.limit)
 			..";"
 	end
 }
@@ -78,10 +78,10 @@ local Delete = Driver.Delete:extend{
 	__tostring = function (self)
 		return
 			"DELETE FROM "
-			..self.db:processPlaceholder("?#", self.table)
-			..self.db:constructWhere(self.conditions.where, self.conditions.orWhere)
-			..self.db:constructOrder(self.conditions.order)
-			..self.db:constructLimit(self.conditions.limit)
+			..self._db:processPlaceholder("?#", self._table)
+			..self._db:constructWhere(self._conditions.where, self._conditions.orWhere)
+			..self._db:constructOrder(self._conditions.order)
+			..self._db:constructLimit(self._conditions.limit)
 			..";"
 	end
 }
@@ -95,19 +95,19 @@ local CreateTable = Driver.CreateTable:extend{
 	__tag = .....".CreateTable",
 	init = function (self, ...)
 		Driver.CreateTable.init(self, ...)
-		self.options = {charset="utf8", engine="InnoDB"}
+		self._options = {charset="utf8", engine="InnoDB"}
 	end,
 	__tostring = function (self)
 		return
 			"CREATE TABLE "
-			..self.db:processPlaceholder("?#", self.table)
+			..self._db:processPlaceholder("?#", self._table)
 			.." ("
-			..self.db:constructFieldsDefinition(self.fields)
-			..self.db:constructPrimaryKey(self.primaryKeyValue)
-			..self.db:constructUnique(self.unique)
-			..self.db:constructConstraints(self.constraints)
+			..self._db:constructFieldsDefinition(self._fields)
+			..self._db:constructPrimaryKey(self._primaryKeyValue)
+			..self._db:constructUnique(self._unique)
+			..self._db:constructConstraints(self._constraints)
 			..")"
-			..self.db:constructOptions(self.options)
+			..self._db:constructOptions(self._options)
 			..";"
 	end
 }
@@ -115,7 +115,7 @@ local CreateTable = Driver.CreateTable:extend{
 local DropTable = Driver.DropTable:extend{
 	__tag = .....".DropTable",
 	__tostring = function (self)
-		return self.db:processPlaceholders("DROP TABLE ?#;", self.table)
+		return self._db:processPlaceholders("DROP TABLE ?#;", self._table)
 	end
 }
 
@@ -134,8 +134,8 @@ local MysqlDriver = Driver:extend{
 	DropTable = DropTable,
 	init = function (self, host, login, pass, database, port, params)
 		local mysql = LuaSql.mysql()
-		self.connection, error = mysql:connect(database, login, pass, host, port)
-		if not self.connection then
+		self._connection, error = mysql:connect(database, login, pass, host, port)
+		if not self._connection then
 			Driver.Exception("Could not connect to "..login.."@"..host.." (using password: "..(pass and "yes" or "no").."): "..error)
 		end
 	end,
@@ -164,7 +164,7 @@ local MysqlDriver = Driver:extend{
 			return tostring(num)
 		elseif placeholder == "?#" then
 			if type(value) == "table" then
-				local _, v, res = nil, nil, ""
+				local res = ""
 				for _, v in pairs(value) do
 					if res ~= "" then res = res..", " end
 					res = res..self:processPlaceholder("?#", v)
@@ -213,7 +213,7 @@ local MysqlDriver = Driver:extend{
 			end
 			return res
 		elseif placeholder == "?v" then
-			local k, v, res = nil, nil, ""
+			local res = ""
 			for k, v in pairs(value) do
 				if res ~= "" then res = res..", " end
 				res = res..self:processPlaceholder("?#", k)
@@ -230,12 +230,16 @@ local MysqlDriver = Driver:extend{
 		Driver.Exception("Invalid placeholder \""..placeholder.."\"!")
 	end,
 	constructFields = function (self, fields)
-		local k, v, res = nil, nil, {}
+		local res = {}
 		for k, v in pairs(fields) do
 			if type(k) == "string" then
 				res[k] = self:processPlaceholder("?#", v).." AS "..self:processPlaceholder("?#", k)
 			else
-				res[k] = self:processPlaceholder("?#", v)
+				if "*" == v then
+					res[k] = v
+				else
+					res[k] = self:processPlaceholder("?#", v)
+				end
 			end
 		end
 		res = table.join(res, ", ")
@@ -243,7 +247,7 @@ local MysqlDriver = Driver:extend{
 		return res
 	end,
 	constructFrom = function (self, from)
-		local k, v, res = nil, nil, {}
+		local res = {}
 		for k, v in pairs(from) do
 			if type(k) == "string" then
 				res[k] = self:processPlaceholder("?#", v).." AS "..self:processPlaceholder("?#", k)
@@ -254,7 +258,7 @@ local MysqlDriver = Driver:extend{
 		return " FROM "..table.join(res, ", ")
 	end,
 	constructWhere = function (self, where, orWhere)
-		local k, v, w, ow, res, res2 = nil, nil, {}, {}, nil, nil
+		local w, ow, res, res2 = {}, {}, nil, nil
 		for k, v in pairs(where) do
 			table.insert(w, self:processPlaceholders(unpack(v)))
 		end
@@ -276,7 +280,7 @@ local MysqlDriver = Driver:extend{
 		return res..res2
 	end,
 	constructOrder = function (self, order)
-		local k, v, res = nil, nil, {}
+		local res = {}
 		for k, v in pairs(order) do
 			if v == "*" then
 				table.insert(res, "RAND()")
@@ -305,21 +309,21 @@ local MysqlDriver = Driver:extend{
 		end
 	end,
 	constructSet = function (self, sets)
-		local k, v, res = nil, nil, {}
+		local res = {}
 		for k, v in pairs(sets) do
 			res[k] = self:processPlaceholders(unpack(v))
 		end
 		return " SET "..table.join(res, ", ")
 	end,
 	constructValues = function (self, placeholders, values)
-		local res, _, v = {}
+		local res = {}
 		for _, v in pairs(values) do
 			table.insert(res, self:processPlaceholders(placeholders, unpack(v)))
 		end
 		return "("..table.join(res, "), (")..")"
 	end,
 	constructFieldsDefinition = function (self, fields)
-		local res, _, v, fld = {}
+		local res, fld = {}
 		for _, v in pairs(fields) do
 			fld = self:processPlaceholder("?#", v[1]).." "..v[2]
 			local options = v[3] or {}
@@ -345,7 +349,7 @@ local MysqlDriver = Driver:extend{
 		return table.join(res, ", ")
 	end,
 	constructPrimaryKey = function (self, primary)
-		local res, _, v = {}
+		local res = {}
 		if not primary then return "" end
 		for _, v in pairs(primary) do
 			table.insert(res, self:processPlaceholder("?#", v))
@@ -353,7 +357,7 @@ local MysqlDriver = Driver:extend{
 		return ", PRIMARY KEY ("..table.join(res, ", ")..")"
 	end,
 	constructUnique = function (self, unique)
-		local res, _, v, uniq, v2 = {}
+		local res, uniq, v2 = {}
 		if not unique then return "" end
 		for _, v in pairs(unique) do
 			uniq = {}
@@ -365,7 +369,7 @@ local MysqlDriver = Driver:extend{
 		return table.join(res, ",")
 	end,
 	constructConstraints = function (self, refs)
-		local _, v, res, ref = nil, nil, {}
+		local res, ref = {}
 		if not refs then return "" end
 		for _, v in pairs(refs) do
 			ref = self:processPlaceholders(", CONSTRAINT FOREIGN KEY (?#) REFERENCES ?# (?#)", v[1], v[2], v[3])
@@ -376,7 +380,7 @@ local MysqlDriver = Driver:extend{
 		return table.join(res)
 	end,
 	constructOptions = function (self, options)
-		local res, k, v = {}
+		local res = {}
 		if not options then return "" end
 		for k, v in pairs(options) do
 			if k == "charset" then
@@ -390,7 +394,7 @@ local MysqlDriver = Driver:extend{
 		return " "..table.join(res, " ")
 	end,
 	constructJoins = function (self, joins)
-		local res, k, v, tbl = {}
+		local res, tbl = {}
 		for k, v in pairs(joins.inner) do
 			if "table" == type(v[1]) then
 				local name, tbl = next(v[1])

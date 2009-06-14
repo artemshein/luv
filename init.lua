@@ -3,10 +3,9 @@ local string = require"luv.string"
 local debug = require"luv.debug"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
 local _G, error = _G, error
-local oop, exceptions, utils, sessions, fs, ws, sessions = require"luv.oop", require"luv.exceptions", require"luv.utils", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions"
+local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
-local crypt = require "luv.crypt"
-local backend = require "luv.cache.backend"
+local crypt, backend = require "luv.crypt", require "luv.cache.backend"
 local Memory, NamespaceWrapper, TagEmuWrapper = backend.Memory, backend.NamespaceWrapper, backend.TagEmuWrapper
 local Slot = require "luv.cache.frontend".Slot
 
@@ -73,24 +72,24 @@ end
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf",
 	init = function (self, wsApi)
-		self.wsApi = wsApi
-		self.uri = wsApi:getRequestHeader("REQUEST_URI") or ""
-		local queryPos = string.find(self.uri, "?")
+		self._wsApi = wsApi
+		self._uri = wsApi:getRequestHeader("REQUEST_URI") or ""
+		local queryPos = string.find(self._uri, "?")
 		if queryPos then
-			self.uri = string.sub(self.uri, 1, queryPos-1)
+			self._uri = string.sub(self._uri, 1, queryPos-1)
 		end
-		self.tailUri = self.uri
-		self.baseUri = ""
-		self.captures = {}
+		self._tailUri = self._uri
+		self._baseUri = ""
+		self._captures = {}
 	end,
-	getWsApi = function (self) return self.wsApi end;
-	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end;
+	getWsApi = function (self) return self._wsApi end;
+	setWsApi = function (self, wsApi) self._wsApi = wsApi return self end;
 	getCapture = function (self, pos)
 		return self.captures[pos]
 	end;
-	getUri = function (self) return self.uri end;
-	getTailUri = function (self) return self.tailUri end;
-	getBaseUri = function (self) return self.baseUri end;
+	getUri = function (self) return self._uri end;
+	getTailUri = function (self) return self._tailUri end;
+	getBaseUri = function (self) return self._baseUri end;
 	execute = function (self, action)
 		if type(action) == "string" then
 			local result = dofile(action)
@@ -110,16 +109,16 @@ local UrlConf = Object:extend{
 		end
 		for _, item in pairs(urls) do
 			if "string" == type(item[1]) then
-				local res = {string.find(self.tailUri, item[1])}
+				local res = {string.find(self._tailUri, item[1])}
 				if nil ~= res[1] then
-					local oldTailUri, oldBaseUri, oldCaptures = self.tailUri, self.baseUri, self.captures
-					local tailUriLen = string.len(self.tailUri)
-					self.baseUri = self.baseUri..string.sub(self.uri, 1, -tailUriLen+res[1]-2)
-					self.tailUri = string.sub(self.tailUri, res[2]+1)
+					local oldTailUri, oldBaseUri, oldCaptures = self._tailUri, self._baseUri, self._captures
+					local tailUriLen = string.len(self._tailUri)
+					self._baseUri = self._baseUri..string.sub(self._uri, 1, -tailUriLen+res[1]-2)
+					self._tailUri = string.sub(self._tailUri, res[2]+1)
 					self.captures = {}
 					local i = 3
 					for i = 3, #res do
-						table.insert(self.captures, res[i])
+						table.insert(self._captures, res[i])
 					end
 					if false ~= self:execute(item[2]) then
 						return true
@@ -180,47 +179,47 @@ local Core = Object:extend{
 		self:setProfiler(Profiler())
 		self:beginProfiling("Luv")
 		--
-		self.wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
-		self.urlconf = UrlConf(self.wsApi)
+		self._wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
+		self._urlconf = UrlConf(self._wsApi)
 		self:setCacher(TagEmuWrapper(Memory()))
 	end,
-	getWsApi = function (self) return self.wsApi end,
-	setWsApi = function (self, wsApi) self.wsApi = wsApi return self end,
-	getTemplater = function (self) return self.templater end,
-	setTemplater = function (self, templater) self.templater = templater return self end,
-	getSession = function (self) return self.session end,
-	setSession = function (self, session) self.session = session return self end,
+	getWsApi = function (self) return self._wsApi end,
+	setWsApi = function (self, wsApi) self._wsApi = wsApi return self end,
+	getTemplater = function (self) return self._templater end,
+	setTemplater = function (self, templater) self._templater = templater return self end,
+	getSession = function (self) return self._session end,
+	setSession = function (self, session) self._session = session return self end,
 	-- Database
-	getDsn = function (self) return self.dsn end,
+	getDsn = function (self) return self._dsn end,
 	setDsn = function (self, dsn)
 		self.dsn = dsn
-		self.db = require "luv.db".Factory(dsn)
-		require "luv.db.models".Model:setDb(self.db)
-		self.db:setLogger(function (sql, result)
+		self._db = require "luv.db".Factory(dsn)
+		require "luv.db.models".Model:setDb(self._db)
+		self._db:setLogger(function (sql, result)
 			self:debug(sql, "Database")
 		end)
 		return self
 	end,
-	getDb = function (self) return self.db end,
-	beginTransaction = function (self) return self.db:beginTransaction() end;
-	commit = function (self) return self.db:commit() end;
-	rollback = function (self) return self.db:rollback() end;
+	getDb = function (self) return self._db end,
+	beginTransaction = function (self) return self._db:beginTransaction() end;
+	commit = function (self) return self._db:commit() end;
+	rollback = function (self) return self._db:rollback() end;
 	-- Web-server
-	getRequestHeader = function (self, ...) return self.wsApi:getRequestHeader(...) end,
-	setResponseHeader = function (self, ...) self.wsApi:setResponseHeader(...) return self end,
-	setResponseCode = function (self, ...) self.wsApi:setResponseCode(...) return self end;
-	sendHeaders = function (self, ...) self.wsApi:sendHeaders(...) return self end;
-	getGet = function (self, name) return self.wsApi:getGet(name) end,
-	getGetData = function (self) return self.wsApi:getGetData() end,
-	getPost = function (self, name) return self.wsApi:getPost(name) end,
-	getPostData = function (self) return self.wsApi:getPostData() end,
+	getRequestHeader = function (self, ...) return self._wsApi:getRequestHeader(...) end,
+	setResponseHeader = function (self, ...) self._wsApi:setResponseHeader(...) return self end,
+	setResponseCode = function (self, ...) self._wsApi:setResponseCode(...) return self end;
+	sendHeaders = function (self, ...) self._wsApi:sendHeaders(...) return self end;
+	getGet = function (self, name) return self._wsApi:getGet(name) end,
+	getGetData = function (self) return self._wsApi:getGetData() end,
+	getPost = function (self, name) return self._wsApi:getPost(name) end,
+	getPostData = function (self) return self._wsApi:getPostData() end,
 	getCookie = function (self, name) return self.wsApi:getCookie(name) end,
-	setCookie = function (self, ...) self.wsApi:setCookie(...) return self end,
-	getCookies = function (self) return self.wsApi:getCookies() end,
-	getSession = function (self) return self.session end,
-	setSession = function (self, session) self.session = session return self end,
+	setCookie = function (self, ...) self._wsApi:setCookie(...) return self end,
+	getCookies = function (self) return self._wsApi:getCookies() end,
+	getSession = function (self) return self._session end,
+	setSession = function (self, session) self._session = session return self end,
 	-- URL conf
-	dispatch = function (self, urlconf) return self.urlconf:dispatch(urlconf) end,
+	dispatch = function (self, urlconf) return self._urlconf:dispatch(urlconf) end,
 	-- Models
 	dropModels = function (self, models)
 		for _, info in ipairs(sortTablesList(constructTablesList(models))) do
@@ -235,28 +234,28 @@ local Core = Object:extend{
 	end,
 	-- Templater
 	addTemplatesDir = function (self, templatesDir)
-		self.templater:addTemplatesDir(templatesDir)
+		self._templater:addTemplatesDir(templatesDir)
 		return self
 	end,
 	assign = function (self, ...)
-		self.templater:assign(...)
+		self._templater:assign(...)
 		return self
 	end;
 	fetchString = function (self, template)
 		self:flush()
-		return self.templater:fetchString(template)
+		return self._templater:fetchString(template)
 	end;
 	fetch = function (self, template)
 		self:flush()
-		return self.templater:fetch(template)
+		return self._templater:fetch(template)
 	end;
 	displayString = function (self, template)
 		self:flush()
-		return self.templater:displayString(template)
+		return self._templater:displayString(template)
 	end;
 	display = function (self, template)
 		self:flush()
-		return self.templater:display(template)
+		return self._templater:display(template)
 	end;
 	flush = function (self)
 		self:endProfiling("Luv")
@@ -267,44 +266,44 @@ local Core = Object:extend{
 		self:assign{debugger=self.debugger or ""}
 	end;
 	-- Profiler
-	getProfiler = function (self) return self.profiler end;
-	setProfiler = function (self, profiler) self.profiler = profiler return self end;
-	beginProfiling = function (self, section) self.profiler:beginSection(section) return self end;
-	endProfiling = function (self, section) self.profiler:endSection(section) return self end;
+	getProfiler = function (self) return self._profiler end;
+	setProfiler = function (self, profiler) self._profiler = profiler return self end;
+	beginProfiling = function (self, section) self._profiler:beginSection(section) return self end;
+	endProfiling = function (self, section) self._profiler:endSection(section) return self end;
 	-- Debugger
-	getDebugger = function (self) return self.debugger end;
+	getDebugger = function (self) return self._debugger end;
 	setDebugger = function (self, debugger)
-		self.debugger = debugger
+		self._debugger = debugger
 		return self
 	end;
 	debug = function (self, ...)
-		if self.debugger then
-			self.debugger:debug(...)
+		if self._debugger then
+			self._debugger:debug(...)
 		end
 		return self
 	end;
 	info = function (self, ...)
-		if self.debugger then
-			self.debugger:info(...)
+		if self._debugger then
+			self._debugger:info(...)
 		end
 		return self
 	end;
 	warn = function (self, ...)
-		if self.debugger then
-			self.debugger:warn(...)
+		if self._debugger then
+			self._debugger:warn(...)
 		end
 		return self
 	end;
 	error = function (self, ...)
-		if self.debugger then
-			self.debugger:error(...)
+		if self._debugger then
+			self._debugger:error(...)
 		end
 		return self
 	end;
 	-- Caching
-	getCacher = function (self) return self.cacher end;
+	getCacher = function (self) return self._cacher end;
 	setCacher = function (self, cacher)
-		self.cacher = cacher
+		self._cacher = cacher
 		require "luv.db.models".Model:setCacher(cacher)
 		return self
 	end;
@@ -318,9 +317,9 @@ local Core = Object:extend{
 		return require "luv.db.models".ModelTag(self:getCacher(), model)
 	end;
 	-- I18n
-	getI18n = function (self) return self.i18n end;
-	setI18n = function (self, i18n) self.i18n = i18n return self end;
-	tr = function (self, str) return self.i18n:tr(str) or str end;
+	getI18n = function (self) return self._i18n end;
+	setI18n = function (self, i18n) self._i18n = i18n return self end;
+	tr = function (self, str) return self._i18n:tr(str) or str end;
 }
 
 local Struct = Object:extend{

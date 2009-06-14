@@ -174,18 +174,11 @@ local ManyToMany = Reference:extend{
 	end;
 	all = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()
-		local pkName = container:getPkName()
-		if not container:getPk():getValue() then
+		if not container.pk then
 			return nil
 		end
 		local models = require 'luv.db.models'
-		local db = require 'luv.db'
-		return models.LazyQuerySet(self:getRefModel(), function (qs, s)
-			if s:isKindOf(db.Driver.Select) then
-				s:join({refTable=self:getTableName()}, {'?#.?# = ?#.?#', 'refTable', qs.model:getTableName(), qs.model:getTableName(), qs.model:getPkName()}, {})
-				s:where('?#.?#='..qs.model:getFieldPlaceholder(container:getField(pkName)), 'refTable', container:getTableName(), container:getField(pkName):getValue())
-			end
-		end)
+		return models.QuerySet(refModel):filter{[self:getRelatedName().."__pk"]=container.pk}
 	end,
 	count = function (self)
 		return self:all():count()
@@ -273,7 +266,7 @@ local OneToMany = Reference:extend{
 		if not relationField:getValue() then
 			Exception"Relation field value must be set!"
 		end
-		return require"luv.db.models".LazyQuerySet(refModel):filter{[refFieldName]=relationField:getValue()}
+		return require"luv.db.models".QuerySet(refModel):filter{[refFieldName.."__pk"]=container.pk}
 	end,
 	filter = function (self, ...)
 		return self:all():filter(...)

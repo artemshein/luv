@@ -46,7 +46,7 @@ local TestCase = Object:extend{
 				stat.total = stat.total+1
 				table.insert(stat.methods, key)
 				io.write(key, ", ")
-				try(runTest, self, self[key]):catch(Exception, errorHandler)
+				try(runTest, self, self[key]):catch(Exception, errorHandler):throw()
 			end
 		end
 		if stat.total ~= 0 then
@@ -82,12 +82,13 @@ local TestSuite = Object:extend{
 		end
 		for _, test in pairs(self.tests) do
 			local t = require(test)
-			io.write(test, ": ")
 			if t.isObject then
+				io.write(test, ": ")
 				runTest(t)
 			else
 				local testCase
-				for _, testCase in pairs(t) do
+				for k, testCase in pairs(t) do
+					io.write(test, "/", k, ": ")
 					runTest(testCase)
 				end
 			end

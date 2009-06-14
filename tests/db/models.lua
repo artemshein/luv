@@ -1,6 +1,6 @@
-require"luv.debug"
-local getmetatable, io, require, debug = getmetatable, io, require, debug
-local table, type = table, type
+local debug = require "luv.debug"
+local getmetatable, io, require = getmetatable, io, require
+local table, type, tostring = table, type, tostring
 local TestCase, Model, fields, references, Factory = require"luv.unittest".TestCase, require"luv.db.models".Model, require"luv.fields", require"luv.fields.references", require"luv.db".Factory
 
 module(...)
@@ -61,13 +61,17 @@ local validDsn = "mysql://test:test@localhost/test"
 
 return TestCase:extend{
 	__tag = ...,
-	validDsn = validDsn,
+	validDsn = validDsn;
+	logger = function (sql)
+		io.write(sql, "<br />")
+	end;
 	setUp = function (self)
 		self.A = Model:extend{
 			title = fields.Text{unique=true},
 			Meta = {label = "a", labelMany = "as"}
 		}
 		self.A:setDb(Factory(self.validDsn))
+		self.A:getDb():setLogger(self.logger)
 		self.A:dropTables()
 		self.A:createTables()
 	end,
@@ -120,9 +124,20 @@ return TestCase:extend{
 		local b = self.A:getDb():SelectRow():from(self.A:getTableName()):where("?#=?n", "id", id):exec()
 		self.assertTrue(b.title, "cde")
 	end,
+	testQ = function (self)
+		self.assertTrue(
+			T01Group:all():filter{students__name__in={"John";"Max";"Pete"}}:asSql(),
+			"SELECT * FROM `group` JOIN `student` ON `group`.`number`=`student`.`group` WHERE (`student`.`name` IN ('John', 'Max', 'Pete'));"
+		)
+		self.assertTrue(
+			T01Group:all():filter{students__group__students__name__exact="Vova"}:asSql(),
+			"SELECT * FROM `group` JOIN `student` ON `group`.`number`=`student`.`group` WHERE (`student`.`name`='Vova');"
+		)
+	end;
 	testT01 = function (self)
 		local Student, Group = T01Student, T01Group
 		local db = Factory(self.validDsn)
+		db:setLogger(self.logger)
 		Student:setDb(db)
 		Group:setDb(db)
 		Student:dropTables()
@@ -169,11 +184,11 @@ return TestCase:extend{
 		self.assertEquals(g372.students:all():filter{name__exact="Max"}:count(), 1)
 		self.assertEquals(g372.students:filter{name__beginswith="Ma"}:count(), 1)
 		self.assertEquals(g372.students:filter{name__endswith="hn"}:count(), 1)
-		self.assertEquals(g372.students:filter{name__contains="a"}:count(), 1)
+		self.assertEquals(g372.students:filter{name__contains="a"}:count(), 2)
 		self.assertEquals(g372.students:filter"Max":count(), 1)
 		self.assertEquals(g372.students:all():filter{name__in={"Max", "John", "Mary"}}:count(), 2)
-		self.assertEquals(g372.students:exclude"Max":count(), 2)
-		self.assertEquals(g372.students:exclude{name__in={"Max", "John", "Fil"}}:count(), 1)
+		self.assertEquals(g372.students:exclude"Max":count(), 3)
+		self.assertEquals(g372.students:exclude{name__in={"Max", "John", "Fil"}}:count(), 2)
 		self.assertEquals(g581.students:count(), 1)
 
 		--self.assertEquals(g372.students:all().Max.group, g372)
@@ -201,6 +216,7 @@ return TestCase:extend{
 	testT02 = function (self)
 		local Article, Category = T02Article, T02Category
 		local db = Factory(self.validDsn)
+		db:setLogger(self.logger)
 		Article:setDb(db)
 		Category:setDb(db)
 		Article:dropTables()

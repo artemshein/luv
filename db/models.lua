@@ -5,8 +5,10 @@ local os = os
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
-local cache = require "luv.cache.frontend"
+local cache, db = require "luv.cache.frontend", require "luv.db"
 local crypt = require "luv.crypt"
+local TreeNode = require "luv.utils".TreeNode
+local f = require "luv.function".f
 
 module(...)
 
@@ -178,6 +180,9 @@ local Model = Struct:extend{
 	setOrder = function (self, order) self.Meta.order = order return self end;
 	-- Find
 	getFieldPlaceholder = function (self, field)
+		if not field then
+			Exception "field expected"
+		end
 		if not field:isRequired() then
 			return "?n"
 		end
@@ -214,7 +219,7 @@ local Model = Struct:extend{
 		return new
 	end,
 	all = function (self, limitFrom, limitTo)
-		local qs = require "luv.db.models".LazyQuerySet(self)
+		local qs = require "luv.db.models".QuerySet(self)
 		if limitFrom then
 			qs:limit(limitFrom, limitTo)
 		end
@@ -427,7 +432,6 @@ local Model = Struct:extend{
 		return self.db:DropTable(self:getTableName()):exec()
 	end;
 	dropTables = function (self)
-		local _, v
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.ManyToMany) then
 				v:dropTable()
@@ -598,8 +602,275 @@ local FAdd = F:extend{
 	end;
 }
 
-local LazyQuerySet = Object:extend{
-	__tag = .....".LazyQuerySet",
+local Q = TreeNode:extend{
+	__tag = .....".Q";
+	init = function (self, values)
+		TreeNode.init(self, {values}, "AND")
+	end;
+	isNegated = function (self) return self.negated end;
+	__add = function (self, q)
+		return self:clone():add(q, "AND")
+	end;
+	__sub = function (self, q)
+		return self:clone():add(q, "OR")
+	end;
+	__unm = function (self)
+		local obj = self:clone()
+		obj.negated = obj.negated and false or true
+		return obj
+	end;
+}
+
+local QuerySet = Object:extend{
+	__tag = .....".QuerySet";
+	init = function (self, model)
+		local mt = getmetatable(self) or {}
+		mt.__call = function (self, ...)
+			if not self._evaluated then
+				self:_evaluate()
+			end
+			return ipairs(self._values, ...)
+		end
+		mt.__index = function (self, field)
+			local res = self.parent[field]
+			if res then
+				return res
+			end
+			if not rawget(self, "_evaluated") then
+				self:_evaluate()
+			end
+			return self._values[field]
+		end
+		self._evaluated = false
+		self._model = model
+		self._orders = {}
+		self._limits = {}
+		self._values = {}
+		self._query = model:getDb():Select "*":from(self._model:getTableName())
+	end;
+	filter = function (self, condition)
+		local obj = self:clone()
+		obj._evaluated = false
+		obj._q = obj._q and (obj._q + Q(condition)) or Q(condition)
+		return obj
+	end;
+	exclude = function (self, condition)
+		local obj = self:clone()
+		obj._evaluated = false
+		obj._q = obj._q and (obj._q + -Q(condition)) or -Q(condition)
+		return obj
+	end;
+	order = function (self, ...)
+		for _, v in ipairs{select(1, ...)} do
+			table.insert(self._orders, v)
+		end
+		return self
+	end;
+	limit = function (self, limitFrom, limitTo)
+		self._limits = {from=limitFrom;to=limitTo}
+		return self
+	end;
+	_processFieldName = function (self, s, parts)
+		local curModel = self._model
+		local result = {}
+		for i, part in ipairs(parts) do
+			if "pk" == part then
+				part = curModel:getPkName()
+			end
+			local field = curModel:getField(part)
+			if not curModel then
+				Exception "invalid field"
+			end
+			if not field then
+				Exception("field "..string.format("%q", part).." not founded")
+			end
+			if field:isKindOf(references.Reference) then
+				result = {field:getRefModel():getTableName()}
+				result.sql = "?#"
+				if field:isKindOf(references.OneToOne) then
+					if field:isBackLink() then
+						s:join(
+							field:getRefModel():getTableName(),
+							{
+								"?#.?#=?#.?#";
+								curModel:getTableName();curModel:getPkName();
+								field:getRefModel():getTableName();field:getBackRefFieldName()
+							}
+						)
+					else
+						s:join(
+							field:getRefModel():getTableName(),
+							{
+								"?#.?#=?#.?#";
+								curModel:getTableName();part;
+								field:getRefModel():getTableName();field:getRefModel():getPkName()
+							}
+						)
+					end
+				elseif field:isKindOf(references.OneToMany) then
+					s:join(
+						field:getRefModel():getTableName(),
+						{
+							"?#.?#=?#.?#";
+							curModel:getTableName();curModel:getPkName();
+							field:getRefModel():getTableName();field:getRelatedName()
+						}
+					)
+				elseif field:isKindOf(references.ManyToOne) then
+					s:join(
+						field:getRefModel():getTableName(),
+						{"?#.?#=?#.?#";curModel:getTableName();part;field:getRefModel():getTableName();field:getRefModel():getPkName()}
+					)
+				elseif field:isKindOf(references.ManyToMany) then
+					s:join(
+						field:getTableName(),
+						{
+							"?#.?#=?#.?#";
+							curModel:getTableName();curModel:getPkName();
+							field:getTableName();curModel:getTableName()
+						}
+					)
+					s:join(
+						field:getRefModel():getTableName(),
+						{
+							"?#.?#=?#.?#";
+							field:getTableName();field:getRefModel():getTableName();
+							field:getRefModel():getTableName();field:getRefModel():getPkName()
+						}
+					)
+				end
+				curModel = field:getRefModel()
+			else
+				curModel = nil
+				result.field = field
+				result.sql = result.sql and (result.sql..".?#") or "?#"
+				table.insert(result, part)
+			end
+		end
+		return result
+	end;
+	_processFilter = function (self, s, filter)
+		local operators = {
+			eq="=";isnull=" IS NULL";exact="=";lt="<";gt=">";lte="<=";gte=">=";
+			["in"]=" IN (?a)";beginswith=" LIKE ?";endswith=" LIKE ?";contains=" LIKE ?"
+		}
+		local result = {}
+		if "string" == type(filter) then
+			filter = {pk=filter}
+		end
+		for k, v in pairs(filter) do
+			local parts
+			if string.find(k, "__") then
+				parts = string.explode(k, "__")
+			else
+				parts = {k}
+			end
+			local op = parts[table.maxn(parts)]
+			if operators[op] then
+				table.remove(parts)
+			else
+				op = "eq"
+			end
+			local res = self:_processFieldName(s, parts)
+			local valStr, val
+			if "isnull" == op or "in" == op or "beginswith" == op
+			or "endswith" == op or "contains" == op then
+				valStr = operators[op]
+				if "beginswith" == op then
+					v = v.."%"
+				elseif "endswith" == op then
+					v = "%"..v
+				elseif "contains" == op then
+					v ="%"..v.."%"
+				elseif "isnull" == op then
+					if not v then
+						valStr = " NOT"..valStr
+					end
+				end
+			else
+				valStr = operators[op]..self._model:getFieldPlaceholder(res.field)
+			end
+			result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
+			for _, val in ipairs(res) do
+				table.insert(result, val)
+			end
+			if "isnull" ~= op then
+				table.insert(result, v)
+			end
+		end
+		return result
+	end;
+	_processQ = function (self, s, q)
+		local result = {}
+		local op = q:getConnector()
+		for _, v in ipairs(q:getChildren()) do
+			local res = v.isKindOf and v:isKindOf(Q) and self:_processQ(s, v) or self:_processFilter(s, v)
+			result.sql = (result.sql and (result.sql..op) or "")..res.sql
+			for _, value in ipairs(res) do
+				table.insert(result, value)
+			end
+		end
+		result.sql = (q:isNegated() and "(NOT (" or "(")..result.sql..(q:isNegated() and "))" or ")")
+		return result
+	end;
+	_applyConditions = function (self, s)
+		if self._q then
+			local res = self:_processQ(s, self._q)
+			local values = {}
+			for _, v in ipairs(res) do
+				table.insert(values, v)
+			end 
+			s:where(string.slice(res.sql, 2, -2), unpack(values))
+		end
+		if self._limits.from then
+			s:limit(self._limits.from, self._limits.to)
+		end
+		if not table.isEmpty(self._orders) then
+			s:order(unpack(self._orders))
+		end
+	end;
+	_evaluate = function (self)
+		self._evaluated = true
+		self:_applyConditions(self._query)
+		self._values = {}
+		for _, v in self._query() do
+			table.insert(self._values, self._model(v))
+		end
+	end;
+	getValue = function (self)
+		if not self._evaluated then
+			self:_evaluate()
+		end
+		return self._values
+	end;
+	count = function (self)
+		local s = self._model:getDb():SelectCell "COUNT(*)":from(self._model:getTableName())
+		self:_applyConditions(s)
+		return tonumber(s:exec())
+	end;
+	asSql = function (self)
+		local s = self._query:clone()
+		self:_applyConditions(s)
+		return tostring(s)
+	end;
+	update = function (self, set)
+		local u = self._model:getDb():Update(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(self:getValue(), f "a.pk"))
+		local val
+		for k, v in pairs(set) do
+			if type(v) == "table" and v.isKindOf and v:isKindOf(Model) then
+				val = v.pk
+			else
+				val = v
+			end
+			u:set("?#="..self._model:getFieldPlaceholder(self._model:getField(k)), k, val)
+		end
+		return u:exec()
+	end
+}
+
+--[[
+local QuerySet = Object:extend{
+	__tag = .....".QuerySet",
 	init = function (self, model, func)
 		self.model = model
 		self.db = model:getDb()
@@ -770,7 +1041,7 @@ local LazyQuerySet = Object:extend{
 		end
 		s:exec()
 	end
-}
+}]]
 
 local Paginator = Object:extend{
 	__tag = .....".Paginator";
@@ -790,5 +1061,5 @@ local Paginator = Object:extend{
 
 return {
 	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;NestedSet=NestedSet;
-	LazyQuerySet=LazyQuerySet;Paginator=Paginator;F=F;FAdd=FAdd;FSub=FSub;
+	QuerySet=QuerySet;Paginator=Paginator;F=F;FAdd=FAdd;FSub=FSub;
 }
