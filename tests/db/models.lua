@@ -1,7 +1,6 @@
-local debug = require "luv.debug"
 local getmetatable, io, require = getmetatable, io, require
 local table, type, tostring = table, type, tostring
-local TestCase, Model, fields, references, Factory = require"luv.unittest".TestCase, require"luv.db.models".Model, require"luv.fields", require"luv.fields.references", require"luv.db".Factory
+local TestCase, Model, fields, references, Factory = require "luv.dev.unittest".TestCase, require "luv.db.models".Model, require "luv.fields", require "luv.fields.references", require "luv.db".Factory
 
 module(...)
 

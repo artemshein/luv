@@ -1,5 +1,4 @@
 local string = require "luv.string"
-local debug = require "luv.debug"
 local tr = tr
 local io, ipairs, tostring, pairs, table, tonumber = io, ipairs, tostring, pairs, table, tonumber
 local unpack, type, rawget, select = unpack, type, rawget, select

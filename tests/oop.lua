@@ -1,6 +1,5 @@
-require"luv.debug"
-local getmetatable, debug = getmetatable, debug
-local Object, TestCase = require"luv.oop".Object, require"luv.unittest".TestCase
+local getmetatable = getmetatable
+local Object, TestCase = require "luv.oop".Object, require "luv.dev.unittest".TestCase
 
 module(...)
 

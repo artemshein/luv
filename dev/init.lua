@@ -3,7 +3,7 @@ local debug, type, rawget, io, tostring, pairs, getmetatable = debug, type, rawg
 
 module(...)
 
-debug.dump = function (obj, depth, tab, seen)
+local function dump (obj, depth, tab, seen)
 	local res, tab = "", tab or ""
 	local depth = depth or 1
 	local seen = seen or {}
@@ -16,7 +16,7 @@ debug.dump = function (obj, depth, tab, seen)
 	elseif type(obj) == "number" then
 		res = res..obj
 	elseif type(obj) == "string" then
-		res = res.."\""..obj.."\""
+		res = res..string.format("%q", obj)
 	elseif type(obj) == "table" then
 		local tag = rawget(obj, "__tag")
 		if tag then
@@ -29,7 +29,7 @@ debug.dump = function (obj, depth, tab, seen)
 				res = res.."table"
 			end
 		end
-		if table.find(seen, obj) then
+		if table.ifind(seen, obj) then
 			res = res.."[RECURSION]"
 		elseif 0 ~= depth then
 			table.insert(seen, obj)
@@ -37,14 +37,14 @@ debug.dump = function (obj, depth, tab, seen)
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do
 				if key ~= "__tag" then
-					res = res..ntab..key.." = "..debug.dump(val, depth-1, ntab, seen)..",\n"
+					res = res..ntab..key.." = "..dump(val, depth-1, ntab, seen)..",\n"
 				end
 			end
 			if getmetatable(obj) then
-				res = res..ntab.."__metatable = "..debug.dump(getmetatable(obj), depth-1, ntab, seen).."\n"
+				res = res..ntab.."__metatable = "..dump(getmetatable(obj), depth-1, ntab, seen).."\n"
 			end
 			res = res..tab.."}"
-			table.removeValue(seen, obj)
+			table.iremoveValue(seen, obj)
 		end
 	elseif type(obj) == "function" then
 		res = res..tostring(obj)
@@ -54,6 +54,6 @@ debug.dump = function (obj, depth, tab, seen)
 	return res
 end
 
-debug.dprint = function (...) io.write(debug.dump(...)) end
+local function dprint (...) io.write(dump(...)) end
 
-return debug
+return {dump=dump;dprint=dprint}

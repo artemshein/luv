@@ -1,11 +1,10 @@
-local debug = require "luv.debug"
-local string = require 'luv.string'
+local string = require "luv.string"
 local io, type, require, math, tostring = io, type, require, math, tostring
 local ipairs = ipairs
 local tr = tr
 local models, fields, references, forms, managers, crypt, widgets = require "luv.db.models", require "luv.fields", require "luv.fields.references", require "luv.forms", require "luv.managers", require "luv.crypt", require "luv.fields.widgets"
 local widgets = require "luv.fields.widgets"
-local Exception = require 'luv.exceptions'.Exception
+local Exception = require "luv.exceptions".Exception
 
 module(...)
 

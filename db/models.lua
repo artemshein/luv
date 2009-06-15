@@ -1,6 +1,5 @@
 local table = require "luv.table"
 local string = require "luv.string"
-local debug = require "luv.debug"
 local os = os
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
@@ -539,24 +538,60 @@ local NestedSet = Tree:extend{
 	end;
 }
 
-local function operandToString (op)
-	if "string" == type(op) then
-		return "?"
-	elseif "number" == type(op) then
-		return "?d"
-	else
-		return tostring(op)
-	end
-end
-
-local function operandValues (op)
-	if "string" == type(op) or "number" == type(op) then
-		return {op}
-	else
-		return op:getValues()
-	end
-end
-
+local F = TreeNode:extend{
+	__tag = .....".F";
+	init = function (self, ...)
+		TreeNode.init(self, ...)
+		local mt = getmetatable(self)
+		mt.__add = function (self, f2)
+			return self.parent({self;f2}, "+")
+		end;
+		mt.__sub = function (self, f2)
+			return self.parent({self;f2}, "-")
+		end;
+		mt.__tostring = function (self)
+			local function operandToString (op)
+				if "string" == type(op) then
+					return "?"
+				elseif "number" == type(op) then
+					return "?d"
+				else
+					return tostring(op)
+				end
+			end
+			if not self:getConnector() then
+				return "?#"
+			elseif "+" == self:getConnector() then
+				return operandToString(self:getChildren()[1]).."+"..operandToString(self:getChildren()[2])
+			elseif "-" == self:getConnector() then
+				return operandToString(self:getChildren()[1]).."-"..operandToString(self:getChildren()[2])
+			else
+				Exception("unsupported operand "..self:getConnector())
+			end
+		end;
+	end;
+	getValues = function (self)
+		local function operandValues (op)
+			if "string" == type(op) or "number" == type(op) then
+				return {op}
+			else
+				return op:getValues()
+			end
+		end
+		local connector = self:getConnector()
+		local children = self:getChildren()
+		if not connector then
+			return {children[1]}
+		elseif "+" == connector or "-" == connector then
+			local res = operandValues(children[1])
+			for _, v in ipairs(children[2]) do
+				table.insert(res, v)
+			end
+			return res
+		end
+	end;
+}
+--[[
 local F = Object:extend{
 	__tag = .....".F";
 	init = function (self, field) self.field = field end;
@@ -601,7 +636,7 @@ local FAdd = F:extend{
 		return res
 	end;
 }
-
+]]
 local Q = TreeNode:extend{
 	__tag = .....".Q";
 	init = function (self, values)
@@ -1086,5 +1121,5 @@ local Paginator = Object:extend{
 
 return {
 	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;NestedSet=NestedSet;
-	QuerySet=QuerySet;Paginator=Paginator;F=F;FAdd=FAdd;FSub=FSub;
+	QuerySet=QuerySet;Paginator=Paginator;F=F;
 }

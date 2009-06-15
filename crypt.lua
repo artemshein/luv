@@ -1,7 +1,6 @@
-require "luv.debug"
-local string, debug = string, debug
-local Object = require"luv.oop".Object
-local Filter = require"datafilter"
+local string = string
+local Object = require "luv.oop".Object
+local Filter = require "datafilter"
 
 module(...)
 

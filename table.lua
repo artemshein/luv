@@ -35,7 +35,6 @@ table.ifind = function (self, val)
 			return k
 		end
 	end
-	return nil
 end
 
 table.find = function (self, val)
@@ -44,27 +43,20 @@ table.find = function (self, val)
 			return k
 		end
 	end
-	return nil
 end
 
 table.iremoveValue = function (self, val)
-	for k, v in ipairs(self) do
-		if val == v then
-			table.remove(self, k)
-			return true
-		end
+	local key = table.ifind(self, val)
+	if key then
+		return table.remove(self, key)
 	end
-	return false
 end
 
 table.removeValue = function (self, val)
-	for k, v in pairs(self) do
-		if val == v then
-			self[k] = nil
-			return true
-		end
+	local key = table.find(self, val)
+	if key then
+		return table.remove(self, key)
 	end
-	return false
 end
 
 table.copy = function (self)

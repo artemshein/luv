@@ -1,7 +1,6 @@
-require"luv.table"
-require"luv.debug"
-require"luv.checktypes"
-local table, tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset, expect, checkTypes, _G = table, tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset, expect, checkTypes, _G
+local table = require"luv.table"
+require "luv.checktypes"
+local tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset, expect, checkTypes, _G = tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset, expect, checkTypes, _G
 
 module(...)
 

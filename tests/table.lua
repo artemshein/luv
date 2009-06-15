@@ -1,6 +1,5 @@
-require"luv.table"
-local table = table
-local TestCase = require"luv.unittest".TestCase
+local table = require"luv.table"
+local TestCase = require "luv.dev.unittest".TestCase
 
 module(...)
 

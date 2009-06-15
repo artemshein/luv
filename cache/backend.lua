@@ -1,6 +1,5 @@
 local table = require "luv.table"
 local string = require "luv.string"
-local debug = require "luv.debug"
 local tostring, io, pairs, ipairs, os, tonumber = tostring, io, pairs, ipairs, os, tonumber
 local type, math, unpack = type, math, unpack
 local Object = require "luv.oop".Object

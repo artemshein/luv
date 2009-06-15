@@ -1,6 +1,6 @@
-require"luv.string"
-local tostring, string = tostring, string
-local TestCase, crypt = require"luv.unittest".TestCase, require"luv.crypt"
+local string = require "luv.string"
+local tostring = tostring
+local TestCase, crypt = require "luv.dev.unittest".TestCase, require "luv.crypt"
 
 module(...)
 

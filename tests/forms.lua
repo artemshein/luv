@@ -1,6 +1,5 @@
-require"luv.debug"
-local io, type, tostring, debug = io, type, tostring, debug
-local TestCase, forms, fields, Model, html = require"luv.unittest".TestCase, require"luv.forms", require"luv.fields", require"luv.db.models".Model, require"luv.utils.html"
+local io, type, tostring = io, type, tostring
+local TestCase, forms, fields, Model, html = require "luv.dev.unittest".TestCase, require "luv.forms", require "luv.fields", require "luv.db.models".Model, require "luv.utils.html"
 local references = require "luv.fields.references"
 
 module(...)

@@ -1,4 +1,4 @@
-local TestCase, db = require"luv.unittest".TestCase, require"luv.db"
+local TestCase, db = require "luv.dev.unittest".TestCase, require "luv.db"
 
 module(...)
 

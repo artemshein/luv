@@ -1,5 +1,4 @@
 local string = require "luv.string"
-require "luv.debug"
 local os = os
 local math, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable = math, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable
 local oop, crypt, fs = require "luv.oop", require "luv.crypt", require "luv.fs"

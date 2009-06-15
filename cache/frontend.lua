@@ -1,7 +1,6 @@
 local ipairs, io = ipairs, io
 local rawget, getmetatable = rawget, getmetatable
 local table = require "luv.table"
-local debug = require "luv.debug"
 local Object = require "luv.oop".Object
 local Exception = require "luv.exceptions".Exception
 

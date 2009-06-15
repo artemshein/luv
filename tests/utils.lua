@@ -1,4 +1,4 @@
-local TestCase, Version = require"luv.unittest".TestCase, require"luv.utils".Version
+local TestCase, Version = require "luv.dev.unittest".TestCase, require "luv.utils".Version
 
 module(...)
 

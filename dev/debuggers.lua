@@ -1,4 +1,3 @@
-local debug = require "luv.debug"
 local string = require "luv.string"
 local os, table, pairs, ipairs, io, tostring, type = os, table, pairs, ipairs, io, tostring, type
 local Object = require "luv.oop".Object

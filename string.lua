@@ -1,4 +1,3 @@
-require"luv.debug"
 require "luv.utf8data"
 require "luv.utf8"
 local table = require "luv.table"
@@ -22,8 +21,8 @@ string.beginsWith = function (str, beg)
 end
 
 string.endsWith = function (str, search)
-	if 'string' ~= type(str) or 'string' ~= type(search) then
-		error('String expected '..debug.traceback())
+	if "string" ~= type(str) or "string" ~= type(search) then
+		error("String expected "..debug.traceback())
 	end
 	if string.slice(str, -string.len(search)) ~= search then
 		return false
@@ -32,10 +31,10 @@ string.endsWith = function (str, search)
 end
 
 string.split = function (str, ...)
-	local res, tail, len = {}, str, select("#", ...)
-	for i = 1, len do
+	local res, tail, values = {}, str, {select(1, ...)}
+	for i = 1, select("#", ...) do
 		if not tail then break end
-		local begPos, endPos = string.find(tail, select(i, ...), 1, true)
+		local begPos, endPos = string.find(tail, values[i], 1, true)
 		if begPos then
 			table.insert(res, string.slice(tail, 1, begPos-1))
 			tail = string.slice(tail, endPos+1)
@@ -121,7 +120,7 @@ string.serialize = function (self, seen)
 		local res, first = "{", true
 		table.insert(seen, self)
 		for k, v in pairs(self) do
-			if "table" ~= type(v) or not table.find(seen, v) then
+			if "table" ~= type(v) or not table.ifind(seen, v) then
 				if first then
 					first = false
 				else
@@ -130,14 +129,13 @@ string.serialize = function (self, seen)
 				res = res.."["..string.serialize(k).."]="..string.serialize(v, seen)
 			end
 		end
-		table.removeValue(seen, self)
+		table.iremoveValue(seen, self)
 		return res.."}"
 	end
 	return ""
 end
 
 string.unserialize = function (self)
-	--io.write(string.len(self), "return "..self)
 	return assert(loadstring("return "..self))()
 end
 

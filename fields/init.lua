@@ -1,4 +1,3 @@
-local debug = require "luv.debug"
 local error = error
 local require, tostring = require, tostring
 local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io

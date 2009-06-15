@@ -1,4 +1,4 @@
-local Validators, TestCase = require"luv.validators", require"luv.unittest".TestCase
+local Validators, TestCase = require "luv.validators", require "luv.dev.unittest".TestCase
 
 module(...)
 

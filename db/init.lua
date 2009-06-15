@@ -1,6 +1,5 @@
 local table = require"luv.table"
 local string = require"luv.string"
-local debug = require"luv.debug"
 local require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select = require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select
 local ipairs = ipairs
 local exceptions = require 'luv.exceptions'

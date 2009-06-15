@@ -1,7 +1,5 @@
 local string = require"luv.string"
-require "luv.debug"
 local type, tonumber, tostring, table, ipairs = type, tonumber, tostring, table, ipairs
-local debug = debug
 local Object = require"luv.oop".Object
 
 module(...)

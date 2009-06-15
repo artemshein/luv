@@ -1,6 +1,5 @@
 local string = require"luv.string"
 local table = require"luv.table"
-local debug = require"luv.debug"
 local io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next = io, tostring, tonumber, pairs, ipairs, type, getmetatable, unpack, next
 local Driver, LuaSql = require"luv.db".Driver, require"luasql.mysql"
 

@@ -1,4 +1,3 @@
-local debug = require "luv.debug"
 local io, string, loadstring, dump, setfenv, type, pairs, table = io, string, loadstring, dump, setfenv, type, pairs, table
 local Templater, fs, Exception = require"luv.templaters".Api, require"luv.fs", require"luv.exceptions".Exception
 local tostring = tostring

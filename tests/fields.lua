@@ -1,4 +1,4 @@
-local Fields, TestCase = require"luv.fields", require"luv.unittest".TestCase
+local Fields, TestCase = require "luv.fields", require "luv.dev.unittest".TestCase
 
 module(...)
 

@@ -1,6 +1,6 @@
-local table = require"luv.table"
-local string = require"luv.string"
-local debug = require"luv.debug"
+local table = require "luv.table"
+local string = require "luv.string"
+local dev = require "luv.dev"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
 local _G, error = _G, error
 local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"

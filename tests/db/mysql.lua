@@ -1,6 +1,5 @@
-require"luv.debug"
-local io, tostring, debug = io, tostring, debug
-local TestCase, db, mysql = require"luv.unittest".TestCase, require"luv.db", require"luv.db.mysql"
+local io, tostring = io, tostring
+local TestCase, db, mysql = require "luv.dev.unittest".TestCase, require "luv.db", require "luv.db.mysql"
 
 module(...)
 

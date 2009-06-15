@@ -1,4 +1,4 @@
-local TestSuite = require"luv.unittest".TestSuite
+local TestSuite = require "luv.dev.unittest".TestSuite
 
 module(...)
 

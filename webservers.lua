@@ -1,8 +1,7 @@
-local debug = require "luv.debug"
 local string = require "luv.string"
 local io, os, pairs, ipairs, tonumber = io, os, pairs, ipairs, tonumber
 local type, table, math, tostring = type, table, math, tostring
-local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
+local Object, Exception = require "luv.oop".Object, require "luv.exceptions".Exception
 local fs = require 'luv.fs'
 local crypt = require 'luv.crypt'
 

@@ -1,5 +1,5 @@
-require"luv.checktypes"
-local TestCase = require"luv.unittest".TestCase
+require "luv.checktypes"
+local TestCase = require "luv.dev.unittest".TestCase
 local checkTypes, expect, type, tostring, tonumber, io = checkTypes, expect, type, tostring, tonumber, io
 
 module(...)

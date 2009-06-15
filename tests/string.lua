@@ -1,6 +1,6 @@
-require"luv.string"
-local io, string = io, string
-local TestCase = require"luv.unittest".TestCase
+local string = require "luv.string"
+local io = io
+local TestCase = require "luv.dev.unittest".TestCase
 
 module(...)
 

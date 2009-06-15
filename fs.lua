@@ -1,7 +1,6 @@
 local string = require "luv.string"
 local io, os, tostring = io, os, tostring
-local debug = require 'luv.debug'
-local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
+local Object, Exception = require "luv.oop".Object, require "luv.exceptions".Exception
 
 module(...)
 

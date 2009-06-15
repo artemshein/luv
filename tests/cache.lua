@@ -1,6 +1,5 @@
-local debug = require "luv.debug"
 local cache = require "luv.cache.backend"
-local TestCase = require "luv.unittest".TestCase
+local TestCase = require "luv.dev.unittest".TestCase
 
 module(...)
 
