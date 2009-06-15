@@ -700,6 +700,10 @@ local QuerySet = Object:extend{
 			if field:isKindOf(references.Reference) then
 				result = {field:getRefModel():getTableName()}
 				result.sql = "?#"
+				if i == #parts then
+					table.insert(result, field:getRefModel():getPkName())
+					result.sql = result.sql..".?#"
+				end
 				if field:isKindOf(references.OneToOne) then
 					if field:isBackLink() then
 						s:join(
