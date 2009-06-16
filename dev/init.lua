@@ -1,4 +1,5 @@
 local table = require "luv.table"
+local string = require "luv.string"
 local type, rawget, io, tostring, pairs, getmetatable = type, rawget, io, tostring, pairs, getmetatable
 local require, os = require, os
 

@@ -51,8 +51,8 @@ local Object = {
 	end,
 	new = function (self, ...)
 		local obj = clone(self, {})
-		obj:init(...)
 		rawset(obj, "new", self.maskedMethod)
+		obj:init(...)
 		return obj
 	end,
 	clone = function (self)
