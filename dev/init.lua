@@ -1,5 +1,6 @@
-local table = require"luv.table"
-local debug, type, rawget, io, tostring, pairs, getmetatable = debug, type, rawget, io, tostring, pairs, getmetatable
+local table = require "luv.table"
+local type, rawget, io, tostring, pairs, getmetatable = type, rawget, io, tostring, pairs, getmetatable
+local require, os = require, os
 
 module(...)
 
@@ -56,4 +57,20 @@ end
 
 local function dprint (...) io.write(dump(...)) end
 
-return {dump=dump;dprint=dprint}
+local Profiler = require "luv.oop".Object:extend{
+	__tag = .....".Profiler";
+	init = function (self) self.stat = {} end;
+	beginSection = function (self, section)
+		self.stat[section] = self.stat[section] or {}
+		local statSection = self.stat[section]
+		statSection.begin = os.clock()
+	end;
+	endSection = function (self, section)
+		local statSection = self.stat[section] or Exception "begin section first"
+		statSection.total = (statSection.total or 0) + (os.clock()-statSection.begin)
+		statSection.count = (statSection.count or 0) + 1
+	end;
+	getStat = function (self) return self.stat end;
+}
+
+return {dump=dump;dprint=dprint;Profiler=Profiler}

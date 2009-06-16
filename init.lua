@@ -133,22 +133,6 @@ local UrlConf = Object:extend{
 	end
 }
 
-local Profiler = Object:extend{
-	__tag = .....".Profiler";
-	init = function (self) self.stat = {} end;
-	beginSection = function (self, section)
-		self.stat[section] = self.stat[section] or {}
-		local statSection = self.stat[section]
-		statSection.begin = os.clock()
-	end;
-	endSection = function (self, section)
-		local statSection = self.stat[section] or Exception "Begin profiling first!"
-		statSection.total = (statSection.total or 0) + (os.clock()-statSection.begin)
-		statSection.count = (statSection.count or 0) + 1
-	end;
-	getStat = function (self) return self.stat end;
-}
-
 local TemplateSlot = Slot:extend{
 	__tag = .....".TemplateSlot";
 	init = function (self, luv, template, params)
@@ -176,8 +160,8 @@ local Core = Object:extend{
 	version = Version(0, 8, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
-		self:setProfiler(Profiler())
-		self:beginProfiling("Luv")
+		self:setProfiler(dev.Profiler())
+		self:beginProfiling "Luv"
 		--
 		self._wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
 		self._urlconf = UrlConf(self._wsApi)
@@ -192,7 +176,7 @@ local Core = Object:extend{
 	-- Database
 	getDsn = function (self) return self._dsn end,
 	setDsn = function (self, dsn)
-		self.dsn = dsn
+		self._dsn = dsn
 		self._db = require "luv.db".Factory(dsn)
 		require "luv.db.models".Model:setDb(self._db)
 		self._db:setLogger(function (sql, result)
