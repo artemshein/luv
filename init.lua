@@ -70,7 +70,7 @@ local function sortTablesList (tables)
 end
 
 local UrlConf = Object:extend{
-	__tag = .....".UrlConf",
+	__tag = .....".UrlConf";
 	init = function (self, wsApi)
 		self._wsApi = wsApi
 		self._uri = wsApi:getRequestHeader("REQUEST_URI") or ""
@@ -81,7 +81,7 @@ local UrlConf = Object:extend{
 		self._tailUri = self._uri
 		self._baseUri = ""
 		self._captures = {}
-	end,
+	end;
 	getWsApi = function (self) return self._wsApi end;
 	setWsApi = function (self, wsApi) self._wsApi = wsApi return self end;
 	getCapture = function (self, pos)
@@ -101,9 +101,9 @@ local UrlConf = Object:extend{
 		else
 			Exception "Invalid action!"
 		end
-	end,
+	end;
 	dispatch = function (self, urls)
-		local _, item, action
+		local action
 		if "string" == type(urls) then
 			return self:dispatch(dofile(urls))
 		end
@@ -130,7 +130,7 @@ local UrlConf = Object:extend{
 		end
 		if action then self:execute(action) return true end
 		return false
-	end
+	end;
 }
 
 local TemplateSlot = Slot:extend{
@@ -157,7 +157,7 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core",
-	version = Version(0, 8, 0, "alpha"),
+	version = Version(0, 9, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
 		self:setProfiler(dev.Profiler())
@@ -341,7 +341,6 @@ local Struct = Object:extend{
 	getFieldsByName = function (self) return self.fieldsByName end;
 	getValues = function (self)
 		local res = {}
-		local k, v
 		for k, v in pairs(self:getFieldsByName()) do
 			local value = v:getValue()
 			if "table" == type(value) and value.isKindOf and value:isKindOf(require "luv.fields.references".OneToMany) then
@@ -353,7 +352,6 @@ local Struct = Object:extend{
 		return res
 	end,
 	setValues = function (self, values)
-		local k, v
 		for k, v in pairs(self:getFieldsByName()) do
 			v:setValue(values[k])
 		end
@@ -371,7 +369,6 @@ local Struct = Object:extend{
 	end;
 	-- Validation & errors collect
 	isValid = function (self)
-		local _, v
 		self:setErrors{}
 		for _, v in ipairs(self:getFields()) do
 			if not v:isValid() then
@@ -386,7 +383,7 @@ local Struct = Object:extend{
 	addError = function (self, error) table.insert(self.errors, error) return self end,
 	setErrors = function (self, errors) self.errors = errors return self end,
 	addErrors = function (self, errors)
-		local i, v for i, v in ipairs(errors) do
+		for i, v in ipairs(errors) do
 			table.insert(self.errors, v)
 		end
 	end,
@@ -395,13 +392,13 @@ local Struct = Object:extend{
 }
 
 local Widget = Object:extend{
-	__tag = .....".Widget",
-	render = Object.abstractMethod
+	__tag = .....".Widget";
+	render = Object.abstractMethod;
 }
 
 local init = function (params)
 	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
-	core:setTemplater(require "luv.templaters.tamplier" (params.templatesDirs))
+	core:setTemplater(params.templater or require "luv.templaters".Tamplier2 (params.templatesDirs))
 	core:setSession(sessions.Session(core:getWsApi(), sessions.SessionFile(params.sessionDir)))
 	core:setDsn(params.dsn)
 	core:setDebugger(params.debugger)
@@ -410,16 +407,13 @@ local init = function (params)
 	return core
 end
 
-initRandom = function ()
-	-- Init random seed
+(function () -- Init random seed
 	local seed, i, str = os.time(), nil, tostring(tostring(MODULE))
 	for i = 1, string.len(str) do
 		seed = seed + string.byte(str, i)
 	end
 	math.randomseed(seed)
-end
-
-initRandom()
+end)() -- Excecute it imediately
 
 return {
 	oop = oop,
