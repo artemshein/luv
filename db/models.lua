@@ -1175,13 +1175,14 @@ local function dropModels (models)
 	for _, info in ipairs(sortTablesList(tablesListForModels(models))) do
 		info[2]:dropTable()
 	end
-end,
+end
+
 local function createModels (models)
 	local tables = sortTablesList(tablesListForModels(models))
 	for i = #tables, 1, -1 do
 		tables[i][2]:createTable()
 	end
-end,
+end
 
 return {
 	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;NestedSet=NestedSet;
