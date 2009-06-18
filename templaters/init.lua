@@ -194,4 +194,4 @@ local Tamplier = Api:extend{
 	end;
 }
 
-return {Api=Api;Tamplier=Tamplier;Tamplier2=Tamplier2}
+return {Api=Api;Tamplier=Tamplier}
