@@ -13,62 +13,6 @@ module(...)
 
 local MODULE = (...)
 
-local function constructTablesList (models)
-	local references = require "luv.fields.references"
-	local tables = {}
-	table.imap(models, function (model)
-		local tableName = model:getTableName()
-		for _, info in ipairs(tables) do
-			if info[1] == tableName then
-				return nil
-			end
-		end
-		table.insert(tables, {model:getTableName();model})
-		table.imap(model:getReferenceFields(nil, references.ManyToMany), function (field)
-			local tableName = field:getTableName()
-			for _, info in ipairs(tables) do
-				if info[1] == tableName then
-					return nil
-				end
-			end
-			table.insert(tables, {field:getTableName();field})
-			return nil
-		end)
-		return nil
-	end)
-	return tables
-end
-
-local function sortTablesList (tables)
-	local models = require "luv.db.models"
-	local references = require "luv.fields.references"
-	local size, i = #tables, 1
-	while i < size do
-		local iTbl, iObj = unpack(tables[i])
-		for j = i+1, size do
-			local jTbl, jObj = unpack(tables[j])
-			if jObj:isKindOf(models.Model) then
-				local o2o = jObj:getReferenceField(iObj, references.OneToOne)
-				if jObj:getReferenceField(iObj, references.ManyToOne)
-				or (o2o and not jObj:getField(o2o):isBackLink()) then
-					tables[i], tables[j] = tables[j], tables[i]
-					break
-				end
-			else
-				if jObj:getRefModel():getTableName() == iTbl
-				or jObj:getContainer():getTableName() == iTbl then
-					tables[i], tables[j] = tables[j], tables[i]
-					break
-				end
-			end
-			if j == size then
-				i = i+1
-			end
-		end
-	end
-	return tables
-end
-
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
 	init = function (self, wsApi)
@@ -204,18 +148,6 @@ local Core = Object:extend{
 	setSession = function (self, session) self._session = session return self end,
 	-- URL conf
 	dispatch = function (self, urlconf) return self._urlconf:dispatch(urlconf) end,
-	-- Models
-	dropModels = function (self, models)
-		for _, info in ipairs(sortTablesList(constructTablesList(models))) do
-			info[2]:dropTable()
-		end
-	end,
-	createModels = function (self, models)
-		local tables = sortTablesList(constructTablesList(models))
-		for i = #tables, 1, -1 do
-			tables[i][2]:createTable()
-		end
-	end,
 	-- Templater
 	addTemplatesDir = function (self, templatesDir)
 		self._templater:addTemplatesDir(templatesDir)
@@ -259,30 +191,10 @@ local Core = Object:extend{
 		self._debugger = debugger
 		return self
 	end;
-	debug = function (self, ...)
-		if self._debugger then
-			self._debugger:debug(...)
-		end
-		return self
-	end;
-	info = function (self, ...)
-		if self._debugger then
-			self._debugger:info(...)
-		end
-		return self
-	end;
-	warn = function (self, ...)
-		if self._debugger then
-			self._debugger:warn(...)
-		end
-		return self
-	end;
-	error = function (self, ...)
-		if self._debugger then
-			self._debugger:error(...)
-		end
-		return self
-	end;
+	debug = function (self, ...) return self._debugger and self._debugger:debug(...) or self end;
+	info = function (self, ...) return self._debugger and self._debugger:info(...) or self end;
+	warn = function (self, ...) return self._debugger and self._debugger:warn(...) or self end;
+	error = function (self, ...) return self._debugger and self._debugger:error(...) or self end;
 	-- Caching
 	getCacher = function (self) return self._cacher end;
 	setCacher = function (self, cacher)

@@ -13,7 +13,7 @@ module(...)
 
 local MODULE = ...
 
-local modelsEq = function (self, second)
+local function modelsEq (self, second)
 	local pkValue = self:getPk():getValue()
 	if pkValue == nil then
 		return false
@@ -56,7 +56,6 @@ local Model = Struct:extend{
 	modelsList = {};
 	__tostring = function (self) return tostring(self:getPk():getValue()) end,
 	createBackLinksFieldsFrom = function (self, model)
-		local _, v
 		for _, v in ipairs(model:getReferenceFields(self)) do
 			if not self:getField(v:getRelatedName() or Exception("relatedName required for "..v:getName().." field")) then
 				self:addField(v:getRelatedName(), v:createBackLink())
@@ -68,7 +67,7 @@ local Model = Struct:extend{
 		-- Init fields
 		rawset(new, "fields", new.fields or {})
 		rawset(new, "fieldsByName", new.fieldsByName or {})
-		local hasPk, k, v = false
+		local hasPk = false
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isObject and v:isKindOf(fields.Field) then
 				new:addField(k, v)
@@ -108,7 +107,7 @@ local Model = Struct:extend{
 		if not self.fields then
 			Exception"Abstract model can't be created (extend it first)!"
 		end
-		local k, v, fields, fieldsByName = nil, nil, {}, {}
+		local fields, fieldsByName = {}, {}
 		for k, v in pairs(self:getFieldsByName()) do
 			local field = v:clone()
 			table.insert(fields, field)
@@ -145,7 +144,6 @@ local Model = Struct:extend{
 		return pk:getName()
 	end,
 	getPk = function (self)
-		local _, v
 		for _, v in ipairs(self:getFields()) do
 			if v:isPk() then
 				return v
@@ -154,7 +152,7 @@ local Model = Struct:extend{
 		return nil
 	end,
 	getReferenceFields = function (self, model, class)
-		local res, _, v = {}
+		local res = {}
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.Reference) and  (not model or model:isKindOf(v:getRefModel())) and (not class or v:isKindOf(class)) then
 				table.insert(res, v)
@@ -163,7 +161,6 @@ local Model = Struct:extend{
 		return res
 	end;
 	getReferenceField = function (self, model, class)
-		local _, v
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.Reference) and (not class or v:isKindOf(class)) and (not model or model:isKindOf(v:getRefModel())) then
 				return v:getName()
@@ -358,7 +355,7 @@ local Model = Struct:extend{
 	end,
 	setTableName = function (self, tableName) self.tableName = tableName return self end,
 	getConstraintModels = function (self)
-		local models, _, v = {}
+		local models = {}
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.OneToMany) or (v:isKindOf(references.OneToOne) and not v:isBackLink()) then
 				table.insert(models, v:getRefModel())
@@ -1119,7 +1116,76 @@ local Paginator = Object:extend{
 	getPagesTotal = function (self) return math.ceil(self.total/self.onPage) end;
 }
 
+-- Tables
+
+local function tablesListForModels (models)
+	local tables = {}
+	table.imap(models, function (model)
+		local tableName = model:getTableName()
+		for _, info in ipairs(tables) do
+			if info[1] == tableName then
+				return nil
+			end
+		end
+		table.insert(tables, {model:getTableName();model})
+		table.imap(model:getReferenceFields(nil, references.ManyToMany), function (field)
+			local tableName = field:getTableName()
+			for _, info in ipairs(tables) do
+				if info[1] == tableName then
+					return nil
+				end
+			end
+			table.insert(tables, {field:getTableName();field})
+			return nil
+		end)
+		return nil
+	end)
+	return tables
+end
+
+local function sortTablesList (tables)
+	local size, i = #tables, 1
+	while i < size do
+		local iTbl, iObj = unpack(tables[i])
+		for j = i+1, size do
+			local jTbl, jObj = unpack(tables[j])
+			if jObj:isKindOf(Model) then
+				local o2o = jObj:getReferenceField(iObj, references.OneToOne)
+				if jObj:getReferenceField(iObj, references.ManyToOne)
+				or (o2o and not jObj:getField(o2o):isBackLink()) then
+					tables[i], tables[j] = tables[j], tables[i]
+					break
+				end
+			else
+				if jObj:getRefModel():getTableName() == iTbl
+				or jObj:getContainer():getTableName() == iTbl then
+					tables[i], tables[j] = tables[j], tables[i]
+					break
+				end
+			end
+			if j == size then
+				i = i+1
+			end
+		end
+	end
+	return tables
+end
+
+local function dropModels (models)
+	for _, info in ipairs(sortTablesList(tablesListForModels(models))) do
+		info[2]:dropTable()
+	end
+end,
+local function createModels (models)
+	local tables = sortTablesList(tablesListForModels(models))
+	for i = #tables, 1, -1 do
+		tables[i][2]:createTable()
+	end
+end,
+
 return {
 	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;NestedSet=NestedSet;
 	QuerySet=QuerySet;Paginator=Paginator;F=F;
+	tablesListForModels=tablesListForModels;sortTablesList=sortTablesList;
+	dropModels=dropModels;createModels=createModels;
 }
