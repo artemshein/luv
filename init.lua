@@ -85,7 +85,7 @@ local UrlConf = Object:extend{
 	getWsApi = function (self) return self._wsApi end;
 	setWsApi = function (self, wsApi) self._wsApi = wsApi return self end;
 	getCapture = function (self, pos)
-		return self.captures[pos]
+		return self._captures[pos]
 	end;
 	getUri = function (self) return self._uri end;
 	getTailUri = function (self) return self._tailUri end;
@@ -116,7 +116,6 @@ local UrlConf = Object:extend{
 					self._baseUri = self._baseUri..string.sub(self._uri, 1, -tailUriLen+res[1]-2)
 					self._tailUri = string.sub(self._tailUri, res[2]+1)
 					self.captures = {}
-					local i = 3
 					for i = 3, #res do
 						table.insert(self._captures, res[i])
 					end
@@ -398,7 +397,7 @@ local Widget = Object:extend{
 
 local init = function (params)
 	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
-	core:setTemplater(params.templater or require "luv.templaters".Tamplier2 (params.templatesDirs))
+	core:setTemplater(params.templater or require "luv.templaters".Tamplier (params.templatesDirs))
 	core:setSession(sessions.Session(core:getWsApi(), sessions.SessionFile(params.sessionDir)))
 	core:setDsn(params.dsn)
 	core:setDebugger(params.debugger)
