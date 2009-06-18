@@ -62,7 +62,7 @@ local Tamplier = Api:extend{
 				if not self.internal.sections[section] then
 					Exception("section "..section.." not found")
 				end
-				return self.internal.unsafe(self.internal.sections[section]())
+				return self.internal.safe(self.internal.sections[section]())
 			end;
 			includedFiles = {};
 			include = function (file, values)
