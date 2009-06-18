@@ -57,7 +57,7 @@ local Tamplier = Api:extend{
 					return html.escape(str)
 				end
 			end;
-			unsafe = function (str) return SafeHtml(str) end;
+			safe = function (str) return SafeHtml(str) end;
 			section = function (section)
 				if not self.internal.sections[section] then
 					Exception("section "..section.." not found")
