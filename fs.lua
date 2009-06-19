@@ -10,50 +10,62 @@ local Exception = Exception:extend{__tag = .....".Exception"}
 
 local File = Object:extend{
 	__tag = .....".File",
-	init = function (self, filename)
-		self.filename = tostring(filename)
-	end,
-	openForReading = function (self)
-		file, err = io.open(self.filename)
-		if not file then
-			Exception(err..' '..self.filename)
+	init = function (self, filePath)
+		self._path = tostring(filePath)
+	end;
+	getName = function (self)
+		local name = self._path
+		local begPos, endPos = string.findLast(name, "/")
+		if begPos then
+			name = string.slice(name, endPos+1)
 		end
-		self.handle = file
-		self.mode = "read"
+		begPos, endPos = string.findLast(name, "\\")
+		if begPos then
+			name = string.slice(name, endPos+1)
+		end
+		return name
+	end;
+	openForReading = function (self)
+		file, err = io.open(self._path)
+		if not file then
+			Exception(err.." "..self._path)
+		end
+		self._handle = file
+		self._mode = "read"
 		return self
-	end,
+	end;
 	openForReadingBinary = function (self)
-		file, err = io.open(self.filename, 'rb')
+		file, err = io.open(self._path, "rb")
 		if not file then
 			Exception(err)
 		end
-		self.handle = file
-		self.mode = "read"
+		self._handle = file
+		self._mode = "read"
 		return self
 	end;
 	openForWriting = function (self)
-		file, err = io.open(self.filename, 'w')
+		file, err = io.open(self._path, "w")
 		if not file then
 			Exception(err)
 		end
-		self.handle = file
-		self.mode = "write"
+		self._handle = file
+		self._mode = "write"
 		return self
 	end,
 	openForWritingBinary = function (self)
-		file, err = io.open(self.filename, 'wb')
+		file, err = io.open(self._path, 'wb')
 		if not file then
 			Exception(err)
 		end
-		self.handle = file
-		self.mode = "write"
+		self._handle = file
+		self._mode = "write"
 		return self
 	end;
 	isExists = function (self)
-		if self.handle then
+		if self._handle then
 			return true
 		end
-		local res = io.open(self.filename)
+		local res = io.open(self._path)
 		if res then
 			io.close(res)
 			return true
@@ -61,10 +73,10 @@ local File = Object:extend{
 		return false
 	end,
 	read = function (self, ...)
-		if not self.handle then
+		if not self._handle then
 			Exception"File must be opened first!"
 		end
-		return self.handle:read(...)
+		return self._handle:read(...)
 	end,
 	readAndClose = function (self, ...)
 		local res = self:read(...)
@@ -75,20 +87,20 @@ local File = Object:extend{
 		return self:openForReading():readAndClose(...)
 	end;
 	write = function (self, ...)
-		if (not self.handle) or self.mode ~= "write" then
+		if (not self._handle) or self._mode ~= "write" then
 			Exception"File must be opened in write mode!"
 		end
-		self.handle:write(...)
+		self._handle:write(...)
 		return self
 	end;
 	close = function (self, ...)
-		if self.handle then
-			self.handle:close(...)
+		if self._handle then
+			self._handle:close(...)
 		end
 		return self
 	end,
 	delete = function (self)
-		return os.remove(self.filename)
+		return os.remove(self._path)
 	end
 }
 

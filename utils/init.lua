@@ -84,8 +84,25 @@ local TreeNode = Object:extend{
 	getChildren = function (self) return self.children end;
 }
 
+local function lazyRequire (module)
+	local res = {__module = module}
+	local mt = getmetatable(res) or {}
+	mt.__index = function (self, key)
+		local module = require(self.__module)
+		self.__module = nil
+		for k, v in pairs(module) do
+			self[k] = v
+		end
+		setmetatable(self, getmetatable(module))
+		return self[key]
+	end
+	setmetatable(res, mt)
+	return res
+end
+
 return {
 	Version=Version;
 	sendEmail=sendEmail;
 	TreeNode=TreeNode;
+	lazyRequire=lazyRequire;
 }

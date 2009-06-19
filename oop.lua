@@ -28,7 +28,7 @@ local clone = function (obj, tbl)
 		mt.__index = obj
 	end
 	-- Move magic methods to metatable
-	local magicMethods, _, v = {"__add", "__sub", "__mul", "__div", "__mod", "__pow", "__unm", "__concat", "__len", "__eq", "__lt", "__le", "__index", "__newindex", "__call", "__tostring"}
+	local magicMethods = {"__add", "__sub", "__mul", "__div", "__mod", "__pow", "__unm", "__concat", "__len", "__eq", "__lt", "__le", "__index", "__newindex", "__call", "__tostring"}
 	for _, v in pairs(magicMethods) do
 		local method = rawget(tbl, v)
 		if method then
