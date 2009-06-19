@@ -1,42 +1,38 @@
 local table = require "luv.table"
-local Object = require"luv.oop".Object
 local require, type, getfenv, pairs = require, type, getfenv, pairs
-local debug = debug
+local getmetatable, setmetatable, require = getmetatable, setmetatable, require
+local Object = require "luv.oop".Object
 
 module(...)
 
 local Version = Object:extend{
-	__tag = .....".Version",
-	minor = 0,
-	patch = 0,
-	state = "stable",
+	__tag = .....".Version";
+	_state = "stable";
 	init = function (self, major, minor, patch, state, rev, codename)
-		self.major = major
-		self.minor = minor
-		self.patch = patch
-		if state then
-			self.state = state
-		end
-		self.rev = rev
-		self.codename = codename
-	end,
+		self._major = major
+		self._minor = minor or 0
+		self._patch = patch or 0
+		self._state = state or "stable"
+		self._rev = rev
+		self._codename = codename
+	end;
 	full = function (self)
-		local res = self.major.."."..self.minor
-		if 0 ~= self.patch then
-			res = res.."."..self.patch
+		local res = self._major.."."..self._minor
+		if 0 ~= self._patch then
+			res = res.."."..self._patch
 		end
-		if "stable" ~= self.state then
-			res = res..self.state
+		if "stable" ~= self._state then
+			res = res..self._state
 		end
-		if self.rev then
-			res = res.." rev"..self.rev
+		if self._rev then
+			res = res.." rev"..self._rev
 		end
-		if self.codename then
-			res = res.." "..self.codename
+		if self._codename then
+			res = res.." "..self._codename
 		end
 		return res
-	end,
-	__tostring = function (self) return self:full() end
+	end;
+	__tostring = function (self) return self:full() end;
 }
 
 local sendEmail = function (from, to, subject, body, server)
@@ -65,23 +61,23 @@ end
 local TreeNode = Object:extend{
 	__tag = .....".TreeNode";
 	init = function (self, children, connector)
-		self.connector = connector
-		self.children = children
+		self._connector = connector
+		self._children = children
 	end;
 	add = function (self, child, connector)
-		if table.size(self.children) < 2 then
-			connector = self.connector
+		if table.size(self._children) < 2 then
+			connector = self._connector
 		end
-		if connector == self.connector then
-			table.insert(self.children, child)
+		if connector == self._connector then
+			table.insert(self._children, child)
 		else
 			local obj = self:clone()
-			self.connector = connector
-			self.children = {obj;child}
+			self._connector = connector
+			self._children = {obj;child}
 		end
 	end;
-	getConnector = function (self) return self.connector end;
-	getChildren = function (self) return self.children end;
+	getConnector = function (self) return self._connector end;
+	getChildren = function (self) return self._children end;
 }
 
 local function lazyRequire (module)
@@ -90,11 +86,8 @@ local function lazyRequire (module)
 	mt.__index = function (self, key)
 		local module = require(self.__module)
 		self.__module = nil
-		for k, v in pairs(module) do
-			self[k] = v
-		end
-		setmetatable(self, getmetatable(module))
-		return self[key]
+		setmetatable(self, {__index=module;__newindex=module})
+		return module[key]
 	end
 	setmetatable(res, mt)
 	return res

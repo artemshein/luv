@@ -87,7 +87,7 @@ return TestCase:extend{
 		self.assertEquals(a3:test(), "345")
 		self.assertEquals(a4:test(), "345")
 	end,
-	testCheckTypes = function (self)
+	--[[testCheckTypes = function (self)
 		local A = Object:extend{init = function () end}
 		local A2 = A:extend{}
 		local A3 = A2:extend{}
@@ -101,7 +101,7 @@ return TestCase:extend{
 		self.assertThrows(function() f(a2) end)
 		self.assertThrows(function() f(a) end)
 		self.assertThrows(function() f("abc") end)
-	end,
+	end,]]
 	testMetamethods = function (self)
 		-- Test __add
 		local A = Object:extend{

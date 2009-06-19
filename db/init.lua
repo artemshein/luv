@@ -187,15 +187,15 @@ local Select = Object:extend{
 }
 
 local SelectRow = Select:extend{
-	__tag = .....".Driver.SelectRow",
-	exec = function (self) return self._db:fetchRow(tostring(self)) end,
-	__tostring = Object.abstractMethod
+	__tag = .....".Driver.SelectRow";
+	exec = function (self) return self._db:fetchRow(tostring(self)) end;
+	__tostring = Object.abstractMethod;
 }
 
 local SelectCell = SelectRow:extend{
-	__tag = .....".Driver.SelectCell",
-	exec = function (self) return self._db:fetchCell(tostring(self)) end,
-	__tostring = Object.abstractMethod
+	__tag = .....".Driver.SelectCell";
+	exec = function (self) return self._db:fetchCell(tostring(self)) end;
+	__tostring = Object.abstractMethod;
 }
 
 local Insert = Object:extend{

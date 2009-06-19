@@ -86,7 +86,7 @@ local AdminSite = Object:extend{
 			modelsList = select(i, ...)
 			for _, model in ipairs(modelsList) do
 				local category, admin
-				if "table" == type(model) and model.isObject and model:isKindOf(models.Model) then
+				if "table" == type(model) and model.isKindOf and model:isKindOf(models.Model) then
 					admin = ModelAdmin:extend{model=model}
 				else
 					admin = model

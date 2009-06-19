@@ -79,7 +79,7 @@ local Tamplier = Api:extend{
 				if values then
 					self.internal = oldInternal
 				end
-				return self.internal.unsafe(res)
+				return self.internal.safe(res)
 			end;
 			cycle = function (index, params)
 				if not self.cycleCounters[index] then self.cycleCounters[index] = 1 end

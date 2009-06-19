@@ -1,26 +1,27 @@
-local debug, type, error, pcall = debug, type, error, pcall
+local debug, type, error, pcall, require = debug, type, error, pcall, require
 local Object = require"luv.oop".Object
 
 module(...)
 
 local Exception = Object:extend{
 	__tag = .....".Exception",
-	init = function (self, message, nothrow, depth)
-		self._message = message
+	init = function (self, msg, nothrow, depth)
+		self._msg = msg
 		self._trace = debug.traceback("", depth and depth+3 or 3)
 		if not nothrow then self:throw() end
-	end,
-	throw = function (self) error(self) end,
-	__tostring = function (self) return self._message.." "..self._trace end
+	end;
+	getMsg = function (self) return self._msg end;
+	getTrace = function (self) return self._trace end;
+	throw = function (self) error(self) end;
+	__tostring = function (self) return self._msg.." "..self._trace end;
 }
 
 local ExceptionResult = Object:extend{
-	__tag = .....".ExceptionResult",
-	_raised = false;
+	__tag = .....".ExceptionResult";
 	init = function (self, res, exc)
 		self._raised = not res
 		self._exception = "string" == type(exc) and Exception(exc, true, 2) or exc
-	end,
+	end;
 	catch = function (self, excType, func)
 		if not self._raised then
 			return self
@@ -34,13 +35,13 @@ local ExceptionResult = Object:extend{
 			self._raised = false
 		end
 		return self
-	end,
+	end;
 	elseDo = function (self, func)
 		if not self._raised then
 			func(self._exception)
 		end
 		return self
-	end,
+	end;
 	throw = function (self)
 		if self._raised then
 			if type(self._exception) == "table" then
@@ -60,4 +61,4 @@ local function try (...)
 	return ExceptionResult(pcall(...))
 end
 
-return {Exception=Exception;try=try;}
+return {Exception=Exception;try=try}

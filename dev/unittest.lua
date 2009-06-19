@@ -32,7 +32,7 @@ local TestCase = Object:extend{
 		local stat = {total = 0, executed = 0, failed = 0, time = os.clock(), methods = {}}
 		local function errorHandler (e)
 			stat.failed = stat.failed+1
-			io.write("\nException: ", e.message, e.trace)
+			io.write("\nException: ", e:getMsg(), e:getTrace())
 		end
 		local function runTest (self, test)
 			--setfenv(test, self)
@@ -82,7 +82,7 @@ local TestSuite = Object:extend{
 		end
 		for _, test in pairs(self.tests) do
 			local t = require(test)
-			if t.isObject then
+			if t.isKindOf then
 				io.write(test, ": ")
 				runTest(t)
 			else

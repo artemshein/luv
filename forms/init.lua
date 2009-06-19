@@ -21,7 +21,7 @@ local Form = Struct:extend{
 		end
 		-- Add self fields
 		for k, v in pairs(new) do
-			if type(v) == "table" and v.isObject and v:isKindOf(fields.Field) then
+			if type(v) == "table" and v.isKindOf and v:isKindOf(fields.Field) then
 				new:addField(k, v)
 				new[k] = nil
 			end
@@ -44,7 +44,7 @@ local Form = Struct:extend{
 			self:addField(k, v:clone())
 		end
 		if values then
-			if "table" == type(values) and values.isObject and values:isKindOf(Model) then
+			if "table" == type(values) and values.isKindOf and values:isKindOf(Model) then
 				self:setValues(values:getValues())
 			else
 				self:setValues(values)
@@ -77,7 +77,6 @@ local Form = Struct:extend{
 	getWidget = function (self) return self.Meta.widget end,
 	setWidget = function (self, widget) self.Meta.widget = widget return self end,
 	isSubmitted = function (self, value)
-		local _, v
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(fields.ImageButton) and v:getValue() then
 				return v:getValue()
@@ -96,14 +95,14 @@ local Form = Struct:extend{
 		if self.Meta.fields then
 			return self.Meta.fields
 		end
-		local res, k, v = {}
+		local res = {}
 		for k, v in pairs(self:getFieldsByName()) do
 			table.insert(res, k)
 		end
 		return res
 	end;
 	getHiddenFields = function (self)
-		local res, _, field = {}
+		local res = {}
 		for _, field in ipairs(self:getFieldsList()) do
 			field = self:getField(field)
 			local widget = field:getWidget()
@@ -114,7 +113,7 @@ local Form = Struct:extend{
 		return res
 	end;
 	getVisibleFields = function (self)
-		local res, _, field = {}
+		local res = {}
 		for _, field in ipairs(self:getFieldsList()) do
 			field = self:getField(field)
 			local widget = field:getWidget()
@@ -125,7 +124,7 @@ local Form = Struct:extend{
 		return res
 	end;
 	getButtonFields = function (self)
-		local res, _, field = {}
+		local res = {}
 		for _, field in ipairs(self:getFields()) do
 			if field:isKindOf(fields.Button) then
 				table.insert(res, field)
@@ -134,7 +133,7 @@ local Form = Struct:extend{
 		return res
 	end;
 	getValues = function (self)
-		local values, k, v = {}
+		local values = {}
 		for k, v in pairs(self:getFieldsByName()) do
 			local value = v:getValue()
 			if v:isKindOf(fields.ModelMultipleSelect) then
@@ -169,10 +168,9 @@ local ModelForm = Form:extend{
 		if not new.Meta then
 			Exception"Meta must be defined!"
 		end
-		if not new.Meta.model or not new.Meta.model.isObject or not new.Meta.model:isKindOf(Model) then
+		if not new.Meta.model or not new.Meta.model.isKindOf or not new.Meta.model:isKindOf(Model) then
 			Exception"Meta.model must be defined!"
 		end
-		local k, v
 		for k, v in pairs(new.Meta.model:getFieldsByName()) do
 			if v:isKindOf(fields.Button)
 			or ((not new.Meta.fields or table.find(new.Meta.fields, k))
@@ -213,7 +211,4 @@ local ModelForm = Form:extend{
 	end;
 }
 
-return {
-	Form = Form,
-	ModelForm = ModelForm;
-}
+return {Form=Form;ModelForm=ModelForm}

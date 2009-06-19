@@ -1,7 +1,8 @@
 local table = require "luv.table"
 local string = require "luv.string"
 local type, rawget, io, tostring, pairs, getmetatable = type, rawget, io, tostring, pairs, getmetatable
-local require, os = require, os
+local require, os, debug = require, os, debug
+local Object = require "luv.oop".Object
 
 module(...)
 
@@ -39,7 +40,7 @@ local function dump (obj, depth, tab, seen)
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do
 				if key ~= "__tag" then
-					res = res..ntab..key.." = "..dump(val, depth-1, ntab, seen)..",\n"
+					res = res..ntab..key.." = "..dump(val, depth-1, ntab, seen)..";\n"
 				end
 			end
 			if getmetatable(obj) then
@@ -49,7 +50,8 @@ local function dump (obj, depth, tab, seen)
 			table.iremoveValue(seen, obj)
 		end
 	elseif type(obj) == "function" then
-		res = res..tostring(obj)
+		local info = debug.getinfo(obj)
+		res = res.."[function "..info.short_src..":"..info.linedefined.."]"
 	else
 		res = res..type(obj)
 	end
@@ -58,7 +60,7 @@ end
 
 local function dprint (...) io.write(dump(...)) end
 
-local Profiler = require "luv.oop".Object:extend{
+local Profiler = Object:extend{
 	__tag = .....".Profiler";
 	init = function (self) self.stat = {} end;
 	beginSection = function (self, section)

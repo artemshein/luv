@@ -1,75 +1,52 @@
-local table = require"luv.table"
-require "luv.checktypes"
-local tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset, expect, checkTypes, _G = tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset, expect, checkTypes, _G
+local table = require "luv.table"
+local tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset = tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset
+local ipairs = ipairs
+local require = require
 
 module(...)
 
-local expect = expect
-_G.expect = function (value, valType)
-	if type(valType) == "string" then
-		return expect(value, valType)
-	elseif type(value) == "table" and value.isObject and value:isKindOf(valType) then
-		return true
-	else
-		error("Given object has not expected type! "..debug.traceback())
-	end
-end
-
-local clone = function (obj, tbl)
-	tbl = tbl or {}
-	tbl.parent = obj
-	local mt = getmetatable(obj)
-	if not mt then
-		mt = {__index = obj, __call = function (obj, ...) return obj:new(...) end}
-	else
-		mt = table.copy(mt)
-	end
-	if type(mt.__index) == "table" then
-		mt.__index = obj
-	end
-	-- Move magic methods to metatable
-	local magicMethods = {"__add", "__sub", "__mul", "__div", "__mod", "__pow", "__unm", "__concat", "__len", "__eq", "__lt", "__le", "__index", "__newindex", "__call", "__tostring"}
-	for _, v in pairs(magicMethods) do
-		local method = rawget(tbl, v)
-		if method then
-			rawset(mt, v, method)
-			rawset(tbl, v, nil)
-		end
-	end
-	setmetatable(tbl, mt)
-	return tbl
-end
-
-local abstractMethod = function () error("Method must be implemented first! "..debug.traceback()) end
+local abstractMethod = function (self) require "luv.dev".dprint(self, 3) error "method must be implemented first" end
 
 local Object = {
-	__tag = .....".Object",
-	isObject = true,
-	init = abstractMethod,
+	__tag = .....".Object";
+	init = abstractMethod;
 	extend = function (self, tbl)
-		return clone(self, tbl)
-	end,
+		tbl.parent = self
+		setmetatable(tbl, {__index=self;__call=function (self, ...) return self:new(...) end})
+		return tbl
+	end;
 	new = function (self, ...)
-		local obj = clone(self, {})
-		rawset(obj, "new", self.maskedMethod)
-		obj:init(...)
+		local obj = {new=self.maskedMethod;extend=self.maskedMethod;parent=self}
+		local magicMethods = {"__add";"__sub";"__mul";"__div";"__mod";"__pow";"__unm";"__concat";"__len";"__eq";"__lt";"__le";"__index";"__newindex";"__call";"__tostring"}
+		local mt = table.copy(getmetatable(self) or {})
+		mt.__index = nil
+		for _, v in ipairs(magicMethods) do
+			local method = self[v]
+			if method then
+				rawset(mt, v, method)
+			end
+		end
+		if not mt.__index then
+			mt.__index = self
+		end
+		setmetatable(obj, mt)
+		self.init(obj, ...)
 		return obj
-	end,
+	end;
 	clone = function (self)
 		local new = table.copy(self)
 		setmetatable(new, getmetatable(self))
 		return new
-	end,
+	end;
 	isKindOf = function (self, obj)
-		if obj and (self == obj or (self.parent and (self.parent):isKindOf(obj))) then
+		if obj and (self == obj or (self.parent and self.parent:isKindOf(obj))) then
 			return true
 		end
 		return false
-	end,
-	abstractMethod = abstractMethod,
-	maskedMethod = function () error("Masked method! "..debug.traceback()) end,
-	checkTypes = checkTypes,
-	singleton = function (self) return self end
+	end;
+	abstractMethod = abstractMethod;
+	maskedMethod = function () error("Masked method! "..debug.traceback()) end;
+	singleton = function (self) return self end;
 }
 
 return {Object=Object}

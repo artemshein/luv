@@ -1,4 +1,4 @@
-local TestCase, Tamplier, fs = require "luv.dev.unittest".TestCase, require "luv.templaters.tamplier", require "luv.fs"
+local TestCase, Tamplier, fs = require "luv.dev.unittest".TestCase, require "luv.templaters".Tamplier, require "luv.fs"
 local File = fs.File
 
 module(...)

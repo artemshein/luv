@@ -69,7 +69,7 @@ local Model = Struct:extend{
 		rawset(new, "fieldsByName", new.fieldsByName or {})
 		local hasPk = false
 		for k, v in pairs(new) do
-			if type(v) == "table" and v.isObject and v:isKindOf(fields.Field) then
+			if type(v) == "table" and v.isKindOf and v:isKindOf(fields.Field) then
 				new:addField(k, v)
 				if not v:getLabel() then v:setLabel(k) end
 				if v:isKindOf(references.Reference) then
@@ -92,7 +92,6 @@ local Model = Struct:extend{
 		end
 		if not table.isEmpty(new.fields) then
 			if not hasPk then new:addField("id", fields.Id()) end
-			local _
 			for _, v in ipairs(self.modelsList) do
 				new:createBackLinksFieldsFrom(v)
 				v:createBackLinksFieldsFrom(new)
@@ -129,7 +128,6 @@ local Model = Struct:extend{
 	end,
 	clone = function (self)
 		local new, fields = Struct.clone(self), {}
-		local k, v
 		for k, v in pairs(self:getFieldsByName()) do
 			fields[k] = v:clone()
 		end
@@ -281,7 +279,7 @@ local Model = Struct:extend{
 			Exception("Validation error! "..debug.dump(self:getErrors()))
 		end
 		local updateRow = self:getDb():UpdateRow(self:getTableName())
-		local pk, _, v = self:getPk()
+		local pk = self:getPk()
 		local pkName = pk:getName()
 		updateRow:where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())
 		for _, v in ipairs(self:getFields()) do
@@ -389,7 +387,7 @@ local Model = Struct:extend{
 	createTable = function (self)
 		local c = self.db:CreateTable(self:getTableName())
 		-- Fields
-		local _, v, hasPk = nil, nil, false
+		local hasPk = false
 		for _, v in ipairs(self:getFields()) do
 			if not v:isKindOf(references.OneToMany) and not v:isKindOf(references.ManyToMany) and not (v:isKindOf(references.OneToOne) and v:isBackLink()) then
 				hasPk = hasPk or v:isPk()
@@ -588,52 +586,7 @@ local F = TreeNode:extend{
 		end
 	end;
 }
---[[
-local F = Object:extend{
-	__tag = .....".F";
-	init = function (self, field) self.field = field end;
-	__add = function (self, op2) return require(MODULE).FAdd(self, op2) end;
-	__sub = function (self, op2) return require(MODULE).FSub(self, op2) end;
-	__tostring = function (self) return "?#" end;
-	getValues = function (self) return {self.field} end;
-}
 
-local FSub = F:extend{
-	__tag = .....".FSub";
-	init = function (self, op1, op2)
-		self.op1 = op1
-		self.op2 = op2
-	end;
-	__add = function (self, op2) return require(MODULE).FAdd(self, op2) end;
-	__sub = function (self, op2) return self.parent(self, op2) end;
-	__tostring = function (self) return operandToString(self.op1).."-"..operandToString(self.op2) end;
-	getValues = function (self)
-		local res = operandValues(self.op1)
-		for _, value in ipairs(operandValues(self.op2)) do
-			table.insert(res, value)
-		end
-		return res
-	end;
-}
-
-local FAdd = F:extend{
-	__tag = .....".FAdd";
-	init = function (self, op1, op2)
-		self.op1 = op1
-		self.op2 = op2
-	end;
-	__add = function (self, op2) return self.parent(self, op2) end;
-	__sub = function (self, op2) return FSub(self, op2) end;
-	__tostring = function (self) return operandToString(self.op1).."+"..operandToString(self.op2) end;
-	getValues = function (self)
-		local res = operandValues(self.op1)
-		for _, value in ipairs(operandValues(self.op2)) do
-			table.insert(res, value)
-		end
-		return res
-	end;
-}
-]]
 local Q = TreeNode:extend{
 	__tag = .....".Q";
 	init = function (self, values)
@@ -924,181 +877,6 @@ local QuerySet = Object:extend{
 		return u:exec()
 	end;
 }
-
---[[
-local QuerySet = Object:extend{
-	__tag = .....".QuerySet",
-	init = function (self, model, func)
-		self.model = model
-		self.db = model:getDb()
-		self.evaluated = false
-		self.filters = {}
-		self.excludes = {}
-		self.limits = {}
-		self.orders = {}
-		self.joins = {}
-		self.initFunc = func
-		getmetatable(self).__index = function (self, field)
-			local res = self.parent[field]
-			if res then
-				return res
-			end
-			if not self.evaluated then
-				self:evaluate()
-				return self.values[field]
-			end
-			return nil
-		end
-	end,
-	limit = function (self, limitFrom, limitTo)
-		self.limits = {from=limitFrom;to=limitTo}
-		return self
-	end;
-	filter = function (self, filters)
-		if type(filters) == "table" then
-			table.insert(self.filters, filters)
-		else
-			table.insert(self.filters, {filters})
-		end
-		return self
-	end,
-	exclude = function (self, excludes)
-		if type(excludes) == "table" then
-			table.insert(self.excludes, excludes)
-		else
-			table.insert(self.excludes, {excludes})
-		end
-		return self
-	end,
-	order = function (self, ...)
-		local i, v
-		for i = 1, select("#", ...) do
-			table.insert(self.orders, select(i, ...))
-		end
-		return self
-	end;
-	applyFilterOrExclude = function (self, filter, s)
-		local filTbl = {}
-		for k, v in pairs(filter) do
-			local op = "="
-			if type(k) == "number" then
-				k = self.model:getPkName()
-			end
-			local name, op
-			if string.find(k, "__") then
-				name, op = unpack(string.explode(k, "__"))
-			else
-				name = k
-				op = "exact"
-			end
-			if name == "pk" then
-				name = self.model:getPkName()
-			end
-			if not self.model:getField(name) then
-				Exception("Field "..name.." not found!")
-			end
-			local expr, values
-			if 'table' == type(v) and v.isKindOf and v:isKindOf(F) then
-				expr = self.db:processPlaceholders(tostring(v), unpack(v:getValues()))
-				values = {name}
-			else
-				local field = self.model:getField(name)
-				expr = self.model:getFieldPlaceholder(field)
-				if field:isKindOf(references.OneToOne) and field:isBackLink() then
-					table.insert(self.joins, {field:getTableName();{'?#.?#=?#.?#';self.model:getTableName();self.model:getPkName();field:getRefModel():getTableName();field:getBackRefFieldName()}})
-					name = field:getRefModel():getTableName()..'.'..field:getBackRefFieldName()
-				end
-				values = {name;v}
-			end
-			if op == "exact" then expr = "?#="..expr
-			elseif op == "lt" then expr = "?#<"..expr
-			elseif op == "lte" then expr = "?#<="..expr
-			elseif op == "gt" then expr = "?#>"..expr
-			elseif op == "gte" then expr = "?#>="..expr
-			elseif op == "in" then expr = "?# IN (?a)"
-			elseif op == "beginswith" then values[2] = values[2].."%" expr = "?# LIKE ?"
-			elseif op == "endswith" then values[2] = "%"..values[2] expr = "?# LIKE ?"
-			elseif op == "contains" then values[2] = "%"..values[2].."%" expr = "?# LIKE ?"
-			elseif op == 'isnull' then expr = values[2] and '?# IS NULL' or '?# IS NOT NULL'
-			else
-				Exception("Operation "..op.." not supported!")
-			end
-			table.insert(filTbl, self.db:processPlaceholders(expr, unpack(values)))
-		end
-		return table.join(filTbl, ") AND (")
-	end,
-	applyFiltersAndExcludes = function (self, s)
-		local res
-		for _, v in pairs(self.filters) do
-			res = self:applyFilterOrExclude(v, s)
-			if res ~= "" then
-				s:where(res)
-			end
-		end
-		for _, v in pairs(self.excludes) do
-			res = self:applyFilterOrExclude(v, s)
-			if res ~= "" then
-				s:where("NOT ("..res..")")
-			end
-		end
-		-- joins
-		for _, v in ipairs(self.joins) do
-			s:join(unpack(v))
-		end
-		if self.limits.from then
-			s:limit(self.limits.from, self.limits.to)
-		end
-		if not table.isEmpty(self.orders) then
-			s:order(unpack(self.orders))
-		end
-		return s
-	end,
-	count = function (self)
-		local s = self.db:SelectCell"COUNT(*)":from(self.model:getTableName())
-		if self.initFunc then self:initFunc(s) end
-		self:applyFiltersAndExcludes(s)
-		return tonumber(s:exec())
-	end,
-	delete = function (self)
-		local s = self.db:Delete():from(self.model:getTableName())
-		if self.initFunc then self:initFunc(s) end
-		self:applyFiltersAndExcludes(s)
-		return s:exec()
-	end,
-	evaluate = function (self)
-		self.evaluated = true
-		local s = self.db:Select():from(self.model:getTableName())
-		if self.initFunc then self:initFunc(s) end
-		self:applyFiltersAndExcludes(s)
-		local _, v, obj = {}
-		self.values = {}
-		for _, v in ipairs(s:exec() or {}) do
-			obj = self.model(v)
-			table.insert(self.values, obj)
-		end
-	end,
-	getValue = function (self)
-		if not self.evaluated then
-			self:evaluate()
-		end
-		return self.values
-	end;
-	update = function (self, set)
-		local s = self.db:Update(self.model:getTableName())
-		if self.initFunc then self:initFunc(s) end
-		self:applyFiltersAndExcludes(s)
-		local k, v, val
-		for k, v in pairs(set) do
-			if type(v) == "table" and v.isKindOf and v:isKindOf(Model) then
-				val = v:getPk():getValue()
-			else
-				val = v
-			end
-			s:set("?#="..self.model:getFieldPlaceholder(self.model:getField(k)), k, val)
-		end
-		s:exec()
-	end
-}]]
 
 local Paginator = Object:extend{
 	__tag = .....".Paginator";

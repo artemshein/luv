@@ -106,7 +106,7 @@ local Core = Object:extend{
 		self:setProfiler(dev.Profiler())
 		self:beginProfiling "Luv"
 		--
-		self._wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
+		self._wsApi = wsApi--:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
 		self._urlconf = UrlConf(self._wsApi)
 		self:setCacher(TagEmuWrapper(Memory()))
 	end,

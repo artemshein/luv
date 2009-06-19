@@ -22,12 +22,12 @@ local Select = Driver.Select:extend{
 
 local SelectRow = Driver.SelectRow:extend{
 	__tag = .....".SelectRow",
-	__tostring = getmetatable(Select).__tostring
+	__tostring = Select.__tostring
 }
 
 local SelectCell = Driver.SelectCell:extend{
 	__tag = .....".SelectCell",
-	__tostring = getmetatable(SelectRow).__tostring
+	__tostring = SelectRow.__tostring
 }
 
 local Insert = Driver.Insert:extend{
@@ -69,7 +69,7 @@ local Update = Driver.Update:extend{
 
 local UpdateRow = Driver.UpdateRow:extend{
 	__tag = .....".UpdateRow",
-	__tostring = getmetatable(Update).__tostring
+	__tostring = Update.__tostring
 }
 
 local Delete = Driver.Delete:extend{
@@ -87,7 +87,7 @@ local Delete = Driver.Delete:extend{
 
 local DeleteRow = Driver.DeleteRow:extend{
 	__tag = .....".DeleteRow",
-	__tostring = getmetatable(Delete).__tostring
+	__tostring = Delete.__tostring
 }
 
 local CreateTable = Driver.CreateTable:extend{

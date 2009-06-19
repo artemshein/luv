@@ -15,7 +15,7 @@ local Reference = fields.Field:extend{
 			Exception"Instantiate of abstract class is not allowed!"
 		end
 		local Model = require "luv.db.models".Model
-		if ("table" == type(params) and params.isObject and params:isKindOf(Model)) or "string" == type(params) then
+		if ("table" == type(params) and params.isKindOf and params:isKindOf(Model)) or "string" == type(params) then
 			params = {references = params}
 		end
 		fields.Field.init(self, params)
@@ -59,17 +59,6 @@ local ManyToMany = Reference:extend{
 			if #value > 0 and "table" ~= type(value[1]) then
 				value = self:getRefModel():all():filter{pk__in=value}:getValue()
 			end
-			--[[local refModel, k, v = self:getRefModel()
-			for k, v in pairs(value) do
-				if "table" ~= type(v) or not v.isObject or not v:isKindOf(refModel) then
-					local obj = refModel:find(v)
-					if not obj then
-						Exception"Table of field references instances required!"
-					else
-						value[k] = obj
-					end
-				end
-			end]]
 		end
 		self.value = value
 		return self
@@ -128,9 +117,9 @@ local ManyToMany = Reference:extend{
 	add = function (self, values)
 		local container, refModel = self:getContainer(), self:getRefModel()
 		if not container:getPk():getValue() then
-			Exception 'primary key value must be set first'
+			Exception "primary key value must be set first"
 		end
-		if 'table' ~= type(values) or values.isKindOf then
+		if "table" ~= type(values) or values.isKindOf then
 			values = {values}
 		end
 		local s = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..', '..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
@@ -166,8 +155,8 @@ local ManyToMany = Reference:extend{
 	remove = function (self, values)
 		local container, refModel = self:getContainer(), self:getRefModel()
 		container:getDb():Delete():from(self:getTableName())
-			:where('?#='..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container.pk)
-			:where('?# IN (?a)', refModel:getTableName(), values)
+			:where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container.pk)
+			:where("?# IN (?a)", refModel:getTableName(), values)
 			:exec()
 		self.value = nil
 	end;
@@ -176,7 +165,7 @@ local ManyToMany = Reference:extend{
 		if not container.pk then
 			return nil
 		end
-		local models = require 'luv.db.models'
+		local models = require "luv.db.models"
 		return refModel:all():filter{[self:getRelatedName().."__pk"]=container.pk}
 	end,
 	count = function (self)
@@ -231,10 +220,10 @@ local ManyToOne = Reference:extend{
 }
 
 local getKeysForObjects = function (self, ...)
-	local objKeys = {}
+	local objKeys, params = {}, {select(1, ...)}
 	for i = 1, select("#", ...) do
-		local obj = select(i, ...)
-		if type(obj) ~= "table" or not obj.isObject or not obj:isKindOf(self:getRefModel()) then
+		local obj = params[i]
+		if type(obj) ~= "table" or not obj.isKindOf or not obj:isKindOf(self:getRefModel()) then
 			Exception("Instance of "..self:getRef().." required!")
 		end
 		table.insert(objKeys, obj:getPk():getValue())
@@ -338,47 +327,14 @@ local OneToOne = Reference:extend{
 			end
 		end
 		return self.value
-	end,
-	--[[getTableName = function (self)
-		if not self.tableName then
-			local t1, t2 = self:getContainer():getLabel(), self:getRefModel():getLabel()
-			if t1 < t2 then
-				self.tableName = t1.."2"..t2
-			else
-				self.tableName = t2.."2"..t1
-			end
-			if role then
-				self.tableName = self.tableName.."_"..role
-			end
-		end
-		return self.tableName
-	end,]]
+	end;
 	getBackRefFieldName = function (self)
 		return self:getRefModel():getReferenceField(self:getContainer(), require(MODULE).OneToOne)
-	end,
-	isBackLink = function (self) return self.backLink end,
+	end;
+	isBackLink = function (self) return self.backLink end;
 	createBackLink = function (self)
 		return require(MODULE).OneToOne{references=self:getContainer();backLink=not self:isBackLink();relatedName=self:getName();label=self:getContainer():getLabel()}
-	end,
-	--[[
-	createTable = function (self)
-		local container, refModel = self:getContainer(), self:getRefModel()
-		local c = container:getDb():CreateTable(self:getTableName())
-		local containerTableName = container:getTableName()
-		local containerPkName = container:getPkName()
-		local containerPk = container:getField(containerPkName)
-		local refTableName = refModel:getTableName()
-		local refPkName = refModel:getPkName()
-		local refPk = refModel:getField(refPkName)
-		c:field(containerTableName, container:getFieldTypeSql(containerPk), {required = true, null = false, unique = true})
-		c:constraint(containerTableName, containerTableName, containerPkName)
-		c:field(refTableName, refModel:getFieldTypeSql(refPk), {required = true, null = false, unique = true})
-		c:constraint(refTableName, refTableName, refPkName)
-		return c:exec()
-	end,
-	dropTable = function (self)
-		return self:getContainer():getDb():DropTable(self:getTableName()):exec()
-	end]]
+	end;
 	getRelatedName = function (self)
 		if not self.relatedName then
 			self.relatedName = self:getContainer():getLabel()
@@ -388,9 +344,9 @@ local OneToOne = Reference:extend{
 }
 
 return {
-	Reference = Reference,
-	ManyToMany = ManyToMany,
-	ManyToOne = ManyToOne,
-	OneToMany = OneToMany,
-	OneToOne = OneToOne
+	Reference=Reference;
+	ManyToMany=ManyToMany;
+	ManyToOne=ManyToOne;
+	OneToMany=OneToMany;
+	OneToOne=OneToOne;
 }

@@ -1,6 +1,6 @@
-require "luv.checktypes"
+local ct = require "luv.checktypes"
 local TestCase = require "luv.dev.unittest".TestCase
-local checkTypes, expect, type, tostring, tonumber, io = checkTypes, expect, type, tostring, tonumber, io
+local checkTypes, expect, type, tostring, tonumber, io = ct.checkTypes, ct.expect, type, tostring, tonumber, io
 
 module(...)
 
@@ -8,12 +8,12 @@ return TestCase:extend{
 	__tag = ...,
 	testSimple = function (self)
 		local a = checkTypes("number", function (num) return num+1 end, "number")
-		self.assertThrows(function () a("abc") end)
+		self.assertThrows(function () a "abc" end)
 		self.assertEquals(a(10), 11)
-	end,
+	end;
 	testManyParams = function (self)
 		local a = checkTypes(
-			"number", "string", "table", "nil", "boolean",
+			"number", "string", "table", nil, "boolean",
 			function ()
 				return function () end, 10, "ccc", false 
 			end,
@@ -25,7 +25,7 @@ return TestCase:extend{
 		self.assertEquals(s, "ccc")
 		self.assertEquals(b, false)
 		self.assertThrows(function () a() end)
-		self.assertThrows(function () a("123") end)
+		self.assertThrows(function () a "123" end)
 		self.assertThrows(function () a(123, false) end)
 		self.assertThrows(function () a(123, "cvv", 25) end)
 		self.assertThrows(function () a(123, "cvv", {a = 5}) end)
@@ -38,7 +38,7 @@ return TestCase:extend{
 		a(123, "aaa", {}, -15, true)
 		a(123, "aaa", {}, {}, true)
 		a(123, "aaa", {}, "bool", true)
-	end,
+	end;
 	testInvalidReturnType = function (self)
 		local a = checkTypes(function () return 123 end, "string")
 		self.assertThrows(function () a() end)
@@ -46,6 +46,6 @@ return TestCase:extend{
 		self.assertEquals(a(125), "125")
 		a = checkTypes("string", function (s) return tonumber(s) end, "number")
 		self.assertEquals(a("1443"), 1443)
-		self.assertThrows(function () a("not a number") end)
-	end
+		self.assertThrows(function () a "not a number" end)
+	end;
 }
