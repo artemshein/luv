@@ -100,13 +100,13 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core",
-	version = Version(0, 9, 0, "alpha"),
+	version = Version(0, 10, 0, "alpha"),
 	-- Init
 	init = function (self, wsApi)
 		self:setProfiler(dev.Profiler())
 		self:beginProfiling "Luv"
 		--
-		self._wsApi = wsApi--:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
+		self._wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
 		self._urlconf = UrlConf(self._wsApi)
 		self:setCacher(TagEmuWrapper(Memory()))
 	end,

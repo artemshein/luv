@@ -222,7 +222,7 @@ local Cgi = Api:extend{
 	end,
 	setCookie = function (self, name, value, expires, domain, path)
 		if not name then
-			Exception "Name required!"
+			Exception "name required"
 		end
 		local cookie = name.."="
 		self.cookies[name] = value

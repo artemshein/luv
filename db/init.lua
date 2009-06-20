@@ -12,7 +12,7 @@ local MODULE = ...
 local Exception = Exception:extend{__tag = .....".Exception"}
 
 local Factory = Object:extend{
-	__tag = .....".Factory",
+	__tag = .....".Factory";
 	new = function (self, dsn)
 		local login, pass, port, params = nil, nil, nil, {}
 		local driver, host, database, paramsStr = string.split(dsn, "://", "/", "?")
@@ -27,11 +27,11 @@ local Factory = Object:extend{
 			end
 		end
 		return require(MODULE.."."..driver).Driver(host, login, pass, database, port, params)
-	end
+	end;
 }
 
 local Select = Object:extend{
-	__tag = .....".Select",
+	__tag = .....".Select";
 	init = function (self, db, ...)
 		self._db = db
 		self._fields = {}
@@ -59,14 +59,7 @@ local Select = Object:extend{
 			right = {},
 			full = {}
 		}
-		local mt = getmetatable(self) or {}
-		mt.__call = function (self, ...)
-			if not self._values then
-				self:_evaluate()
-			end
-			return ipairs(self._values or {}, ...)
-		end
-	end,
+	end;
 	from = function (self, ...)
 		for _, v in ipairs{select(1, ...)} do
 			if type(v) == "table" then
@@ -78,7 +71,7 @@ local Select = Object:extend{
 			end
 		end
 		return self
-	end,
+	end;
 	fields = function (self, ...)
 		if 0 == select("#", ...) then
 			return self
@@ -97,15 +90,15 @@ local Select = Object:extend{
 			end
 		end
 		return self
-	end,
-	where = function (self, ...) table.insert(self._conditions.where, {...}) return self end,
-	orWhere = function (self, ...) table.insert(self._conditions.orWhere, {...}) return self end,
+	end;
+	where = function (self, ...) table.insert(self._conditions.where, {...}) return self end;
+	orWhere = function (self, ...) table.insert(self._conditions.orWhere, {...}) return self end;
 	order = function (self, ...)
 		for _, v in ipairs{select(1, ...)} do
 			table.insert(self._conditions.order, v)
 		end
 		return self
-	end,
+	end;
 	limit = function (self, from, to)
 		if to then
 			self._conditions.limit.from = from
@@ -115,14 +108,13 @@ local Select = Object:extend{
 			self._conditions.limit.to = from
 		end
 		return self
-	end,
+	end;
 	limitPage = function (self, page, onPage)
 		self._conditions.limit.from = (page-1)*onPage
 		self._conditions.limit.to = page*onPage
 		return self
-	end,
-	-- TODO: Make it protected
-	joinInternalProcess = function (self, joinType, joinTable, condition, fields)
+	end;
+	_joinInternalProcess = function (self, joinType, joinTable, condition, fields)
 		local tbl = joinTable
 		if "table" == type(tbl) then
 			tbl = next(tbl)
@@ -155,47 +147,45 @@ local Select = Object:extend{
 		else
 			self:fields(tbl..".*")
 		end]]
-	end,
+	end;
 	join = function (self, ...)
 		return self:joinInner(...)
-	end,
+	end;
 	joinInner = function (self, ...)
-		self:joinInternalProcess(self._joins.inner, ...)
+		self:_joinInternalProcess(self._joins.inner, ...)
 		return self
-	end,
-	joinOuter = function (self, ...) table.insert(self._joins.outer, {...}) return self end,
-	joinLeft = function (self, ...) table.insert(self._joins.left, {...}) return self end,
-	joinRight = function (self, ...) table.insert(self._joins.right, {...}) return self end,
-	joinFull = function (self, ...) table.insert(self._joins.full, {...}) return self end,
-	joinCross = function (self, ...) table.insert(self._joins.cross, {...}) return self end,
-	joinNatural = function (self, ...) table.insert(self._joins.natural, {...}) return self end,
-	joinInnerUsing = function (self, ...) table.insert(self._joinsUsing.inner, {...}) return self end,
-	joinOuterUsing = function (self, ...) table.insert(self._joinsUsing.outer, {...}) return self end,
-	joinLeftUsing = function (self, ...) table.insert(self._joinsUsing.left, {...}) return self end,
-	joinRightUsing = function (self, ...) table.insert(self._joinsUsing.right, {...}) return self end,
-	joinFullUsing = function (self, ...) table.insert(self._joinsUsing.full, {...}) return self end,
+	end;
+	joinOuter = function (self, ...) table.insert(self._joins.outer, {...}) return self end;
+	joinLeft = function (self, ...) table.insert(self._joins.left, {...}) return self end;
+	joinRight = function (self, ...) table.insert(self._joins.right, {...}) return self end;
+	joinFull = function (self, ...) table.insert(self._joins.full, {...}) return self end;
+	joinCross = function (self, ...) table.insert(self._joins.cross, {...}) return self end;
+	joinNatural = function (self, ...) table.insert(self._joins.natural, {...}) return self end;
+	joinInnerUsing = function (self, ...) table.insert(self._joinsUsing.inner, {...}) return self end;
+	joinOuterUsing = function (self, ...) table.insert(self._joinsUsing.outer, {...}) return self end;
+	joinLeftUsing = function (self, ...) table.insert(self._joinsUsing.left, {...}) return self end;
+	joinRightUsing = function (self, ...) table.insert(self._joinsUsing.right, {...}) return self end;
+	joinFullUsing = function (self, ...) table.insert(self._joinsUsing.full, {...}) return self end;
 	_evaluate = function (self)
 		self._values = self._db:fetchAll(tostring(self))
 	end;
-	exec = function (self)
+	__tostring = Object.abstractMethod;
+	__call = function (self, ...)
 		if not self._values then
 			self:_evaluate()
 		end
 		return self._values
-	end;
-	__tostring = Object.abstractMethod
+	end
 }
 
 local SelectRow = Select:extend{
 	__tag = .....".Driver.SelectRow";
-	exec = function (self) return self._db:fetchRow(tostring(self)) end;
-	__tostring = Object.abstractMethod;
+	_evaluate = function (self) self._values = self._db:fetchRow(tostring(self)) end;
 }
 
 local SelectCell = SelectRow:extend{
 	__tag = .....".Driver.SelectCell";
-	exec = function (self) return self._db:fetchCell(tostring(self)) end;
-	__tostring = Object.abstractMethod;
+	_evaluate = function (self) self._values = self._db:fetchCell(tostring(self)) end;
 }
 
 local Insert = Object:extend{
@@ -205,11 +195,12 @@ local Insert = Object:extend{
 		self._valuesData = {}
 		self._fields = fields
 		self._fieldNames = {...}
-	end,
-	into = function (self, ...) self._table = {...} return self end,
-	values = function (self, ...) table.insert(self._valuesData, {...}) return self end,
-	exec = function (self) return self._db:query(tostring(self)) end,
-	__tostring = Object.abstractMethod
+	end;
+	into = function (self, ...) self._table = {...} return self end;
+	values = function (self, ...) table.insert(self._valuesData, {...}) return self end;
+	_evaluate = function (self) return self._db:query(tostring(self)) end;
+	__call = function (self) return self:_evaluate() end;
+	__tostring = Object.abstractMethod;
 }
 
 local InsertRow = Object:extend{
@@ -217,11 +208,12 @@ local InsertRow = Object:extend{
 	init = function (self, db)
 		self._db = db
 		self._sets = {}
-	end,
-	into = function (self, table) self._table = table return self end,
-	set = function (self, ...) table.insert(self._sets, {...}) return self end,
-	exec = function (self) return self._db:query(tostring(self)) end,
-	__tostring = Object.abstractMethod
+	end;
+	into = function (self, table) self._table = table return self end;
+	set = function (self, ...) table.insert(self._sets, {...}) return self end;
+	_evaluate = function (self) return self._db:query(tostring(self)) end;
+	__tostring = Object.abstractMethod;
+	__call = function (self) return self:_evaluate() end;
 }
 
 local Update = Object:extend{
@@ -236,16 +228,16 @@ local Update = Object:extend{
 			order = {},
 			limit = {}
 		}
-	end,
-	set = function (self, ...) table.insert(self._sets, {...}) return self end,
-	where = function (self, ...) table.insert(self._conditions.where, {...}) return self end,
-	orWhere = function (self, ...) table.insert(self._conditions.orWhere, {...}) return self end,
+	end;
+	set = function (self, ...) table.insert(self._sets, {...}) return self end;
+	where = function (self, ...) table.insert(self._conditions.where, {...}) return self end;
+	orWhere = function (self, ...) table.insert(self._conditions.orWhere, {...}) return self end;
 	order = function (self, ...)
 		for _, v in ipairs{select(1, ...)} do
 			table.insert(self._conditions.order, v)
 		end
 		return self
-	end,
+	end;
 	limit = function (self, from, to)
 		if to then
 			self._conditions.limit.from = from
@@ -255,14 +247,15 @@ local Update = Object:extend{
 			self._conditions.limit.to = from
 		end
 		return self
-	end,
+	end;
 	limitPage = function (self, page, onPage)
 		self._conditions.limit.from = (page-1)*onPage
 		self._conditions.limit.to = (page-1)*onPage+1
 		return self
-	end,
-	exec = function (self) return self._db:query(tostring(self)) end,
-	__tostring = Object.abstractMethod
+	end;
+	_evaluate = function (self) return self._db:query(tostring(self)) end;
+	__tostring = Object.abstractMethod;
+	__call = function (self) return self:_evaluate() end;
 }
 
 local UpdateRow = Update:extend{
@@ -276,9 +269,8 @@ local UpdateRow = Update:extend{
 			self._conditions.limit.to = 1
 		end
 		return self
-	end,
-	limitPage = Update.maskedMethod,
-	__tostring = Object.abstractMethod
+	end;
+	limitPage = Update.maskedMethod;
 }
 
 local Delete = Object:extend{
@@ -291,16 +283,16 @@ local Delete = Object:extend{
 			order = {},
 			limit = {}
 		}
-	end,
-	from = function (self, table) self._table = table return self end,
-	where = function (self, ...) table.insert(self._conditions.where, {...}) return self end,
-	orWhere = function (self, ...) table.insert(self._conditions.orWhere, {...}) return self end,
+	end;
+	from = function (self, table) self._table = table return self end;
+	where = function (self, ...) table.insert(self._conditions.where, {...}) return self end;
+	orWhere = function (self, ...) table.insert(self._conditions.orWhere, {...}) return self end;
 	order = function (self, ...)
 		for _, v in ipairs{select(1, ...)} do
 			table.insert(self._conditions.order, v)
 		end
 		return self
-	end,
+	end;
 	limit = function (self, from, to)
 		if to then
 			self._conditions.limit.from = from
@@ -310,14 +302,15 @@ local Delete = Object:extend{
 			self._conditions.limit.to = from
 		end
 		return self
-	end,
+	end;
 	limitPage = function (self, page, onPage)
 		self._conditions.limit.from = (page-1)*onPage
 		self._conditions.limit.to = page*onPage
 		return self
-	end,
-	exec = function (self) return self._db:query(tostring(self)) end,
-	__tostring = Object.abstractMethod
+	end;
+	_evaluate = function (self) return self._db:query(tostring(self)) end;
+	__tostring = Object.abstractMethod;
+	__call = function (self) return self:_evaluate() end;
 }
 
 local DeleteRow = Delete:extend{
@@ -331,9 +324,8 @@ local DeleteRow = Delete:extend{
 			self._conditions.limit.to = 1
 		end
 		return self
-	end,
-	limitPage = Delete.maskedMethod,
-	__tostring = Object.abstractMethod
+	end;
+	limitPage = Delete.maskedMethod;
 }
 
 local DropTable = Object:extend{
@@ -341,9 +333,10 @@ local DropTable = Object:extend{
 	init = function (self, db, table)
 		self._db = db
 		self._table = table
-	end,
-	exec = function (self) return self._db:query(tostring(self)) end,
-	__tostring = function (self) return self._db:processPlaceholders("DROP TABLE ?#;", self._table) end
+	end;
+	_evaluate = function (self) return self._db:query(tostring(self)) end;
+	__tostring = function (self) return self._db:processPlaceholders("DROP TABLE ?#;", self._table) end;
+	__call = function (self) return self:_evaluate() end;
 }
 
 local CreateTable = Object:extend{
@@ -355,38 +348,39 @@ local CreateTable = Object:extend{
 		self._unique = {}
 		self._options = {}
 		self._constraints = {}
-	end,
-	field = function (self, ...) table.insert(self._fields, {...}) return self end,
-	uniqueTogether = function (self, ...) table.insert(self._unique, {...}) return self end,
+	end;
+	field = function (self, ...) table.insert(self._fields, {...}) return self end;
+	uniqueTogether = function (self, ...) table.insert(self._unique, {...}) return self end;
 	option = function (self, key, value)
 		self._options[key] = value
 		return self
-	end,
-	constraint = function (self, ...) table.insert(self._constraints, {...}) return self end,
-	primaryKey = function (self, ...) self._primaryKeyValue = {...} return self end,
-	exec = function (self) return self._db:query(tostring(self)) end,
-	__tostring = Object.abstractMethod
+	end;
+	constraint = function (self, ...) table.insert(self._constraints, {...}) return self end;
+	primaryKey = function (self, ...) self._primaryKeyValue = {...} return self end;
+	_evaluate = function (self) return self._db:query(tostring(self)) end;
+	__tostring = Object.abstractMethod;
+	__call = function (self) return self:_evaluate() end;
 }
 
 local Driver = Object:extend{
 	__tag = .....".Driver",
-	Exception = Exception:extend{__tag = .....".Driver.Exception"},
-	Select = Select,
-	SelectRow = SelectRow,
-	SelectCell = SelectCell,
-	Insert = Insert,
-	InsertRow = InsertRow,
-	Update = Update,
-	UpdateRow = UpdateRow,
-	Delete = Delete,
-	DeleteRow = DeleteRow,
-	CreateTable = CreateTable,
-	DropTable = DropTable,
+	Exception = Exception:extend{__tag = .....".Driver.Exception"};
+	Select = Select;
+	SelectRow = SelectRow;
+	SelectCell = SelectCell;
+	Insert = Insert;
+	InsertRow = InsertRow;
+	Update = Update;
+	UpdateRow = UpdateRow;
+	Delete = Delete;
+	DeleteRow = DeleteRow;
+	CreateTable = CreateTable;
+	DropTable = DropTable;
 	-- Logger
 	_logger = function (sql, result, time) end;
 	getLogger = function (self) return self._logger end;
 	setLogger = function (self, logger) self._logger = logger return self end;
-	processPlaceholder = Object.abstractMethod,
+	processPlaceholder = Object.abstractMethod;
 	processPlaceholders = function (self, sql, ...)
 		local begPos, endPos, res, match, i, lastEnd = 0, 0, {}, nil, 1, 0
 		begPos, endPos = string.find(sql, "?[%#davnq]?", lastEnd+1)
@@ -402,7 +396,7 @@ local Driver = Object:extend{
 		end
 		table.insert(res, string.slice(sql, lastEnd+1))
 		return table.join(res)
-	end,
+	end;
 	fetchAll = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self._connection:execute(rawSql)
@@ -417,7 +411,7 @@ local Driver = Object:extend{
 		end
 		self._logger(rawSql.." return "..#res.." rows")
 		return res
-	end,
+	end;
 	fetchRow = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self._connection:execute(rawSql)
@@ -429,7 +423,7 @@ local Driver = Object:extend{
 		local res = cur:fetch({}, "a")
 		self._logger(rawSql.." return row")
 		return res
-	end,
+	end;
 	fetchCell = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self._connection:execute(rawSql)
@@ -446,7 +440,7 @@ local Driver = Object:extend{
 		local _, v = next(res)
 		self._logger(rawSql.." return "..v)
 		return v
-	end,
+	end;
 	beginTransaction = function (self) self:query "BEGIN;" return self end;
 	commit = function (self) self:query "COMMIT;" return self end;
 	rollback = function (self) self:query "ROLLBACK;" return self end;
@@ -465,13 +459,9 @@ local Driver = Object:extend{
 		end
 		self._logger(rawSql.." return "..cur)
 		return cur
-	end,
-	getLastInsertId = Object.abstractMethod,
-	getError = function (self) return self._error end
+	end;
+	getLastInsertId = Object.abstractMethod;
+	getError = function (self) return self._error end;
 }
 
-return {
-	Exception = Exception,
-	Factory = Factory,
-	Driver = Driver
-}
+return {Exception=Exception;Factory=Factory;Driver=Driver}

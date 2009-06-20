@@ -93,10 +93,10 @@ local ManyToMany = Reference:extend{
 		c:field(refTableName, refModel:getFieldTypeSql(refModel:getField(refPkName)), {required=true, null=false})
 		c:constraint(refTableName, refTableName, refPkName)
 		c:uniqueTogether(containerTableName, refTableName)
-		return c:exec()
+		return c()
 	end,
 	dropTable = function (self)
-		return self:getContainer():getDb():DropTable(self:getTableName()):exec()
+		return self:getContainer():getDb():DropTable(self:getTableName())()
 	end,
 	insert = function (self)
 		if self.value then
@@ -109,7 +109,7 @@ local ManyToMany = Reference:extend{
 				for _, v in pairs(self.value) do
 					s:values(container:getPk():getValue(), v:getPk():getValue())
 				end
-				s:exec()
+				s()
 			end
 			self.value = nil
 		end
@@ -126,7 +126,7 @@ local ManyToMany = Reference:extend{
 		for _, v in ipairs(values) do
 			s:values(container:getPk():getValue(), 'table' == type(v) and v:getPk():getValue() or tostring(v))
 		end
-		s:exec()
+		s()
 		self.value = nil
 	end;
 	update = function (self)
@@ -135,13 +135,13 @@ local ManyToMany = Reference:extend{
 			if not container:getPk():getValue() then
 				Exception"Primary key value must be set first!"
 			end
-			container:getDb():Delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue()):exec()
+			container:getDb():Delete():from(self:getTableName()):where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container:getPk():getValue())()
 			if "table" == type(self.value) and not table.isEmpty(self.value) then
 				local s = container:getDb():Insert(container:getFieldPlaceholder(container:getPk())..", "..refModel:getFieldPlaceholder(refModel:getPk()), container:getTableName(), refModel:getTableName()):into(self:getTableName())
 				for _, v in pairs(self.value) do
 					s:values(container:getPk():getValue(), v:getPk():getValue())
 				end
-				s:exec()
+				s()
 			end
 			self.value = nil
 		end
@@ -156,8 +156,7 @@ local ManyToMany = Reference:extend{
 		local container, refModel = self:getContainer(), self:getRefModel()
 		container:getDb():Delete():from(self:getTableName())
 			:where("?#="..container:getFieldPlaceholder(container:getPk()), container:getTableName(), container.pk)
-			:where("?# IN (?a)", refModel:getTableName(), values)
-			:exec()
+			:where("?# IN (?a)", refModel:getTableName(), values)()
 		self.value = nil
 	end;
 	all = function (self)
@@ -278,7 +277,7 @@ local OneToMany = Reference:extend{
 		local update, i = container:getDb():Update(self:getRefModel():getTableName())
 		update:set("?#="..container:getFieldPlaceholder(refModel:getField(toFieldName)), toFieldName, toFieldRelationField:getValue())
 		local refPkName = self:getRefModel():getPkName()
-		update:where("?# IN (?a)", refPkName, getKeysForObjects(self, ...)):exec()
+		update:where("?# IN (?a)", refPkName, getKeysForObjects(self, ...))()
 	end,
 	remove = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()

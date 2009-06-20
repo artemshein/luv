@@ -46,8 +46,8 @@ local ModelSqlSlot = cache.Slot:extend{
 		cache.Slot.init(self, backend, tostring(crypt.Md5(tostring(sql))))
 		self:addTag(ModelTag(backend, model))
 	end;
-	exec = function (self)
-		return self:thru(self.sql):exec()
+	__call = function (self)
+		return self:thru(self.sql)()
 	end;
 }
 
@@ -100,7 +100,7 @@ local Model = Struct:extend{
 		end
 		new.Meta = new.Meta or {}
 		return new
-	end,
+	end;
 	init = function (self, values)
 		Struct.init(self, values)
 		if not self.fields then
@@ -205,7 +205,7 @@ local Model = Struct:extend{
 			local pk = self:getPk()
 			select:where("?#="..self:getFieldPlaceholder(pk), pk:getName(), what)
 		end
-		local res = self:getCacher() and ModelSqlSlot(self:getCacher(), self, select):exec() or select:exec()
+		local res = self:getCacher() and ModelSqlSlot(self:getCacher(), self, select)() or select()
 		if not res then
 			return nil
 		end
@@ -256,7 +256,7 @@ local Model = Struct:extend{
 				end
 			end
 		end
-		if not insert:exec() then
+		if not insert() then
 			self:addError(self.db:getError())
 			return false
 		end
@@ -308,7 +308,7 @@ local Model = Struct:extend{
 				end
 			end
 		end
-		updateRow:exec()
+		updateRow()
 		for _, v in ipairs(self:getFields()) do
 			if v:isKindOf(references.ManyToMany) then
 				v:update()
@@ -320,7 +320,7 @@ local Model = Struct:extend{
 	save = function (self)
 		local pk = self:getPk()
 		local pkName = pk:getName()
-		if not pk:getValue() or not self:getDb():SelectCell(pkName):from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec() then
+		if not pk:getValue() or not self:getDb():SelectCell(pkName):from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())() then
 			return self:insert()
 		else
 			return self:update()
@@ -330,7 +330,7 @@ local Model = Struct:extend{
 		local pk = self:getPk()
 		local pkName = pk:getName()
 		self:clearCacheTag()
-		return self:getDb():DeleteRow():from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue()):exec()
+		return self:getDb():DeleteRow():from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())()
 	end,
 	create = function (self, ...)
 		local obj = self(...)
@@ -408,7 +408,7 @@ local Model = Struct:extend{
 				end
 			end
 		end
-		if not c:exec() then
+		if not c() then
 			return false
 		end
 	end;
@@ -423,7 +423,7 @@ local Model = Struct:extend{
 	end,
 	dropTable = function (self)
 		self:clearCacheTag()
-		return self.db:DropTable(self:getTableName()):exec()
+		return self.db:DropTable(self:getTableName())()
 	end;
 	dropTables = function (self)
 		for _, v in ipairs(self:getFields()) do
@@ -476,13 +476,11 @@ local NestedSet = Tree:extend{
 		self.db:beginTransaction()
 		self.db:Delete():from(self:getTableName())
 			:where("?#>?d", "left", self.left)
-			:andWhere("?#<?d", "right", self.right)
-			:exec()
+			:andWhere("?#<?d", "right", self.right)()
 		self.db:Update(self:getTableName())
 			:set("?#=?#-?d", "left", "left", self.right-self.left-1)
 			:set("?#=?#-?d", "right", "right", self.right-self.left-1)
-			:where("?#>?d", "left", self.right)
-			:exec()
+			:where("?#>?d", "left", self.right)()
 		self.right = self.left+1
 		if not self:update() then
 			self.db:rollback()
@@ -499,12 +497,10 @@ local NestedSet = Tree:extend{
 		self.db:beginTransaction()
 		self.db:Update(self:getTableName())
 			:set("?#=?#+2", "left", "left")
-			:where("?#>?d", "left", self.left)
-			:exec()
+			:where("?#>?d", "left", self.left)()
 		self.db:Update(self:getTableName())
 			:set("?#=?#+2", "right", "right")
-			:where("?#>?d", "right", self.left)
-			:exec()
+			:where("?#>?d", "right", self.left)()
 		if not child:insert() then
 			self.db:rollback()
 			return false
@@ -518,17 +514,14 @@ local NestedSet = Tree:extend{
 		self.db:beginTransaction()
 		self.db:Delete():from(self:getTableName())
 			:where("?#>?d", "left", self.left)
-			:where("?#<?d", "right", self.right)
-			:exec()
+			:where("?#<?d", "right", self.right)()
 		Tree.delete(self)
 		self.db:Update(self:getTableName())
 			:set("?#=?#-?d", "left", "left", self.right-self.left+1)
-			:where("?#>?d", "left", self.right)
-			:exec()
+			:where("?#>?d", "left", self.right)()
 		self.db:Update(self:getTableName())
 			:set("?#=?#-?d", "right", "right", self.right-self.left+1)
-			:where("?#>?d", "right", self.right)
-			:exec()
+			:where("?#>?d", "right", self.right)()
 		self.db:commit()
 	end;
 }
@@ -835,7 +828,7 @@ local QuerySet = Object:extend{
 		self._evaluated = true
 		self:_applyConditions(self._query)
 		self._values = {}
-		for _, v in self._query() do
+		for _, v in ipairs(self._query()) do
 			table.insert(self._values, self._model(v))
 		end
 	end;
@@ -848,7 +841,7 @@ local QuerySet = Object:extend{
 	count = function (self)
 		local s = self._model:getDb():SelectCell "COUNT(*)":from(self._model:getTableName())
 		self:_applyConditions(s)
-		return tonumber(s:exec())
+		return tonumber(s())
 	end;
 	asSql = function (self)
 		local s = self._query:clone()
@@ -868,13 +861,13 @@ local QuerySet = Object:extend{
 			end
 			u:set("?#="..self._model:getFieldPlaceholder(self._model:getField(k)), k, val)
 		end
-		return u:exec()
+		return u()
 	end;
 	delete = function (self)
 		local s = self._model:getDb():Select(self._model:getPkName()):from(self._model:getTableName())
 		self:_applyConditions(s)
 		local u = self._model:getDb():Delete():from(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s:exec(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
-		return u:exec()
+		return u()
 	end;
 }
 

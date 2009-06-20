@@ -2,7 +2,7 @@ require "luv.utf8data"
 require "luv.utf8"
 local table = require "luv.table"
 local string, table, unpack, select, debug, error, loadstring, assert = string, table, unpack, select, debug, error, loadstring, assert
-local type, tostring, pairs, io = type, tostring, pairs, io
+local type, tostring, pairs, io, error = type, tostring, pairs, io, error
 
 module(...)
 
@@ -45,14 +45,15 @@ string.split = function (str, ...)
 end
 
 string.findLast = function (self, substr)
-	local i, lastPos = 1
-	local begPos = string.find(self, substr, i, true)
+	local i, lastBegPos, lastEndPos = 1
+	local begPos, endPos = string.find(self, substr, i, true)
 	while begPos do
-		lastPos = begPos
+		lastBegPos = begPos
+		lastEndPos = endPos
 		i = begPos+1
-		begPos = string.find(self, substr, i, true)
+		begPos, endPos = string.find(self, substr, i, true)
 	end
-	return lastPos
+	return lastBegPos, lastEndPos
 end
 
 string.explode = function (self, ex)
