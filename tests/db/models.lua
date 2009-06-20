@@ -89,7 +89,7 @@ return TestCase:extend{
 		self.assertTrue(t:isValid())
 	end,
 	testFindSimple = function (self)
-		local lastId = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc"):exec()
+		local lastId = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc")()
 		self.assertTrue(lastId)
 		local a = self.A:find(lastId)
 		self.assertEquals(a.id, lastId)
@@ -102,19 +102,19 @@ return TestCase:extend{
 		local a = self.A()
 		a.title = "testTitle"
 		self.assertTrue(a:insert())
-		local b = self.A:getDb():SelectRow():from(self.A:getTableName()):exec()
+		local b = self.A:getDb():SelectRow():from(self.A:getTableName())()
 		self.assertEquals(b.title, "testTitle")
 		a = self.A()
 		a.title = "testTitle"
 		self.assertFalse(a:insert())
 	end,
 	testUpdateSimple = function (self)
-		local id = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc"):exec()
+		local id = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc")()
 		local a = self.A()
 		a.id = id
 		a.title = "cde"
 		a:update()
-		local b = self.A:getDb():SelectRow():from(self.A:getTableName()):where("?#=?n", "id", id):exec()
+		local b = self.A:getDb():SelectRow():from(self.A:getTableName()):where("?#=?n", "id", id)()
 		self.assertTrue(b.title, "cde")
 	end,
 	testQ = function (self)

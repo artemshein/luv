@@ -851,7 +851,7 @@ local QuerySet = Object:extend{
 	update = function (self, set)
 		local s = self._model:getDb():Select(self._model:getPkName()):from(self._model:getTableName())
 		self:_applyConditions(s)
-		local u = self._model:getDb():Update(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s:exec(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
+		local u = self._model:getDb():Update(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
 		local val
 		for k, v in pairs(set) do
 			if type(v) == "table" and v.isKindOf and v:isKindOf(Model) then
@@ -866,7 +866,7 @@ local QuerySet = Object:extend{
 	delete = function (self)
 		local s = self._model:getDb():Select(self._model:getPkName()):from(self._model:getTableName())
 		self:_applyConditions(s)
-		local u = self._model:getDb():Delete():from(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s:exec(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
+		local u = self._model:getDb():Delete():from(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
 		return u()
 	end;
 }
