@@ -1,7 +1,7 @@
 {% if p:getTotal() then %}
 	{% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
 	{% local pageNav = include("admin/_pagenav.html", {func="setPage"}) %}
-	{{ pageNav }}
+	{{ safe(pageNav) }}
 	<form id="items">
 	<table><thead>
 		<th></th>
@@ -24,9 +24,9 @@
 						{% if 'function' == type(choices) then choices = choices() end %}
 						{% local value = record[field] %}
 						{% if choices then %}
-							{{ html.escape(tostring(value and choices[value] or "")) }}
+							{{ value and choices[value] or "" }}
 						{% else %}
-							{{ html.escape(tostring(value or "")) }}
+							{{ value or "" }}
 						{% end %}
 					{% end %}
 				{% else %}
@@ -38,7 +38,7 @@
 	{% end %}
 	</table>
 	</form>
-	{{ pageNav }}
+	{{ safe(pageNav) }}
 	<script type="text/javascript" language="JavaScript">//<![CDATA[
 		function selectRecord (id)
 		{
@@ -52,4 +52,4 @@
 	<div style="padding:10px 20px">No records.</div>
 {% end %}
 
-{{ debugger }}
+{{ safe(debugger) }}

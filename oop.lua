@@ -1,11 +1,10 @@
 local table = require "luv.table"
 local tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset = tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset
-local ipairs = ipairs
-local require = require
+local ipairs, debug, require = ipairs, debug, require
 
 module(...)
 
-local abstractMethod = function (self) require "luv.dev".dprint(self, 3) error "method must be implemented first" end
+local abstractMethod = function () error("method must be implemented first "..debug.traceback()) end
 
 local Object = {
 	__tag = .....".Object";
@@ -45,7 +44,7 @@ local Object = {
 		return false
 	end;
 	abstractMethod = abstractMethod;
-	maskedMethod = function () error("Masked method! "..debug.traceback()) end;
+	maskedMethod = function () error("masked method "..debug.traceback()) end;
 	singleton = function (self) return self end;
 }
 

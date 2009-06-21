@@ -1,6 +1,6 @@
 {% if isRoot then %}<ul>{% end %}
 {% if nodes then %}
-	{% local _, node for _, node in pairs(nodes) do %}
+	{% for _, node in pairs(nodes) do %}
 		{% childrenCount=node:childrenCount() %}
 		<li>
 		<div>
@@ -18,4 +18,4 @@
 {% end %}
 {% if isRoot then %}</ul>{% end %}
 
-{{ debugger }}
+{{ safe(debugger) }}

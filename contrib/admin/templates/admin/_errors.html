@@ -11,7 +11,7 @@
 {% if errors[1] then %}
 	<div id="errors">
 	<h4>Error!</h4>
-	{% local _, error for _, error in ipairs(errors) do %}
+	{% for _, error in ipairs(errors) do %}
 		{{ error }}<br />
 	{% end %}
 	</div>

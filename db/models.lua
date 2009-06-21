@@ -828,7 +828,7 @@ local QuerySet = Object:extend{
 		self._evaluated = true
 		self:_applyConditions(self._query)
 		self._values = {}
-		for _, v in ipairs(self._query()) do
+		for _, v in ipairs(self._query() or {}) do
 			table.insert(self._values, self._model(v))
 		end
 	end;

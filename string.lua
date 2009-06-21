@@ -6,7 +6,7 @@ local type, tostring, pairs, io, error = type, tostring, pairs, io, error
 
 module(...)
 
-string.slice = string.sub
+string.slice = string.utf8sub
 
 string.capitalize = function (self)
 	if string.len(self) == 0 then return self end
@@ -24,7 +24,7 @@ string.endsWith = function (str, search)
 	if "string" ~= type(str) or "string" ~= type(search) then
 		error("String expected "..debug.traceback())
 	end
-	if string.slice(str, -string.len(search)) ~= search then
+	if string.sub(str, -string.len(search)) ~= search then
 		return false
 	end
 	return true
@@ -36,8 +36,8 @@ string.split = function (str, ...)
 		if not tail then break end
 		local begPos, endPos = string.find(tail, values[i], 1, true)
 		if begPos then
-			table.insert(res, string.slice(tail, 1, begPos-1))
-			tail = string.slice(tail, endPos+1)
+			table.insert(res, string.sub(tail, 1, begPos-1))
+			tail = string.sub(tail, endPos+1)
 		end
 	end
 	table.insert(res, tail)
@@ -60,8 +60,8 @@ string.explode = function (self, ex)
 	local res, tail, begPos, endPos = {}, self
 	begPos, endPos = string.find(tail, ex, 1, true)
 	while begPos do
-		table.insert(res, string.slice(tail, 1, begPos-1))
-		tail = string.slice(tail, endPos+1)
+		table.insert(res, string.sub(tail, 1, begPos-1))
+		tail = string.sub(tail, endPos+1)
 		begPos, endPos = string.find(tail, ex, 1, true)
 	end
 	table.insert(res, tail)
@@ -78,7 +78,7 @@ string.ltrim = function (self)
 			break
 		end
 	end
-	return string.slice(self, index)
+	return string.sub(self, index)
 end
 
 string.rtrim = function (self)
@@ -89,7 +89,7 @@ string.rtrim = function (self)
 			break
 		end
 	end
-	return string.slice(self, 1, index)
+	return string.sub(self, 1, index)
 end
 
 string.trim = function (self)
@@ -121,11 +121,12 @@ string.serialize = function (self, seen)
 		local res, first = "{", true
 		table.insert(seen, self)
 		for k, v in pairs(self) do
-			if "table" ~= type(v) or not table.ifind(seen, v) then
+			if not table.ifind(seen, v)
+			and "function" ~= type(v) and "nil" ~= type(v) then
 				if first then
 					first = false
 				else
-					res = res..","
+					res = res..";"
 				end
 				res = res.."["..string.serialize(k).."]="..string.serialize(v, seen)
 			end
@@ -137,6 +138,9 @@ string.serialize = function (self, seen)
 end
 
 string.unserialize = function (self)
+	if not self then
+		return nil
+	end
 	return assert(loadstring("return "..self))()
 end
 

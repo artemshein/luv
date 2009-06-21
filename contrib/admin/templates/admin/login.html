@@ -1,4 +1,4 @@
-{{ include "admin/_header.html" }}
+{{ safe(include "admin/_header.html") }}
 
 <div class="span-24 last" style="border:#CCC solid 0;border-bottom-width:1px">
 	<h1>{{ capitalize(tr(title)) }}</h1>
@@ -8,7 +8,7 @@
 	{% for _, error in ipairs(form:getErrors()) do %}
 		{{ error }}
 	{% end %}
-	{{ form }}
+	{{ safe(form) }}
 </div>
 
-{{ include "admin/_footer.html" }}
+{{ safe(include "admin/_footer.html") }}

@@ -1,10 +1,10 @@
-{{ include "admin/_header.html" }}
+{{ safe(include "admin/_header.html") }}
 
-{{ include "admin/_info.html" }}
+{{ safe(include "admin/_info.html") }}
 {% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
 <div class="span-24 last">
 	<div id="chainMenu"><a href="{{ urlConf:getBaseUri() }}">&larr; {{ capitalize(tr "back to main") }}</a> | <a href="{{ modelUrl }}">{{ capitalize(tr(record:getLabelMany())) }}</a></div>
-	{{ include "admin/_user-msgs.html" }}
+	{{ safe(include "admin/_user-msgs.html") }}
 	<h2>{{ record }}</h2>
 	<script type="text/javascript" language="JavaScript">//<![CDATA[
 		function formCallback (errors)
@@ -18,8 +18,8 @@
 			}
 		}
 	//]]></script>
-	{{ include("admin/_errors.html", {errors=form:getErrors()}) }}
-	{{ form }}
+	{{ safe(include("admin/_errors.html", {errors=form:getErrors()})) }}
+	{{ safe(form) }}
 </div>
 
-{{ include "admin/_footer.html" }}
+{{ safe(include "admin/_footer.html") }}

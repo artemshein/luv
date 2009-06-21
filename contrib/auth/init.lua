@@ -71,7 +71,7 @@ local User = models.Model:extend{
 	end,
 	getAuthUser = function (self, session, loginForm)
 		if self.authUser then return self.authUser end
-		if not loginForm or "table" ~= type(loginForm) or not loginForm.isObject
+		if not loginForm or "table" ~= type(loginForm) or not loginForm.isKindOf
 			or not loginForm:isKindOf(require(MODULE).forms.LoginForm) or not loginForm:isSubmitted() or not loginForm:isValid() then
 			if not session[self.sessId] then
 				session[self.sessId] = nil

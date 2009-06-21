@@ -1,4 +1,5 @@
 local table, pairs, next, type, require, ipairs = table, pairs, next, type, require, ipairs
+local tostring = tostring
 
 module(...)
 
@@ -86,17 +87,22 @@ table.deepCopy = function (tbl, seen)
 	return res
 end
 
-table.join = function (tbl, sp)
-	local res = ''
-	sp = sp or ''
+table.join = function (tbl, sep)
+	local res
+	sep = sep or ""
 	for _, v in pairs(tbl) do
-		if res == '' then
-			res = v
-		else
-			res = res..sp..v
-		end
+		res = (res and res..sep or "")..tostring(v)
 	end
-	return res
+	return res or ""
+end
+
+table.ijoin = function (self, sep)
+	local res
+	sep = sep or ""
+	for _, v in ipairs(self) do
+		res = (res and res..sep or "")..tostring(v)
+	end
+	return res or ""
 end
 
 table.size = function (tbl)

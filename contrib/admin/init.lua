@@ -81,7 +81,7 @@ local AdminSite = Object:extend{
 	init = function (self, luv, ...)
 		self.luv = luv
 		local modelsList = {}
-		local modelsCategories, _, model, i = {}
+		local modelsCategories = {}
 		for i = 1, select("#", ...) do
 			modelsList = select(i, ...)
 			for _, model in ipairs(modelsList) do
@@ -99,7 +99,6 @@ local AdminSite = Object:extend{
 		self.modelsCategories = modelsCategories
 	end;
 	findAdmin = function (self, path)
-		local category, admins, admin
 		for category, admins in pairs(self.modelsCategories) do
 			for _, admin in ipairs(admins) do
 				if admin:getPath() == path then return admin end

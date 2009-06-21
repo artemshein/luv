@@ -1,5 +1,5 @@
 local string = require "luv.string"
-local type, table, pairs, io = type, table, pairs, io
+local type, table, ipairs, pairs, io = type, table, ipairs, pairs, io
 local loadstring, setfenv, tostring = loadstring, setfenv, tostring
 local Object = require"luv.oop".Object
 local fs = require "luv.fs"
@@ -12,10 +12,11 @@ module(...)
 local Api = Object:extend{
 	__tag = .....".Api",
 	init = function (self, templatesDirOrDirs)
-		if "string" == type(templatesDirOrDirs) then
-			self.templatesDirs = {templatesDirOrDirs}
+		if "string" == type(templatesDirOrDirs)
+		or (templatesDirOrDirs.isKindOf and templatesDirOrDirs:isKindOf(fs.Dir)) then
+			self._templatesDirs = {templatesDirOrDirs}
 		else
-			self.templatesDirs = {}
+			self._templatesDirs = {}
 			if "table" == type(templatesDirOrDirs) then
 				for _, v in pairs(templatesDirOrDirs) do
 					self:addTemplatesDir(v)
@@ -24,7 +25,7 @@ local Api = Object:extend{
 		end
 	end;
 	addTemplatesDir = function (self, dir)
-		table.insert(self.templatesDirs, dir)
+		table.insert(self._templatesDirs, dir)
 	end;
 	display = Object.abstractMethod;
 	fetch = Object.abstractMethod;
@@ -46,8 +47,8 @@ local Tamplier = Api:extend{
 	__tag = .....".Tamplier",
 	init = function (self, ...)
 		Api.init(self, ...)
-		self.cycleCounters = {}
-		self.internal = {
+		self._cycleCounters = {}
+		self._internal = {
 			tostring = tostring;
 			sections = {};
 			escape = function (str)
@@ -59,51 +60,51 @@ local Tamplier = Api:extend{
 			end;
 			safe = function (str) return SafeHtml(str) end;
 			section = function (section)
-				if not self.internal.sections[section] then
+				if not self._internal.sections[section] then
 					Exception("section "..section.." not found")
 				end
-				return self.internal.safe(self.internal.sections[section]())
+				return self._internal.safe(self._internal.sections[section]())
 			end;
 			includedFiles = {};
 			include = function (file, values)
-				local oldInternal = self.internal
+				local oldInternal = self._internal
 				if values then
-					oldInternal = table.copy(self.internal)
+					oldInternal = table.copy(self._internal)
 					self:assign(values)
 				end
-				local includedFiles = self.internal.includedFiles
+				local includedFiles = self._internal.includedFiles
 				if not includedFiles[file] then
 					includedFiles[file] = self:getTemplateContents(file)
 				end
 				local res = self:compileString(includedFiles[file])()
 				if values then
-					self.internal = oldInternal
+					self._internal = oldInternal
 				end
-				return self.internal.safe(res)
+				return self._internal.safe(res)
 			end;
 			cycle = function (index, params)
-				if not self.cycleCounters[index] then self.cycleCounters[index] = 1 end
-				self.cycleCounters[index] = self.cycleCounters[index] + 1
-				return params[self.cycleCounters[index] % table.maxn(params) + 1]
+				if not self._cycleCounters[index] then self._cycleCounters[index] = 1 end
+				self._cycleCounters[index] = self._cycleCounters[index] + 1
+				return params[self._cycleCounters[index] % table.maxn(params) + 1]
 			end;
 		}
 	end;
 	assign = function (self, var, value)
 		if type(var) == "table" then
 			for i, v in pairs(var) do
-				self.internal[i] = v
+				self._internal[i] = v
 			end
 		else
-			self.internal[var] = value
+			self._internal[var] = value
 		end
 	end;
 	compileString = function (self, str)
 		local function createFunction (code)
-			local func, err = loadstring('local s = ""'..code.."; return s")
+			local func, err = loadstring('local s = ""'..code.." return s")
 			if not func then
 				Exception(err)
 			end
-			setfenv(func, self.internal)
+			setfenv(func, self._internal)
 			return func
 		end
 		local currentSection = "main"
@@ -116,21 +117,21 @@ local Tamplier = Api:extend{
 				res[currentSection] = res[currentSection].."..[===["..str.."]===]"
 				break
 			end
-			local operand = string.slice(str, begPos+1, begPos+1)
+			local operand = string.sub(str, begPos+1, begPos+1)
 			if "{" == operand then -- text output
 				local endBegPos = string.find(str, "}}", begPos+1, true)
-				res[currentSection] = res[currentSection].."..[===["..string.slice(str, 1, begPos-1).."]===]..tostring(escape("..string.slice(str, begPos+2, endBegPos-1).."))"
-				str = string.slice(str, endBegPos+2)
+				res[currentSection] = res[currentSection].."..[===["..string.sub(str, 1, begPos-1).."]===]..tostring(escape("..string.sub(str, begPos+2, endBegPos-1).."))"
+				str = string.sub(str, endBegPos+2)
 				offsetPos = 1
 			elseif "%" == operand then -- code execution
 				local endBegPos = string.find(str, "%}", begPos+1, true)
-				res[currentSection] = res[currentSection].."..[===["..string.slice(str, 1, begPos-1).."]===]; "..string.slice(str, begPos+2, endBegPos-1).."\ns = s"
-				str = string.slice(str, endBegPos+2)
+				res[currentSection] = res[currentSection].."..[===["..string.sub(str, 1, begPos-1).."]===]; "..string.sub(str, begPos+2, endBegPos-1).." s = s"
+				str = string.sub(str, endBegPos+2)
 				offsetPos = 1
 			elseif "[" == operand then -- immediate code execution
 				local endBegPos = string.find(str, "]}", begPos+1, true)
-				res[currentSection] = res[currentSection].."..[===["..string.slice(str, 1, begPos-1).."]===]"
-				local func, err = loadstring(string.slice(str, begPos+2, endBegPos-1))
+				res[currentSection] = res[currentSection].."..[===["..string.sub(str, 1, begPos-1).."]===]"
+				local func, err = loadstring(string.sub(str, begPos+2, endBegPos-1))
 				if not func then
 					Exception(err)
 				end
@@ -147,14 +148,14 @@ local Tamplier = Api:extend{
 						res[currentSection] = ""
 					end;
 					endSection = function ()
-						self.internal.sections[currentSection] = createFunction(res[currentSection])
+						self._internal.sections[currentSection] = createFunction(res[currentSection])
 						local oldSection = currentSection
 						currentSection = table.remove(sectionsStack)
 						res[currentSection] = res[currentSection].."..tostring(escape(section "..string.format("%q", oldSection).."))"
 					end;
 				})
 				try(function () func() end):throw()
-				str = string.slice(str, endBegPos+2)
+				str = string.sub(str, endBegPos+2)
 				offsetPos = 1
 			else
 				offsetPos = begPos+1
@@ -172,13 +173,13 @@ local Tamplier = Api:extend{
 		io.write(self:fetchString(str))
 	end;
 	getTemplateContents = function (self, template)
-		if "table" ~= type(self.templatesDirs) or table.isEmpty(self.templatesDirs) then
+		if "table" ~= type(self._templatesDirs) or table.isEmpty(self._templatesDirs) then
 			local tpl = fs.File(template)
 			if tpl:isExists() then
 				return tpl:openReadAndClose "*a"
 			end
 		end
-		for _, v in pairs(self.templatesDirs) do
+		for _, v in ipairs(self._templatesDirs) do
 			local tpl = fs.File(v / template)
 			if tpl:isExists() then
 				return tpl:openReadAndClose "*a"

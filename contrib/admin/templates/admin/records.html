@@ -1,6 +1,6 @@
-{{ include "admin/_header.html" }}
+{{ safe(include "admin/_header.html") }}
 
-{{ include "admin/_info.html" }}
+{{ safe(include "admin/_info.html") }}
 
 {% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
 
@@ -86,4 +86,4 @@
 	setPage(1);
 //]]></script>
 
-{{ include "admin/_footer.html" }}
+{{ safe(include "admin/_footer.html") }}

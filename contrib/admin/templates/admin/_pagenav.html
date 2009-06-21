@@ -6,7 +6,7 @@
 			{% local start = page*onPage-onPage %}
 		{% end %}
 	Pages:
-	{% local i for i = 1, pages do %}
+	{% for i = 1, pages do %}
 		{% if page == i then %}
 			<span>{{ i }}</span>
 		{% else %}

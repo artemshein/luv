@@ -1,6 +1,6 @@
-{{ include("admin/_header.html", {title="AdminSite"}) }}
+{{ safe(include("admin/_header.html", {title="AdminSite"})) }}
 
-{{ include "admin/_info.html" }}
+{{ safe(include "admin/_info.html") }}
 
 <div class="span-24 last">
 	<div class="span-18">
@@ -52,4 +52,4 @@
 	</div>
 </div>
 
-{{ include "admin/_footer.html" }}
+{{ safe(include "admin/_footer.html") }}
