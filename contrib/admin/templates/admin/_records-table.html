@@ -1,7 +1,7 @@
 {% if p:getTotal() then %}
 	{% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
 	{% local pageNav = include("admin/_pagenav.html", {func="setPage"}) %}
-	{{ safe(pageNav) }}
+	{{ pageNav }}
 	<form id="items">
 	<table><thead>
 		<th></th>
@@ -38,7 +38,7 @@
 	{% end %}
 	</table>
 	</form>
-	{{ safe(pageNav) }}
+	{{ pageNav }}
 	<script type="text/javascript" language="JavaScript">//<![CDATA[
 		function selectRecord (id)
 		{

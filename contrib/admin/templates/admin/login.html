@@ -1,5 +1,6 @@
-{{ safe(include "admin/_header.html") }}
+{[ extends "admin/base.html" ]}
 
+{[ section "content" ]}
 <div class="span-24 last" style="border:#CCC solid 0;border-bottom-width:1px">
 	<h1>{{ capitalize(tr(title)) }}</h1>
 </div>
@@ -10,5 +11,4 @@
 	{% end %}
 	{{ safe(form) }}
 </div>
-
-{{ safe(include "admin/_footer.html") }}
+{[ endSection() ]}
