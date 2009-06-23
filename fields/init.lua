@@ -55,7 +55,12 @@ local Field = Object:extend{
 	isRequired = function (self) return self.required end,
 	isUnique = function (self) return self.unique end,
 	isPk = function (self) return self.pk end,
-	getId = function (self) return self.id end,
+	getId = function (self)
+		if not self.id then
+			self.id = self.container:getId()..string.capitalize(self:getName())
+		end
+		return self.id
+	end;
 	setId = function (self, id) self.id = id return self end,
 	getLabel = function (self) return self.label or self:getName() end,
 	setLabel = function (self, label) self.label = label return self end;
@@ -88,7 +93,6 @@ local Field = Object:extend{
 		if not self.validators then
 			return true
 		end
-		local _, val
 		for _, val in pairs(self.validators) do
 			if not val:isValid(value) then
 				self:addErrors(val:getErrors())
@@ -164,6 +168,17 @@ local Text = Field:extend{
 	end
 }
 
+local Password = Text:extend{
+	__tag = .....".Password";
+	init = function (self, params)
+		params = params or {}
+		params.required = true
+		params.minLength = 6
+		params.widget = widgets.PasswordInput()
+		Text.init(self, params)
+	end;
+}
+
 local Email = Text:extend{
 	__tag = .....".Email";
 	init = function (self, params)
@@ -201,9 +216,9 @@ local File = Text:extend{
 		if not self.value then
 			return false
 		end
-		local tmpFile = fs.File(self.value):openForReading()
-		fs.File(path):openForWritingBinary():write(tmpFile:read '*a'):close()
-		tmpFile:close():delete()
+		local tmpFile = fs.File(self.value)
+		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose '*a'):close()
+		tmpFile:delete()
 		self.value = path
 		return true
 	end;
@@ -220,9 +235,9 @@ local Image = File:extend{
 			return false
 		end
 		path = tostring(path)..'.'..ext
-		local tmpFile = fs.File(self.value):openForReading()
-		fs.File(path):openForWritingBinary():write(tmpFile:read '*a'):close()
-		tmpFile:close():delete()
+		local tmpFile = fs.File(self.value)
+		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose '*a')
+		tmpFile:delete()
 		self.value = path
 		return true
 	end;
@@ -370,6 +385,9 @@ local Date = Field:extend{
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.DateInput()
+		if params.regional then
+			params.widget:setRegional(params.regional)
+		end
 		self:setAutoNow(params.autoNow)
 		Field.init(self, params)
 	end;
@@ -469,6 +487,48 @@ local Datetime = Field:extend{
 	getMaxLength = function (self) return 19 end;
 }
 
+local Time = Field:extend{
+	__tag = .....".Time";
+	defaultFormat = "%H:%M:%S";
+	init = function (self, params)
+		params = params or {}
+		params.widget = params.widget or widgets.Time()
+		self:setAutoNow(params.autoNow)
+		Field.init(self, params)
+	end;
+	getAutoNow = function (self) return self.autoNow end;
+	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
+	getDefaultValue = function (self)
+		if self.defaultValue then
+			return self.defaultValue
+		end
+		if self:getAutoNow() then
+			return os.date("%H:%M:%S")
+		end
+		return nil
+	end;
+	setValue =  function (self, value)
+		if "string" == type(value) then
+			try(function()
+				self.value = os.time{
+					hour=tonumber(string.slice(value, 1, 2));
+					min=tonumber(string.slice(value, 4, 5));
+					sec=tonumber(string.slice(value, 7, 8));
+				}
+			end):catch(function() -- Invalid date format
+				self.value = nil
+			end)
+		else
+			self.value = value
+		end
+	end;
+	__tostring = function (self)
+		return self:getValue() and os.date(self.defaultFormat, self:getValue()) or ""
+	end;
+	getMinLength = function (self) return 8 end;
+	getMaxLength = function (self) return 8 end;
+}
+
 local ModelSelect = Field:extend{
 	__tag = .....".ModelSelect";
 	init = function (self, params)
@@ -527,7 +587,7 @@ local NestedSetSelect = Field:extend{
 return {
 	Field = Field;
 	MultipleValues=MultipleValues;
-	Text = Text,
+	Text=Text;Password=Password;
 	Int = Int,
 	Boolean=Boolean;
 	Ip=Ip;
@@ -536,8 +596,7 @@ return {
 	Button = Button;
 	ImageButton = ImageButton;
 	Submit = Submit;
-	Date=Date;
-	Datetime=Datetime;
+	Date=Date;Datetime=Datetime;Time=Time;
 	Email=Email;
 	Phone=Phone;
 	Url=Url;File=File;Image=Image;

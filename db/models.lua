@@ -1,6 +1,6 @@
 local table = require "luv.table"
 local string = require "luv.string"
-local os = os
+local os, debug = os, debug
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
@@ -227,7 +227,8 @@ local Model = Struct:extend{
 	insert = function (self)
 		if not self:isValid() then
 			local errors = self:getErrors()
-			Exception("Validation error! "..debug.dump(errors))
+			require "luv.dev".dprint(errors)
+			Exception("Validation error!")
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())
 		for _, v in ipairs(self:getFields()) do
@@ -248,8 +249,6 @@ local Model = Struct:extend{
 							val = os.date("%Y-%m-%d %H:%M:%S", val)
 						elseif v:isKindOf(fields.Date) then
 							val = os.date("%Y-%m-%d", val)
-						elseif v:isKindOf(fields.Time) then
-							val = os.date("%H:%M:%S", val)
 						end
 					end
 					insert:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
@@ -874,17 +873,21 @@ local QuerySet = Object:extend{
 local Paginator = Object:extend{
 	__tag = .....".Paginator";
 	init = function (self, model, onPage)
-		self.model = model
-		self.onPage = onPage
-		self.total = model:all():count()
+		self._model = model
+		self._onPage = onPage
+		self._query = model:all()
+		self._total = self._query:count()
 	end;
-	getModel = function (self) return self.model end;
-	getOnPage = function (self) return self.onPage end;
-	getTotal = function (self) return self.total end;
+	getModel = function (self) return self._model end;
+	getOnPage = function (self) return self._onPage end;
+	getTotal = function (self) return self._total end;
 	getPage = function (self, page)
-		return self.model:all((page-1)*self.onPage, page*self.onPage)
+		return self._query:limit((page-1)*self._onPage, page*self._onPage)
 	end;
-	getPagesTotal = function (self) return math.ceil(self.total/self.onPage) end;
+	getPagesTotal = function (self) return math.ceil(self._total/self._onPage) end;
+	order = function (self, ...) self._query = self._query:order(...) return self end;
+	filter = function (self, ...) self._query = self._query:filter(...) return self end;
+	exclude = function (self, ...) self._query = self._query:exclude(...) return self end;
 }
 
 -- Tables

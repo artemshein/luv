@@ -15,6 +15,18 @@ end
 local Input = Widget:extend{
 	__tag = .....'.Input';
 	init = function () end;
+	_renderOnClick = function (self, f)
+		if f:getOnClick() then
+			return ' onclick='..string.format("%q", f:getOnClick())
+		end
+		return ""
+	end;
+	_renderOnChange = function (self, f)
+		if f:getOnChange() then
+			return ' onchange='..string.format("%q", f:getOnChange())
+		end
+		return ""
+	end;
 	render = function (self, field, form, tail)
 		tail = tail or ''
 		local classes = field:getClasses()
@@ -24,6 +36,8 @@ local Input = Widget:extend{
 		..' id='..string.format('%q', html.escape(getId(form, field)))
 		..' value='..string.format('%q', html.escape(tostring(field:getValue() or field:getDefaultValue() or '')))
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
 		..tail..' />'
 		..(field:getHint() and (' '..field:getHint()) or '')
 	end;
@@ -31,12 +45,26 @@ local Input = Widget:extend{
 
 local TextArea = Widget:extend{
 	__tag = .....'.TextArea';
+	_renderOnClick = function (self, f)
+		if f:getOnClick() then
+			return ' onclick='..string.format("%q", f:getOnClick())
+		end
+		return ""
+	end;
+	_renderOnChange = function (self, f)
+		if f:getOnChange() then
+			return ' onchange='..string.format("%q", f:getOnChange())
+		end
+		return ""
+	end;
 	init = function () end;
 	render = function (self, field, form)
 		local classes = field:getClasses()
 		return [[<textarea name="]]..html.escape(field:getName())
 		..[[" id="]]..html.escape(getId(form, field))
 		..(classes and ([[" class="]]..table.join(classes, ' ')) or '')
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
 		..[[">]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ''))..[[</textarea>]]
 		..(field:getHint() and (' '..field:getHint()) or '')
 	end;
@@ -55,7 +83,10 @@ local Checkbox = Input:extend{
 		..[[" id="]]..html.escape(getId(form, field))
 		..[[" value="1]]
 		..(classes and ([[" class="]]..table.join(classes, ' ')) or '')
-		..[["]]..tail..[[ />]]
+		..[["]]
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
+		..tail..[[ />]]
 	end;
 }
 
@@ -70,6 +101,8 @@ local FileInput = Input:extend{
 		..' name='..string.format('%q', html.escape(field:getName()))
 		..' id='..string.format('%q', html.escape(getId(form, field)))
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
 		..tail..' />'
 		..(field:getHint() and (' '..field:getHint()) or '')
 	end
@@ -105,9 +138,6 @@ local Button = Input:extend{
 	type = 'button';
 	render = function (self, field, form, tail)
 		tail = tail or ''
-		if field:getOnClick() then
-			tail = tail..[[ onClick=]]..string.format('%q', field:getOnClick())
-		end
 		return Input.render(self, field, form, tail)
 	end;
 }
@@ -128,6 +158,18 @@ local ImageButton = Button:extend{
 
 local Select = Widget:extend{
 	__tag = .....'.Select';
+	_renderOnClick = function (self, f)
+		if f:getOnClick() then
+			return ' onclick='..string.format("%q", f:getOnClick())
+		end
+		return ""
+	end;
+	_renderOnChange = function (self, f)
+		if f:getOnChange() then
+			return ' onchange='..string.format("%q", f:getOnChange())
+		end
+		return ""
+	end;
 	init = function () end;
 	render = function (self, field, form)
 		local fields = require 'luv.fields'
@@ -146,6 +188,8 @@ local Select = Widget:extend{
 		..' name='..string.format('%q', html.escape(field:getName()))
 		..(field:getOnChange() and (' onchange='..string.format('%q', field:getOnChange())) or '')
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
 		..'>'..values..'</select>'
 		..(field:getHint() and (' '..field:getHint()) or '')
 	end;
@@ -175,6 +219,8 @@ local MultipleSelect = Select:extend{
 		..' name='..string.format('%q', html.escape(field:getName()))
 		..(field:getOnChange() and (' onchange='..string.format('%q', field:getOnChange())) or '')
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
 		..'>'..values..'</select>'
 		..(field:getHint() and (' '..field:getHint()) or '')
 	end;
@@ -209,6 +255,9 @@ local NestedSetSelect = Select:extend{
 local DateInput = TextInput:extend{
 	__tag = .....".DateInput";
 	format = "%d.%m.%Y";
+	_regional = "us";
+	getRegional = function (self) return self._regional end;
+	setRegional = function (self, regional) self._regional = regional return self end;
 	render = function (self, field, form, tail)
 		local classes = field:getClasses()
 		local value = field:getValue() or field:getDefaultValue()
@@ -221,11 +270,17 @@ local DateInput = TextInput:extend{
 		..' id='..string.format('%q', html.escape(getId(form, field)))
 		..' value='..string.format('%q', html.escape(value or ''))
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
 		..(tail or '')..' />'
 		..(field:getHint() and (' '..field:getHint()) or '')
-		local js = (js or "").."$('#"..getId(form, field).."').datepicker();"
+		local js = (js or "").."$('#"..getId(form, field).."').datepicker($.datepicker.regional['"..self._regional.."']);"
 		return html, js
 	end;
+}
+
+local Time = TextInput:extend{
+	__tag = .....".TimeInput";
 }
 
 local Datetime = TextInput:extend{
@@ -245,6 +300,8 @@ local Datetime = TextInput:extend{
 		..' id='..string.format('%q', html.escape(getId(form, field)))
 		..' value='..string.format('%q', html.escape(value or ''))
 		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
 		..tail..' />'
 		..(field:getHint() and (' '..field:getHint()) or '')
 	end
@@ -265,5 +322,5 @@ return {
 	Select=Select;
 	MultipleSelect=MultipleSelect;
 	NestedSetSelect=NestedSetSelect;
-	Datetime=Datetime;
+	Datetime=Datetime;Time=Time;
 }

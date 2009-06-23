@@ -72,7 +72,7 @@ local User = models.Model:extend{
 	getAuthUser = function (self, session, loginForm)
 		if self.authUser then return self.authUser end
 		if not loginForm or "table" ~= type(loginForm) or not loginForm.isKindOf
-			or not loginForm:isKindOf(require(MODULE).forms.LoginForm) or not loginForm:isSubmitted() or not loginForm:isValid() then
+			or not loginForm:isKindOf(require(MODULE).forms.Login) or not loginForm:isSubmitted() or not loginForm:isValid() then
 			if not session[self.sessId] then
 				session[self.sessId] = nil
 				session:save()
@@ -139,11 +139,11 @@ local User = models.Model:extend{
 	end;
 }
 
-local LoginForm = forms.Form:extend{
-	__tag = .....".LoginForm",
+local Login = forms.Form:extend{
+	__tag = .....".Login",
 	Meta = {fields={"login";"password";"authorise"}};
 	login = User:getField "login",
-	password = fields.Text{label="password";maxLength=32;minLength=6;widget=widgets.PasswordInput;required=true};
+	password = fields.Password();
 	authorise = fields.Submit{defaultValue=string.capitalize(tr 'log in')}
 }
 
@@ -222,7 +222,7 @@ return {
 		User = User
 	},
 	forms = {
-		LoginForm = LoginForm
+		Login = Login
 	};
 	getModelsAdmins = getModelsAdmins;
 }

@@ -54,12 +54,12 @@ local Form = Struct:extend{
 	addField = function (self, k, v)
 		if v:isKindOf(references.OneToOne) or v:isKindOf(references.ManyToOne) then
 			if v:getRefModel():isKindOf(models.NestedSet) then
-				Struct.addField(self, k, fields.NestedSetSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+				Struct.addField(self, k, fields.NestedSetSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
 			else
-				Struct.addField(self, k, fields.ModelSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+				Struct.addField(self, k, fields.ModelSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
 			end
 		elseif v:isKindOf(references.OneToMany) or v:isKindOf(references.ManyToMany) then
-			Struct.addField(self, k, fields.ModelMultipleSelect{choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+			Struct.addField(self, k, fields.ModelMultipleSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
 		else
 			Struct.addField(self, k, v:clone())
 		end
@@ -89,7 +89,7 @@ local Form = Struct:extend{
 		end
 		return false
 	end,
-	asHtml = function (self) return self.Meta.widget:render(self) end,
+	asHtml = function (self) return self.Meta.widget:render(self) end;
 	__tostring = function (self) return self:asHtml() end;
 	getFieldsList = function (self)
 		if self.Meta.fields then
