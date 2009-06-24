@@ -25,7 +25,6 @@ local Field = Object:extend{
 		-- Clone validators
 		new.validators = {}
 		if self.validators then
-			local k, v
 			for k, v in pairs(self.validators) do
 				new.validators[k] = v:clone()
 			end
@@ -101,15 +100,30 @@ local Field = Object:extend{
 		end
 		return true
 	end,
+	-- Representation
 	getWidget = function (self) return self.widget end,
 	setWidget = function (self, widget) self.widget = widget return self end,
-	asHtml = function (self, form) return self.widget:render(self, form or self:getContainer()) end;
+	asHtml = function (self, form)
+		if not self.widget then
+			Exception "widget required"
+		end
+		return self.widget:render(self, form or self:getContainer())
+	end;
 	getOnClick = function (self) return self.onClick end;
 	setOnClick = function (self, onClick) self.onClick = onClick return self end;
 	getOnChange = function (self) return self.onChange end;
 	setOnChange = function (self, onChange) self.onChange = onChange return self end;
 	getHint = function (self) return self.hint end;
 	setHint = function (self, hint) self.hint = hint return self end;
+	-- Ajax
+	getAjaxUrl = function (self) return self._ajaxUrl end;
+	setAjaxUrl = function (self, url) self._ajaxUrl = url return self end;
+	getAjaxWidget = function (self) return self._ajaxWidget end;
+	setAjaxWidget = function (self, widget) self._ajaxWidget = widget return self end;
+	asAjax = function (self, url)
+		local html, js = (self:getAjaxWidget() or self:getWidget()):render(self, self:getContainer())
+		return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:getId().."').ajaxField('"..url.."');\n//]]></script>"
+	end;
 }
 
 local MultipleValues = Field:extend{
@@ -390,6 +404,7 @@ local Date = Field:extend{
 		end
 		self:setAutoNow(params.autoNow)
 		Field.init(self, params)
+		self:addClass "date"
 	end;
 	getAutoNow = function (self) return self.autoNow end;
 	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
@@ -447,6 +462,7 @@ local Datetime = Field:extend{
 		params.widget = params.widget or widgets.Datetime()
 		self:setAutoNow(params.autoNow)
 		Field.init(self, params)
+		self:addClass "datetime"
 	end;
 	getAutoNow = function (self) return self.autoNow end;
 	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
@@ -495,6 +511,7 @@ local Time = Field:extend{
 		params.widget = params.widget or widgets.Time()
 		self:setAutoNow(params.autoNow)
 		Field.init(self, params)
+		self:addClass "time"
 	end;
 	getAutoNow = function (self) return self.autoNow end;
 	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;

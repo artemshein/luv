@@ -180,6 +180,9 @@ local Select = Widget:extend{
 		if 'function' == type(choices) then
 			choices = choices()
 		end
+		if choices.isKindOf and choices:isKindOf(require "luv.db.models".QuerySet) then
+			choices = choices:getValue()
+		end
 		for k, v in pairs(choices) do
 			local value = v.isKindOf and v:getPk():getValue() or v
 			values = values..[[<option value="]]..tostring(k)..[["]]..(tostring(k) == tostring(fieldValue) and [[ selected="selected"]] or '')..[[>]]..html.escape(tostring(v))..[[</option>]]
@@ -280,7 +283,7 @@ local DateInput = TextInput:extend{
 }
 
 local Time = TextInput:extend{
-	__tag = .....".TimeInput";
+	__tag = .....".Time";
 }
 
 local Datetime = TextInput:extend{

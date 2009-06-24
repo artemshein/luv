@@ -1,5 +1,5 @@
 local table, pairs, next, type, require, ipairs = table, pairs, next, type, require, ipairs
-local tostring = tostring
+local tostring, debug, error = tostring, debug, error
 
 module(...)
 
@@ -31,6 +31,9 @@ table.imap = function (self, func)
 end
 
 table.ifind = function (self, val)
+	if "table" ~= type(self) then
+		error ("table expected "..debug.traceback())
+	end
 	for k, v in ipairs(self) do
 		if val == v then
 			return k

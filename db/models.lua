@@ -111,9 +111,7 @@ local Model = Struct:extend{
 			local field = v:clone()
 			table.insert(fields, field)
 			fieldsByName[k] = field
-			if field:isKindOf(references.Reference) then
-				field:setContainer(self)
-			end
+			field:setContainer(self)
 		end
 		self.fields = fields
 		self.fieldsByName = fieldsByName
@@ -340,6 +338,9 @@ local Model = Struct:extend{
 		return obj
 	end,
 	-- Create and drop
+	getId = function (self)
+		return self:getTableName()..self.pk
+	end;
 	getTableName = function (self)
 		if (not self.tableName) then
 			self.tableName = string.gsub(self:getLabel(), " ", "_")
@@ -349,7 +350,7 @@ local Model = Struct:extend{
 		else
 			Exception"Table name required!"
 		end
-	end,
+	end;
 	setTableName = function (self, tableName) self.tableName = tableName return self end,
 	getConstraintModels = function (self)
 		local models = {}
@@ -601,26 +602,6 @@ local Q = TreeNode:extend{
 local QuerySet = Object:extend{
 	__tag = .....".QuerySet";
 	init = function (self, model)
-		local mt = getmetatable(self) or {}
-		mt.__call = function (self, ...)
-			if not self._evaluated then
-				self:_evaluate()
-			end
-			return ipairs(self._values, ...)
-		end
-		mt.__index = function (self, field)
-			local res = self.parent[field]
-			if res then
-				return res
-			end
-			if "number" ~= type(field) then
-				return nil
-			end
-			if not rawget(self, "_evaluated") then
-				self:_evaluate()
-			end
-			return self._values[field]
-		end
 		self._evaluated = false
 		self._model = model
 		self._orders = {}
@@ -867,6 +848,25 @@ local QuerySet = Object:extend{
 		self:_applyConditions(s)
 		local u = self._model:getDb():Delete():from(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
 		return u()
+	end;
+	__call = function (self, ...)
+		if not self._evaluated then
+			self:_evaluate()
+		end
+		return ipairs(self._values, ...)
+	end;
+	__index = function (self, field)
+		local res = self.parent[field]
+		if res then
+			return res
+		end
+		if "number" ~= type(field) then
+			return nil
+		end
+		if not rawget(self, "_evaluated") then
+			self:_evaluate()
+		end
+		return self._values[field]
 	end;
 }
 
