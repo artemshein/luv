@@ -2,6 +2,43 @@
 	if (!window.luv) window.luv = function () {};
 	var luv = window.luv;
 
+	jQuery.fn.fieldRawVal = function (value)
+	{
+		if (value)
+			return this.val(value);
+		else
+			return this.val();
+	};
+	jQuery.fn.fieldVal = function (value)
+	{
+		if (value)
+			return this.val(value);
+		else
+			return this.val();
+	};
+	jQuery.fn.ajaxField = function (url)
+	{
+		return this.data("lastValue", this.fieldRawVal()).focus(function () { jQuery(this).removeClass("textValue"); }).blur(function () {
+			var self = jQuery(this);
+			var currentValue = self.fieldRawVal();
+			if (currentValue != self.data("lastValue"))
+			{
+				jQuery.ajax({cache: false, data: {value: currentValue}, dataType: "json", type: "post", url: url,
+				success: function (data, textStatus) {
+					self.data("lastValue", currentValue);
+					self.addClass("textValue", 500).removeClass("error");
+				},
+				error: function (request, textStatus, errorThrown) {
+					//self.fieldRawVal(self.data("lastValue"));
+					self.addClass("error", 500);
+					//alert("error occured");
+				}});
+			}
+			else
+				self.addClass("textValue").removeClass("error");
+		}).blur();
+	};
+
 	luv.inArray = function (value, array)
 	{
 		for (var val in array)
