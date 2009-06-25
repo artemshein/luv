@@ -172,29 +172,36 @@ local Select = Widget:extend{
 	end;
 	init = function () end;
 	render = function (self, field, form)
-		local fields = require 'luv.fields'
+		local models = require "luv.db.models"
+		local fields = require "luv.fields"
 		local classes = field:getClasses()
 		local values, fieldValue = "", field:getValue()
-		if not field:isRequired() then values = [[<option></option>]] end
+		if not field:isRequired() then values = "<option></option>" end
 		local choices = field:getChoices()
 		if 'function' == type(choices) then
 			choices = choices()
 		end
-		if choices.isKindOf and choices:isKindOf(require "luv.db.models".QuerySet) then
+		if choices.isKindOf and choices:isKindOf(models.QuerySet) then
 			choices = choices:getValue()
 		end
-		for k, v in pairs(choices) do
-			local value = v.isKindOf and v:getPk():getValue() or v
-			values = values..[[<option value="]]..tostring(k)..[["]]..(tostring(k) == tostring(fieldValue) and [[ selected="selected"]] or '')..[[>]]..html.escape(tostring(v))..[[</option>]]
+		for _, v in ipairs(choices) do
+			local key = v.isKindOf and v:isKindOf(models.Model) and v.pk or tostring(v)
+			local selected
+			if "table" ~= type(fieldValue) then
+				selected = tostring(fieldValue) == tostring(key)
+			else
+				selected = fieldValue == v
+			end
+			values = values.."<option value="..string.format("%q", key)..(selected and ' selected="selected"' or "")..">"..html.escape(tostring(v)).."</option>"
 		end
-		return [[<select id=]]..string.format('%q', html.escape(getId(form, field)))
-		..' name='..string.format('%q', html.escape(field:getName()))
-		..(field:getOnChange() and (' onchange='..string.format('%q', field:getOnChange())) or '')
-		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		return "<select id="..string.format("%q", html.escape(getId(form, field)))
+		.." name="..string.format("%q", html.escape(field:getName()))
+		..(field:getOnChange() and (" onchange="..string.format("%q", field:getOnChange())) or "")
+		..(classes and (" class="..string.format("%q", table.join(classes, " "))) or "")
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
-		..'>'..values..'</select>'
-		..(field:getHint() and (' '..field:getHint()) or '')
+		..">"..values.."</select>"
+		..(field:getHint() and (" "..field:getHint()) or "")
 	end;
 }
 

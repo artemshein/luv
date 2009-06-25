@@ -50,7 +50,8 @@ local Form = Widget:extend{
 		return [[<label for="]]..html.escape(id)..[[">]]..tr(field:getLabel())..[[</label>]]
 	end;
 	renderField = function (self, form, field)
-		return field:asHtml(form)
+		local html, js = field:asHtml(form)
+		return html, (js or field:getOnLoad() and ((js or "")..(field:getOnLoad() or "")))
 	end,
 	renderFields = function (self, form)
 		local html, js = "", ""

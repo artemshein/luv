@@ -44,13 +44,14 @@ local UserGroup = models.Model:extend{
 local User = models.Model:extend{
 	__tag = .....".User",
 	Meta = {labels={"user";"users"}};
-	sessId = "LUV_AUTH",
-	secretSalt = "",
+	sessId = "LUV_AUTH";
+	secretSalt = "";
 	-- Fields
 	isActive = fields.Boolean{defaultValue=true;label="active user"};
-	login = fields.Login(),
-	name = fields.Text(),
-	passwordHash = fields.Text{required = true},
+	login = fields.Login();
+	name = fields.Text();
+	email = fields.Email();
+	passwordHash = fields.Text{required = true};
 	group = references.ManyToOne{references=UserGroup, relatedName="users"},
 	__tostring = function (self) return tostring(self.name) end;
 	-- Methods

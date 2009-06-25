@@ -20,7 +20,7 @@ local ExceptionResult = Object:extend{
 	__tag = .....".ExceptionResult";
 	init = function (self, res, exc)
 		self._raised = not res
-		self._exception = "string" == type(exc) and Exception(exc, true, 2) or exc
+		self._exception = exc
 	end;
 	catch = function (self, excType, func)
 		if not self._raised then

@@ -13,9 +13,6 @@ local MODULE = ...
 local Field = Object:extend{
 	__tag = .....".Field",
 	init = function (self, params)
-		if self.parent.parent == Object then
-			Exception "Can not instantiate abstract class!"
-		end
 		self.validators = {}
 		self.errors = {}
 		self:setParams(params)
@@ -42,16 +39,21 @@ local Field = Object:extend{
 		self:setOnChange(params.onChange)
 		self:setHint(params.hint)
 		if params.choices then self:setChoices(params.choices) end
-		if self.required then
-			self.validators.filled = validators.Filled()
-			self:addClass "required"
-		end
+		self:setRequired(params.required)
 		self:setDefaultValue(params.defaultValue)
 		return self
 	end,
 	getContainer = function (self) return self.container end;
 	setContainer = function (self, container) self.container = container return self end;
-	isRequired = function (self) return self.required end,
+	isRequired = function (self) return self._required end,
+	setRequired = function (self, required)
+		self._required = required
+		if self._required then
+			self.validators.filled = validators.Filled()
+			self:addClass "required"
+		end
+		return self
+	end;
 	isUnique = function (self) return self.unique end,
 	isPk = function (self) return self.pk end,
 	getId = function (self)
@@ -77,12 +79,21 @@ local Field = Object:extend{
 		return self
 	end,
 	addClass = function (self, class)
-		self.classes = self.classes or {}
-		table.insert(self.classes, class)
+		self._classes = self._classes or {}
+		if not table.ifind(self._classes, class) then
+			table.insert(self._classes, class)
+		end
 		return self
 	end;
-	getClasses = function (self) return self.classes end;
-	setClasses = function (self, classes) self.classes = classes return self end;
+	addClasses = function (self, classes)
+		self._classes = self._classes or {}
+		for _, class in ipairs(classes) do
+			self:addClass(class)
+		end
+		return self
+	end;
+	getClasses = function (self) return self._classes end;
+	setClasses = function (self, classes) self._classes = classes return self end;
 	setErrors = function (self, errors) self.errors = errors return self end,
 	getErrors = function (self) return self.errors end,
 	isValid = function (self, value)
@@ -113,16 +124,18 @@ local Field = Object:extend{
 	setOnClick = function (self, onClick) self.onClick = onClick return self end;
 	getOnChange = function (self) return self.onChange end;
 	setOnChange = function (self, onChange) self.onChange = onChange return self end;
+	getOnLoad = function (self) return self._onLoad end;
+	setOnLoad = function (self, onLoad) self._onLoad = onLoad return self end;
 	getHint = function (self) return self.hint end;
 	setHint = function (self, hint) self.hint = hint return self end;
 	-- Ajax
-	getAjaxUrl = function (self) return self._ajaxUrl end;
-	setAjaxUrl = function (self, url) self._ajaxUrl = url return self end;
+	getAjaxUrl = function (self) return self.container:getAjaxUrl() end;
+	setAjaxUrl = function (self, url) self.containt:setAjaxUrl(url) return self end;
 	getAjaxWidget = function (self) return self._ajaxWidget end;
 	setAjaxWidget = function (self, widget) self._ajaxWidget = widget return self end;
 	asAjax = function (self, url)
 		local html, js = (self:getAjaxWidget() or self:getWidget()):render(self, self:getContainer())
-		return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:getId().."').ajaxField('"..url.."');\n//]]></script>"
+		return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:getId().."').ajaxField('"..self:getAjaxUrl().."', '"..self.container.pk.."', '"..self:getName().."');\n//]]></script>"
 	end;
 }
 
@@ -186,7 +199,6 @@ local Password = Text:extend{
 	__tag = .....".Password";
 	init = function (self, params)
 		params = params or {}
-		params.required = true
 		params.minLength = 6
 		params.widget = widgets.PasswordInput()
 		Text.init(self, params)
@@ -524,23 +536,8 @@ local Time = Field:extend{
 		end
 		return nil
 	end;
-	setValue =  function (self, value)
-		if "string" == type(value) then
-			try(function()
-				self.value = os.time{
-					hour=tonumber(string.slice(value, 1, 2));
-					min=tonumber(string.slice(value, 4, 5));
-					sec=tonumber(string.slice(value, 7, 8));
-				}
-			end):catch(function() -- Invalid date format
-				self.value = nil
-			end)
-		else
-			self.value = value
-		end
-	end;
 	__tostring = function (self)
-		return self:getValue() and os.date(self.defaultFormat, self:getValue()) or ""
+		return self:getValue() or ""
 	end;
 	getMinLength = function (self) return 8 end;
 	getMaxLength = function (self) return 8 end;

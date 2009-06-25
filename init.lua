@@ -220,7 +220,8 @@ local Core = Object:extend{
 local Struct = Object:extend{
 	__tag = .....".Struct",
 	init = function (self)
-		self.errors = {}
+		self._msgs = {}
+		self._errors = {}
 	end,
 	__index = function (self, field)
 		if field == "pk" then return self:getPk():getValue() end
@@ -283,7 +284,7 @@ local Struct = Object:extend{
 		self:setErrors{}
 		for _, v in ipairs(self:getFields()) do
 			if not v:isValid() then
-				local _, e for _, e in ipairs(v:getErrors()) do
+				for _, e in ipairs(v:getErrors()) do
 					local label = v:getLabel()
 					self:addError(string.gsub(_G.tr(e), "%%s", label and string.capitalize(_G.tr(label)) or string.capitalize(_G.tr(v:getName()))))
 				end
@@ -291,15 +292,24 @@ local Struct = Object:extend{
 		end
 		return table.isEmpty(self:getErrors())
 	end,
-	addError = function (self, error) table.insert(self.errors, error) return self end,
-	setErrors = function (self, errors) self.errors = errors return self end,
+	addError = function (self, error) table.insert(self._errors, error) return self end,
+	setErrors = function (self, errors) self._errors = errors return self end,
 	addErrors = function (self, errors)
-		for i, v in ipairs(errors) do
-			table.insert(self.errors, v)
+		for _, v in ipairs(errors) do
+			table.insert(self._errors, v)
 		end
 	end,
-	getErrors = function (self) return self.errors end,
-	getErrorsCount = function (self) return table.maxn(self.errors) end,
+	getErrors = function (self) return self._errors end,
+	getErrorsCount = function (self) return table.maxn(self._errors) end,
+	addMsg = function (self, msg) table.insert(self._msgs, msg) return self end;
+	setMsgs = function (self, msgs) self._msgs = msgs return self end;
+	addMsgs = function (self, msgs)
+		for _, msg in ipairs(msgs) do
+			self:addMsg(msg)
+		end
+		return self
+	end;
+	getMsgs = function (self) return self._msgs end;
 }
 
 local Widget = Object:extend{

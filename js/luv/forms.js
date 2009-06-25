@@ -7,7 +7,12 @@
 		if (value)
 			return this.val(value);
 		else
-			return this.val();
+		{
+			if (this.is(":checkbox"))
+				return this.attr("checked")? this.val() : null;
+			else
+				return this.val();
+		}
 	};
 	jQuery.fn.fieldVal = function (value)
 	{
@@ -16,27 +21,44 @@
 		else
 			return this.val();
 	};
-	jQuery.fn.ajaxField = function (url)
+	jQuery.fn.ajaxField = function (url, id, field)
 	{
-		return this.data("lastValue", this.fieldRawVal()).focus(function () { jQuery(this).removeClass("textValue"); }).blur(function () {
+		function commitChanges () {
 			var self = jQuery(this);
 			var currentValue = self.fieldRawVal();
 			if (currentValue != self.data("lastValue"))
 			{
-				jQuery.ajax({cache: false, data: {value: currentValue}, dataType: "json", type: "post", url: url,
+				jQuery.ajax({cache: false, data: {value: currentValue, id: id, field: field, set: "Set"}, dataType: "json", type: "post", url: url,
 				success: function (data, textStatus) {
-					self.data("lastValue", currentValue);
-					self.addClass("textValue", 500).removeClass("error");
+					if (data.status == "error")
+					{
+						jQuery.each(data.errors, function (error) { alert(error); });
+					}
+					else
+					{
+						self.data("lastValue", currentValue);
+						self.addClass("textValue").removeClass("error");
+					}
 				},
 				error: function (request, textStatus, errorThrown) {
-					//self.fieldRawVal(self.data("lastValue"));
 					self.addClass("error", 500);
-					//alert("error occured");
 				}});
 			}
 			else
 				self.addClass("textValue").removeClass("error");
-		}).blur();
+		}
+		function showField ()
+		{
+			jQuery(this).removeClass("textValue");
+		}
+		this.data("lastValue", this.fieldRawVal());
+		if (this.is(":checkbox"))
+			this.change(commitChanges).change();
+		else if (this.hasClass("hasDatepicker"))
+			this.change(commitChanges).focus(showField).blur(function () { jQuery(this).addClass("textValue"); }).addClass("textValue");
+		else
+			this.focus(showField).blur(commitChanges).blur();
+		return this;
 	};
 
 	luv.inArray = function (value, array)

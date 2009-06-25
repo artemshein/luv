@@ -12,7 +12,6 @@ local Form = Struct:extend{
 	__tag = .....".Form",
 	extend = function (self, new)
 		local new = Struct.extend(self, new)
-		local k, v
 		rawset(new, "fields", {})
 		rawset(new, "fieldsByName", {})
 		-- Copy parent fields
@@ -37,7 +36,7 @@ local Form = Struct:extend{
 		if not self.Meta.widget then
 			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
 		end
-		local fieldsByName, k, v = self:getFieldsByName()
+		local fieldsByName = self:getFieldsByName()
 		rawset(self, "fields", {})
 		rawset(self, "fieldsByName", {})
 		for k, v in pairs(fieldsByName) do
@@ -54,12 +53,12 @@ local Form = Struct:extend{
 	addField = function (self, k, v)
 		if v:isKindOf(references.OneToOne) or v:isKindOf(references.ManyToOne) then
 			if v:getRefModel():isKindOf(models.NestedSet) then
-				Struct.addField(self, k, fields.NestedSetSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+				Struct.addField(self, k, fields.NestedSetSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all();required=v:isRequired()})
 			else
-				Struct.addField(self, k, fields.ModelSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+				Struct.addField(self, k, fields.ModelSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all();required=v:isRequired()})
 			end
 		elseif v:isKindOf(references.OneToMany) or v:isKindOf(references.ManyToMany) then
-			Struct.addField(self, k, fields.ModelMultipleSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all():getValue();required=v:isRequired()})
+			Struct.addField(self, k, fields.ModelMultipleSelect{label=v:getLabel();choices=v:getChoices() or v:getRefModel():all();required=v:isRequired()})
 		else
 			Struct.addField(self, k, v:clone())
 		end

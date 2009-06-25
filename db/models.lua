@@ -8,6 +8,7 @@ local cache, db = require "luv.cache.frontend", require "luv.db"
 local crypt = require "luv.crypt"
 local TreeNode = require "luv.utils".TreeNode
 local f = require "luv.function".f
+local json = require "luv.utils.json"
 
 module(...)
 
@@ -273,7 +274,7 @@ local Model = Struct:extend{
 	end,
 	update = function (self)
 		if not self:isValid() then
-			Exception("Validation error! "..debug.dump(self:getErrors()))
+			Exception("Validation error! "..require "luv.dev".dprint(self:getErrors()))
 		end
 		local updateRow = self:getDb():UpdateRow(self:getTableName())
 		local pk = self:getPk()
@@ -297,8 +298,6 @@ local Model = Struct:extend{
 							val = os.date("%Y-%m-%d %H:%M:%S", val)
 						elseif v:isKindOf(fields.Date) then
 							val = os.date("%Y-%m-%d", val)
-						elseif v:isKindOf(fields.Time) then
-							val = os.date("%H:%M:%S", val)
 						end
 					end
 					updateRow:set("?#="..self:getFieldPlaceholder(v), v:getName(), val)
@@ -441,6 +440,39 @@ local Model = Struct:extend{
 			ModelTag(self:getCacher(), self):clear()
 		end
 		return self
+	end;
+	-- Ajax
+	getAjaxUrl = function (self) return self._ajaxUrl end;
+	setAjaxUrl = function (self, url) self._ajaxUrl = url return self end;
+	ajaxHandler = function (self, data)
+		if not data.field or not self:getField(data.field) then
+			return false
+		end
+		local F = require "luv.forms".Form:extend{
+			id = self:getPk():clone();
+			field = fields.Text{required=true};
+			value = self:getField(data.field):clone();
+			set = fields.Submit{defaultValue="Set"};
+			initModel = function (self, model)
+				model[self.field] = self.value
+			end;
+		}
+		local f = F(data)
+		if not f:isSubmitted() then
+			return false
+		end
+		if not f:isValid() then
+			return json.serialize{status="error";errors=f:getErrors()}
+		end
+		local obj = self:find(f.id)
+		if not obj then
+			return false
+		end
+		f:initModel(obj)
+		if not obj:update() then
+			return json.serialize{status="error";errors=f:getErrors()}
+		end
+		return json.serialize{status="ok"}
 	end;
 }
 
