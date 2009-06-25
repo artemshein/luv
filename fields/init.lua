@@ -536,10 +536,25 @@ local Time = Field:extend{
 		end
 		return nil
 	end;
+	setValue = function (self, value)
+		if "string" == type(value) then
+			if string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d$") then
+				self.value = value
+			elseif string.match(value, "^%d%d[^%d]%d%d$") then
+				self.value = string.slice(value, 1, 2)..":"..string.slice(value, 4, 5)..":00"
+			elseif string.match(value, "^%d%d$") then
+				self.value = value..":00:00"
+			else
+				self.value = nil
+			end
+		else
+			self.value = value
+		end
+	end;
 	__tostring = function (self)
 		return self:getValue() or ""
 	end;
-	getMinLength = function (self) return 8 end;
+	getMinLength = function (self) return 1 end;
 	getMaxLength = function (self) return 8 end;
 }
 
