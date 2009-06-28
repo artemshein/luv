@@ -134,7 +134,6 @@ return TestCase:extend{
 		Group:createTables()
 		Student:createTables()
 
-
 		local max = Student{name="Max"}
 		self.assertEquals(max.name, "Max")
 		self.assertThrows(function() max:insert() end) -- Student without group throws

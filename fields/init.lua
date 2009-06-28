@@ -13,6 +13,9 @@ local MODULE = ...
 local Field = Object:extend{
 	__tag = .....".Field",
 	init = function (self, params)
+		if self.parent.parent == Object then
+			Exception "abstract class"
+		end
 		self.validators = {}
 		self.errors = {}
 		self:setParams(params)

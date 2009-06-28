@@ -225,8 +225,6 @@ local Model = Struct:extend{
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:isValid() then
-			local errors = self:getErrors()
-			require "luv.dev".dprint(errors)
 			Exception("Validation error!")
 		end
 		local insert = self:getDb():InsertRow():into(self:getTableName())

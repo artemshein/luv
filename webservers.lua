@@ -2,8 +2,8 @@ local string = require "luv.string"
 local io, os, pairs, ipairs, tonumber = io, os, pairs, ipairs, tonumber
 local type, table, math, tostring = type, table, math, tostring
 local Object, Exception = require "luv.oop".Object, require "luv.exceptions".Exception
-local fs = require 'luv.fs'
-local crypt = require 'luv.crypt'
+local fs = require "luv.fs"
+local crypt = require "luv.crypt"
 
 module(...)
 
@@ -12,14 +12,50 @@ local Http4xx = Exception:extend{__tag = .....".Http4xx"}
 local Http403 = Http4xx:extend{__tag = .....".Http403"}
 local Http404 = Http4xx:extend{__tag = .....".Http404"}
 
+local HttpRequest = Object:extend{
+	__tag = .....".HttpRequest";
+	init = function (self, backend)
+		self:setBackend(backend)
+	end;
+	getBackend = function (self) return self._backend end;
+	setBackend = function (self, backend) self._backend = backend return self end;
+	getMethod = function (self) return self:getHeader "REQUEST_METHOD" end;
+	getHeaders = function (self) return self._backend:getRequestHeaders() end;
+	getHeader = function (self, header) return self._backend:getRequestHeader(header) end;
+	getGet = function (self, name) return self._backend:getGet(name) end;
+	getGetData = function (self) return self._backend:getGetData() end;
+	getPost = function (self, name) return self._backend:getPost(name) end;
+	getPostData = function (self) return self._backend:getPostData() end;
+	getCookie = function (self, name) return self._backend:getCookie(name) end;
+	getCookies = function (self) return self._backend:getCookies() end;
+}
+
+local HttpResponse = Object:extend{
+	__tag = .....".HttpResponse";
+	init = function (self, backend, content)
+		self:setBackend(backend)
+		self:setContent(content)
+	end;
+	getBackend = function (self) return self._backend end;
+	setBackend = function (self, backend) self._backend = backend return self end;
+	getHeader = function (self, header) return self:getBackend():getResponseHeader(header) end;
+	setHeader = function (self, header, value) self:getBackend():setResponseHeader(header, value) return self end;
+	setCode = function (self, code) self:getBackend():setResponseCode(code) return self end;
+	setContentType = function (self, contentType) self:setHeader("Content-Type", contentType) return self end;
+	setContent = function (self, content) self._content = content return self end;
+	appendContent = function (self, content) self._content = self._content..content return self end;
+}
+
 local Api = Object:extend{
 	__tag = .....".Api";
 	getTmpDir = Object.abstractMethod;
 	setTmpDir = Object.abstractMethod;
-	getRequestHeader = Object.abstractMethod,
-	getResponseHeader = Object.abstractMethod,
-	setResponseHeader = Object.abstractMethod,
+	getRequestHeader = Object.abstractMethod;
+	getResponseHeader = Object.abstractMethod;
+	getRequestHeaders = Object.abstractMethod;
+	setResponseHeader = Object.abstractMethod;
 	setResponseCode = Object.abstractMethod;
+	getRequestMethod = Object.abstractMethod;
 	getGet = Object.abstractMethod;
 	setGet = Object.abstractMethod;
 	getGetData = Object.abstractMethod;
@@ -33,43 +69,42 @@ local Api = Object:extend{
 	parseMultipartFormData = function (self, boundary, stream)
 		postData = string.explode(stream, boundary)
 		for i = 2, #postData-1 do
-			local headersStr, data = string.split(postData[i], '\r\n\r\n')
+			local headersStr, data = string.split(postData[i], "\r\n\r\n")
 			local headers = {}
-			for _, header in ipairs(string.explode(headersStr, '\r\n')) do
+			for _, header in ipairs(string.explode(headersStr, "\r\n")) do
 				local name, value = string.split(header, ':')
 				headers[string.lower(name)] = value
 			end
 			-- Process headers
-			local contentDispValues = string.explode(headers['content-disposition'], ';')
-			if 'form-data' ~= string.trim(contentDispValues[1]) then
-				Exception 'Invalid Content-Disposition value'
+			local contentDispValues = string.explode(headers["content-disposition"], ";")
+			if "form-data" ~= string.trim(contentDispValues[1]) then
+				Exception "invalid Content-Disposition value"
 			end
 			local key, isFile
 			for i = 2, #contentDispValues do
-				local n, v = string.split(contentDispValues[i], '=')
+				local n, v = string.split(contentDispValues[i], "=")
 				n = string.lower(string.trim(n))
 				v = string.trim(v)
-				if 'name' == n then
+				if "name" == n then
 					key = string.slice(v, 2, -2)
-				elseif 'filename' == n then
+				elseif "filename" == n then
 					isFile = true
-					--key = string.slice(v, 2, -2)
 				end
 			end
 			-- Process value
 			data = string.slice(data, 1, -3)
 			if isFile then
-				if '' ~= data then
-					self.post[key] = {filename=key}
+				if "" ~= data then
+					self:getPostData()[key] = {filename=key}
 					if self:getTmpDir() then
-						self.post[key].tmpFilePath = tostring(self:getTmpDir() / tostring(crypt.Md5(math.random(2000000000))))
-						file = fs.File(self.post[key].tmpFilePath):openForWritingBinary():write(data):close()
+						self:getPostData()[key].tmpFilePath = tostring(self:getTmpDir() / tostring(crypt.Md5(math.random(2000000000))))
+						file = fs.File(self:getPost(key).tmpFilePath):openWriteAndClose(data)
 					else
-						self.post[key].data = data
+						self:getPost(key).data = data
 					end
 				end
 			else
-				self.post[key] = data
+				self:getPostData()[key] = data
 			end
 		end
 	end;
@@ -100,19 +135,19 @@ local function parseMultipartFormData (stream)
 end
 
 local Cgi = Api:extend{
-	__tag = .....".Cgi",
-	responseHeaders = {},
-	headersAlreadySent = false,
-	cookies = {},
-	get = {},
-	post = {},
+	__tag = .....".Cgi";
+	_responseHeaders = {};
+	_headersAlreadySent = false;
+	_cookies = {};
+	_get = {};
+	_post = {};
 	new = function (self, tmpDir)
 		self:setTmpDir(tmpDir)
-		if not self.write then
-			self.write = io.write
+		if not self._write then
+			self._write = io.write
 			io.write = function (...)
-				if not self.headersAlreadySent then self:sendHeaders() end
-				self.write(...)
+				if not self._headersAlreadySent then self:sendHeaders() end
+				self._write(...)
 			end
 			self:parseCookies()
 			self:parseGetData()
@@ -121,82 +156,86 @@ local Cgi = Api:extend{
 		return self
 	end,
 	--
-	getTmpDir = function (self) return self.tmpDir end;
-	setTmpDir = function (self, tmpDir) self.tmpDir = tmpDir return self end;
+	getTmpDir = function (self) return self._tmpDir end;
+	setTmpDir = function (self, tmpDir) self._tmpDir = tmpDir return self end;
 	-- Headers
-	getRequestHeader = function (self, header)
-		return os.getenv(header)
-	end,
+	getRequestHeader = function (self, header) return os.getenv(header) end;
+	getRequestHeaders = function (self)
+		local headers = {}
+		setmetatable(headers, {__index=self.getRequestHeader;__newindex=self.maskedMethod})
+		return headers
+	end;
 	getResponseHeader = function (self, header)
-		local lowerHeader, k, v = string.lower(header)
-		for k, v in pairs(self.responseHeaders) do
+		local lowerHeader = string.lower(header)
+		for k, v in pairs(self._responseHeaders) do
 			if string.lower(k) == lowerHeader then
 				return v
 			end
 		end
 		return nil
-	end,
+	end;
 	setResponseHeader = function (self, header, value)
-		if self.headersAlreadySent then
-			Exception "Can't change response headers. Headers already sent!"
+		if self._headersAlreadySent then
+			Exception "can't change response headers, headers already sent"
 		end
-		self.responseHeaders[header] = value
-		return self
-	end,
-	setResponseCode = function (self, code)
-		self.responseCode = code
+		self._responseHeaders[header] = value
 		return self
 	end;
+	setResponseCode = function (self, code)
+		self._responseCode = code
+		return self
+	end;
+	getRequestMethod = function (self)
+		return self:getRequestHeader "REQUEST_METHOD"
+	end;
 	-- Get
-	getGet = function (self, key) return self.get[key] end,
-	setGet = function (self, key, value) self.get[key] = value return self end,
-	getGetData = function (self) return self.get end,
+	getGet = function (self, key) return self._get[key] end;
+	setGet = function (self, key, value) self._get[key] = value return self end;
+	getGetData = function (self) return self._get end;
 	parseGetData = function (self)
 		local _, data = string.split(self:getRequestHeader "REQUEST_URI", "?")
 		if data then
 			data = string.explode(data, "&")
-			local v
 			for _, v in ipairs(data) do
 				local key, val = string.split(v, "=")
 				val = urlDecode(val)
-				self.get[key] = urlDecode(val)
+				self._get[key] = urlDecode(val)
 			end
 		end
-	end,
+	end;
 	-- Post
-	getPost = function (self, key) return self.post[key] end,
-	setPost = function (self, key, value) self.post[key] = value return self end,
-	getPostData = function (self) return self.post end,
+	getPost = function (self, key) return self._post[key] end;
+	setPost = function (self, key, value) self._post[key] = value return self end;
+	getPostData = function (self) return self._post end;
 	parsePostData = function (self)
-		if 'POST' ~= self:getRequestHeader 'REQUEST_METHOD' then
+		if "POST" ~= self:getRequestHeader "REQUEST_METHOD" then
 			return
 		end
-		local contentType = self:getRequestHeader 'CONTENT_TYPE'
-		if string.beginsWith(contentType, 'application/x-www-form-urlencoded') then
-			local data = io.read(tonumber(self:getRequestHeader 'CONTENT_LENGTH'))
-			data = string.explode(data, '&')
-			local _, v
+		local contentType = self:getRequestHeader "CONTENT_TYPE"
+		if string.beginsWith(contentType, "application/x-www-form-urlencoded") then
+			local data = io.read(tonumber(self:getRequestHeader "CONTENT_LENGTH"))
+			data = string.explode(data, "&")
 			for _, v in ipairs(data) do
-				local key, val = string.split(v, '=')
+				local key, val = string.split(v, "=")
 				val = urlDecode(val)
-				if not self.post[key] then
-					self.post[key] = val
+				if not self._post[key] then
+					self._post[key] = val
 				else
-					if 'table' == type(self.post[key]) then
-						table.insert(self.post[key], val)
+					if "table" == type(self._post[key]) then
+						table.insert(self._post[key], val)
 					else
-						self.post[key] = {self.post[key];val}
+						self._post[key] = {self._post[key];val}
 					end
 				end
 			end
-		elseif string.beginsWith(contentType, 'multipart/form-data') then
-			local _, boundaryStr = string.split(contentType, ';')
-			local _, boundary = string.split(boundaryStr, '=')
-			self:parseMultipartFormData('--'..boundary, io.read '*a')
+		elseif string.beginsWith(contentType, "multipart/form-data") then
+			local _, boundaryStr = string.split(contentType, ";")
+			local _, boundary = string.split(boundaryStr, "=")
+			self:parseMultipartFormData("--"..boundary, io.read "*a")
 		else
-			Exception ('Not implemented for Content-type: '..contentType)
+			Exception ("not implemented for content-type: "..contentType)
 		end
-	end,
+	end;
 	-- Cookies
 	parseCookies = function (self)
 		local cookieString = self:getRequestHeader "HTTP_COOKIE"
@@ -211,52 +250,48 @@ local Cgi = Api:extend{
 		else
 			cookies = {cookieString}
 		end
-		local _, v
 		for _, v in ipairs(cookies) do
 			local name, value = string.split(v, "=")
-			self.cookies[string.trim(name)] = string.trim(value)
+			self._cookies[string.trim(name)] = string.trim(value)
 		end
-	end,
-	getCookie = function (self, name)
-		return self.cookies[name]
-	end,
+	end;
+	getCookie = function (self, name) return self._cookies[name] end;
 	setCookie = function (self, name, value, expires, domain, path)
 		if not name then
 			Exception "name required"
 		end
 		local cookie = name.."="
-		self.cookies[name] = value
+		self._cookies[name] = value
 		if value then cookie = cookie..value end
 		if expires then
 			cookie = cookie..";expires="..expires
 		end
 		if domain then
-			cookie = cookie..";domain="..domain --or self:getRequestHeader "SERVER_NAME") -- SERVER_NAME is should or must be?
+			cookie = cookie..";domain="..domain
 		end
 		if path then
 			cookie = cookie..";path="..path
 		end
 		self:setResponseHeader("Set-Cookie", cookie)
-	end,
+	end;
 	getCookies = function (self)
 		return self.cookies
-	end,
+	end;
 	sendHeaders = function (self)
-		io.write = self.write
-		if not self.responseCode then self.responseCode = 200 end
+		io.write = self._write
+		if not self._responseCode then self._responseCode = 200 end
 		if not self:getResponseHeader "Location" then
-			io.write("HTTP/1.1 ", self.responseCode, " ", responseString[self.responseCode], "\n")
+			io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\n")
 		end
 		if not self:getResponseHeader("Content-type") then
 			self:setResponseHeader("Content-type", "text/html")
 		end
-		local k, v
-		for k, v in pairs(self.responseHeaders) do
+		for k, v in pairs(self._responseHeaders) do
 			io.write(k, ":", v, "\n")
 		end
 		io.write"\n"
-		self.headersAlreadySent = true
-	end
+		self._headersAlreadySent = true
+	end;
 }
 
 local Scgi = Object:extend{
@@ -273,87 +308,86 @@ local Scgi = Object:extend{
 		if not len then Exception"Invalid SCGI request!" end
 		request = request..ch..client:receive(len+1)
 		io.write = function (...)
-			if not self.headersAlreadySent then self:sendHeaders() end
-			local i
+			if not self._headersAlreadySent then self:sendHeaders() end
+			local params = select(1, ...)
 			for i = 1, select("#", ...) do
-				client:send(tostring(select(i, ...)))
+				client:send(tostring(params[i]))
 			end
 		end
-		local keysAndValues = string.explode(String.slice(request, string.find(request, ":", 1, true)+1, -3), "\0")
+		local keysAndValues = string.explode(string.slice(request, string.find(request, ":", 1, true)+1, -3), "\0")
 		local i
-		self.requestHeaders = {}
+		self._requestHeaders = {}
 		for i = 1, table.maxn(keysAndValues)/2 do
-			self.requestHeaders[keysAndValues[i*2-1]] = keysAndValues[i*2]
+			self._requestHeaders[keysAndValues[i*2-1]] = keysAndValues[i*2]
 		end
-		self.request = request
-		self.client = client
-		self.responseHeaders = {}
-		self.headersAlreadySent = false
-	end,
+		self._request = request
+		self._client = client
+		self._responseHeaders = {}
+		self._headersAlreadySent = false
+	end;
 	getRequestHeader = function (self, header)
-		return self.requestHeaders[header]
-	end,
+		return self._requestHeaders[header]
+	end;
 	getResponseHeader = function (self, header)
-		local lowerHeader, k, v = string.lower(header)
-		for k, v in pairs(self.responseHeaders) do
+		local lowerHeader = string.lower(header)
+		for k, v in pairs(self._responseHeaders) do
 			if string.lower(k) == lowerHeader then
 				return v
 			end
 		end
 		return nil
-	end,
+	end;
 	setResponseHeader = function (self, header, value)
-		self.responseHeaders[header] = value
-	end,
+		self._responseHeaders[header] = value
+	end;
 	sendHeaders = function (self)
-		if self.headersAlreadySent then return end
-		self.headersAlreadySent = true
-		if not self.responseCode then
-			self.responseCode = 200
+		if self._headersAlreadySent then return end
+		self._headersAlreadySent = true
+		if not self._responseCode then
+			self._responseCode = 200
 		end
-		io.write("HTTP/1.1 ", self.responseCode, " ", responseString[self.responseCode], "\n")
+		io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\n")
 		if not self:getResponseHeader("Content-type") then
 			self:setResponseHeader("Content-type", "text/html")
 		end
-		local k, v
-		for k, v in pairs(self.responseHeaders) do
+		for k, v in pairs(self._responseHeaders) do
 			io.write(k, ":", v, "\n")
 		end
 		io.write"\n"
 	end,
 	close = function (self)
-		self.client:close()
+		self._client:close()
 	end
 }
 
 local SocketAppServer = Object:extend{
 	__tag = .....".SocketAppSever",
 	init = function (self, wsApi, host, port)
-		self.wsApi = wsApi
-		self.host, self.port = host, port
-		if not self.host then
-			Exception"Invalid host!"
+		self._wsApi = wsApi
+		self._host, self._port = host, port
+		if not self._host then
+			Exception "invalid host"
 		end
-		if not self.port then
-			Exception"Invalid port number!"
+		if not self._port then
+			Exception "invalid port number"
 		end
-		self.server = Socket.tcp()
-		if not self.server:bind(self.host, self.port) then
-			Exception("Can't bind "..self.host..":"..self.port.." to server!")
+		self._server = Socket.tcp()
+		if not self._server:bind(self._host, self._port) then
+			Exception("can't bind "..self._host..":"..self._port.." to server")
 		end
-		if not self.server:listen(10) then
-			Exception"Can't listen!"
+		if not self._server:listen(10) then
+			Exception "can't listen"
 		end
 	end,
 	run = function (self, application)
 		local client
 		while true do
-			client = self.server:accept()
+			client = self._server:accept()
 			if not client then
-				Exception"Can't accept connection!"
+				Exception "can't accept connection"
 			end
 			local co = coroutine.create(setfenv(function ()
-				local wsApi = self.wsApi(client)
+				local wsApi = self._wsApi(client)
 				application(wsApi)
 				wsApi:close()
 			end, table.deepCopy(_G)))
@@ -365,7 +399,7 @@ local SocketAppServer = Object:extend{
 	end
 }
 
-return {
+return {HttpRequest=HttpRequest;HttpResponse=HttpResponse;
 	Exception = Exception,
 	Api = Api,
 	Cgi = Cgi,

@@ -15,9 +15,9 @@ local MODULE = (...)
 
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
-	init = function (self, wsApi)
-		self._wsApi = wsApi
-		self._uri = wsApi:getRequestHeader("REQUEST_URI") or ""
+	init = function (self, request)
+		self._request = request
+		self._uri = request:getHeader "REQUEST_URI" or ""
 		local queryPos = string.find(self._uri, "?")
 		if queryPos then
 			self._uri = string.sub(self._uri, 1, queryPos-1)
@@ -26,8 +26,8 @@ local UrlConf = Object:extend{
 		self._baseUri = ""
 		self._captures = {}
 	end;
-	getWsApi = function (self) return self._wsApi end;
-	setWsApi = function (self, wsApi) self._wsApi = wsApi return self end;
+	getRequest = function (self) return self._request end;
+	setRequest = function (self, request) self._request = request return self end;
 	getCapture = function (self, pos)
 		return self._captures[pos]
 	end;
@@ -39,11 +39,11 @@ local UrlConf = Object:extend{
 			local result = dofile(action)
 			return result and self:dispatch(result) or true
 		elseif type(action) == "function" then
-			return action(self)
+			return action(self, unpack(self._captures))
 		elseif type(action) == "table" then
 			return self:dispatch(action)
 		else
-			Exception "Invalid action!"
+			Exception "invalid action"
 		end
 	end;
 	dispatch = function (self, urls)
@@ -79,8 +79,8 @@ local UrlConf = Object:extend{
 local TemplateSlot = Slot:extend{
 	__tag = .....".TemplateSlot";
 	init = function (self, luv, template, params)
-		self.luv = luv
-		self.template = template
+		self._luv = luv
+		self._template = template
 		return Slot.init(self, luv:getCacher(), tostring(crypt.Md5(template..string.serialize(params))), 60*60)
 	end;
 	displayCached = function (self)
@@ -91,7 +91,7 @@ local TemplateSlot = Slot:extend{
 	end;
 	display = function (self)
 		self.luv:info("Template cache date "..os.date(), "Cacher")
-		local res = self.luv:fetch(self.template)
+		local res = self.luv:fetch(self._template)
 		self:set(res)
 		io.write(res)
 		return self
@@ -99,17 +99,17 @@ local TemplateSlot = Slot:extend{
 }
 
 local Core = Object:extend{
-	__tag = .....".Core",
-	version = Version(0, 10, 0, "alpha"),
+	__tag = .....".Core";
+	version = Version(0, 10, 0, "alpha");
 	-- Init
 	init = function (self, wsApi)
 		self:setProfiler(dev.Profiler())
 		self:beginProfiling "Luv"
 		--
-		self._wsApi = wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version))
-		self._urlconf = UrlConf(self._wsApi)
+		self:setWsApi(wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version)))
+		self._urlconf = UrlConf(ws.HttpRequest(self:getWsApi()))
 		self:setCacher(TagEmuWrapper(Memory()))
-	end,
+	end;
 	getWsApi = function (self) return self._wsApi end,
 	setWsApi = function (self, wsApi) self._wsApi = wsApi return self end,
 	getTemplater = function (self) return self._templater end,
@@ -328,6 +328,14 @@ local init = function (params)
 	return core
 end
 
+local getObjectOr404 = function (model, conditions)
+	local obj = model:find(conditions)
+	if not obj then
+		ws.Http404()
+	end
+	return obj
+end
+
 (function () -- Init random seed
 	local seed, i, str = os.time(), nil, tostring(tostring(MODULE))
 	for i = 1, string.len(str) do
@@ -344,6 +352,6 @@ return {
 	UrlConf = UrlConf,
 	Struct = Struct,
 	Widget = Widget,
-	init = init;
+	init = init;getObjectOr404=getObjectOr404;
 }
 	

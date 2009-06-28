@@ -13,12 +13,12 @@ local Api = Object:extend{
 	__tag = .....".Api",
 	init = function (self, templatesDirOrDirs)
 		if "string" == type(templatesDirOrDirs)
-		or (templatesDirOrDirs.isKindOf and templatesDirOrDirs:isKindOf(fs.Dir)) then
+		or (templatesDirOrDirs and templatesDirOrDirs.isKindOf and templatesDirOrDirs:isKindOf(fs.Dir)) then
 			self._templatesDirs = {templatesDirOrDirs}
 		else
 			self._templatesDirs = {}
 			if "table" == type(templatesDirOrDirs) then
-				for _, v in pairs(templatesDirOrDirs) do
+				for _, v in ipairs(templatesDirOrDirs) do
 					self:addTemplatesDir(v)
 				end
 			end

@@ -4,6 +4,7 @@ local io, ipairs, tostring, pairs, table, tonumber = io, ipairs, tostring, pairs
 local unpack, type, rawget, select = unpack, type, rawget, select
 local os = os
 local Object, auth, models, html = require "luv.oop".Object, require "luv.contrib.auth", require "luv.db.models", require "luv.utils.html"
+local getObjectOr404 = require "luv".getObjectOr404
 local fields = require "luv.fields"
 local forms = require "luv.forms"
 local json = require "luv.utils.json"
@@ -116,7 +117,7 @@ local AdminSite = Object:extend{
 		end
 		return {
 			{"^/login$"; function (urlConf)
-				local form = auth.forms.LoginForm(luv:getPostData())
+				local form = auth.forms.Login(luv:getPostData())
 				local user = auth.models.User:getAuthUser(luv:getSession(), form)
 				if user and user.isActive then luv:setResponseHeader("Location", urlConf:getBaseUri()):sendHeaders() end
 				luv:assign{
@@ -129,13 +130,13 @@ local AdminSite = Object:extend{
 				auth.models.User:logout(luv:getSession())
 				luv:setResponseHeader("Location", "/"):sendHeaders()
 			end};
-			{"^/([^/]+)/create/?$"; function (urlConf)
+			{"^/([^/]+)/create/?$"; function (urlConf, modelName)
 				local user = getUser(urlConf)
-				local admin = self:findAdmin(urlConf:getCapture(1))
+				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:getModel()
 				if not user:canCreate(model) then ws.Http403() end
-				local form = admin:getForm():addField('create', fields.Submit(string.capitalize(tr 'create')))(luv:getPostData()):setAction(urlConf:getUri())
+				local form = admin:getForm():addField("create", fields.Submit(string.capitalize(tr "create")))(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted("create") and form:isValid() then
 					if model:isKindOf(models.Tree) then
@@ -179,9 +180,9 @@ local AdminSite = Object:extend{
 				}
 				luv:display "admin/create.html"
 			end};
-			{"^/([^/]+)/records/delete/?$"; function (urlConf)
+			{"^/([^/]+)/records/delete/?$"; function (urlConf, modelName)
 				local user = getUser(urlConf)
-				local admin = self:findAdmin(urlConf:getCapture(1))
+				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:getModel()
 				if not user:canDelete(model) then ws.Http403() end
@@ -191,26 +192,24 @@ local AdminSite = Object:extend{
 				end
 				local records = model:all():filter{pk__in=items}:getValue()
 				model:all():filter{pk__in=items}:delete()
-				local _, record
 				for _, record in pairs(records) do
 					ActionLog:logDelete(urlConf:getBaseUri(), user, admin, record)
 				end
 				io.write ""
 			end};
-			{"^/([^/]+)/records/?$"; function (urlConf)
+			{"^/([^/]+)/records/?$"; function (urlConf, modelName)
 				local user = getUser(urlConf)
-				local admin = self:findAdmin(urlConf:getCapture(1))
+				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:getModel()
 				luv:assign{
 					type=type;pairs=pairs;ipairs=ipairs;tostring=tostring;capitalize=string.capitalize;html=html;urlConf=urlConf;user=user;
-					modelUri=urlConf:getBaseUri().."/"..urlConf:getCapture(1);admin=admin;model=model;
+					modelUri=urlConf:getBaseUri().."/"..modelName;admin=admin;model=model;
 				}
 				if model:isKindOf(models.Tree) then
 					local node = luv:getPost "node"
 					if node then
-						node = model:find(node)
-						if not node then ws.Http404() end
+						node = getObjectOr404(model, node)
 						luv:assign{parent=node;nodes=node:getChildren()}
 					else
 						node = model:findRoot()
@@ -231,15 +230,14 @@ local AdminSite = Object:extend{
 					luv:display "admin/_records-table.html"
 				end
 			end};
-			{"^/([^/]+)/(.+)/create/?$"; function (urlConf) -- for TreeModel
+			{"^/([^/]+)/(.+)/create/?$"; function (urlConf, modelName, recordId) -- for TreeModel
 				local user = getUser(urlConf)
-				local admin = self:findAdmin(urlConf:getCapture(1))
+				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:getModel()
 				if not user:canCreate(model) then ws.Http403() end
 				if not model:isKindOf(models.Tree) then ws.Http404() end
-				local record = model:find(urlConf:getCapture(2))
-				if not record then ws.Http404() end
+				local record = getObjectOr404(model, recordId)
 				local form = admin:getForm():addField("create", fields.Submit(string.capitalize(tr "create")))(luv:getPostData()):setAction(urlConf:getUri())
 				local msgsStack = UserMsgsStack()
 				if form:isSubmitted "create" and form:isValid() then
@@ -264,14 +262,13 @@ local AdminSite = Object:extend{
 				}
 				luv:display "admin/create.html"
 			end};
-			{"^/([^/]+)/(.+)/?$"; function (urlConf)
+			{"^/([^/]+)/(.+)/?$"; function (urlConf, modelName, recordId)
 				local user = getUser(urlConf)
-				local admin = self:findAdmin(urlConf:getCapture(1))
+				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:getModel()
 				if not user:canEdit(model) then ws.Http403() end
-				local record = model:find(urlConf:getCapture(2))
-				if not record then ws.Http404() end
+				local record = getObjectOr404(model, recordId)
 				local form = admin:getForm()
 				if user:canDelete(model) then
 					form:addField("delete", fields.Submit{defaultValue=string.capitalize(tr "delete");onClick="return confirm('O\\'RLY?')"})
@@ -293,7 +290,7 @@ local AdminSite = Object:extend{
 					if not user:canDelete(model) then ws.Http403() end
 					record:delete()
 					ActionLog:logDelete(urlConf:getBaseUri(), user, admin, record)
-					luv:setResponseHeader("Location", urlConf:getBaseUri().."/"..urlConf:getCapture(1)):sendHeaders()
+					luv:setResponseHeader("Location", urlConf:getBaseUri().."/"..modelName):sendHeaders()
 				else
 					form:initForm(record)
 				end
@@ -307,9 +304,9 @@ local AdminSite = Object:extend{
 				}
 				luv:display "admin/edit.html"
 			end};
-			{"^/([^/]+)/?$"; function (urlConf)
+			{"^/([^/]+)/?$"; function (urlConf, modelName)
 				local user = getUser(urlConf)
-				local admin = self:findAdmin(urlConf:getCapture(1))
+				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:getModel()
 				luv:assign{
