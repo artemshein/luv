@@ -1,48 +1,51 @@
 local string = require"luv.string"
 local type, tonumber, tostring, table, ipairs = type, tonumber, tostring, table, ipairs
+local json = require "luv.utils.json"
 local Object = require"luv.oop".Object
 
 module(...)
 
 local Validator = Object:extend{
-	__tag = .....".Validator",
+	__tag = .....".Validator";
 	init = function (self)
-		self.errors = {}
-	end,
+		self:setErrors{}
+	end;
 	isValid = function (self)
 		self:setErrors{}
-	end,
-	addError = function (self, error) table.insert(self.errors, error) return self end,
+	end;
+	getErrorMsg = Object.abstractMethod;
+	addError = function (self, error) table.insert(self._errors, error) return self end;
 	addErrors = function (self, errors)
-		local _, v for _, v in ipairs(errors) do
-			table.insert(self.errors, v)
+		for _, v in ipairs(errors) do
+			table.insert(self._errors, v)
 		end
 		return self
-	end,
-	setErrors = function (self, errors) self.errors = errors return self end,
-	getErrors = function (self) return self.errors end
+	end;
+	setErrors = function (self, errors) self._errors = errors return self end;
+	getErrors = function (self) return self._errors end;
 }
 
 local Filled = Validator:extend{
-	__tag = .....".Filled",
-	init = function (self) Validator.init(self) return self end,
+	__tag = .....".Filled";
+	getErrorMsg = function (self) return 'Field "%s" must be filled.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if type(value) == "string" and 0 ~= #value then
 			return true
-		elseif type(value) == "table" and (value.isObject or not table.isEmpty(value)) then
+		elseif type(value) == "table" and (value.isKindOf or not table.isEmpty(value)) then
 			return true
 		elseif type(value) == "number" then
 			return true
 		end
-		self:addError "Field \"%s\" must be filled."
+		self:addError(self:getErrorMsg())
 		return false
-	end
+	end;
+	getJs = function (self) return "validFilled()" end;
 }
 
 local Int = Validator:extend{
-	__tag = .....".Int",
-	init = function (self) Validator.init(self) return self end,
+	__tag = .....".Int";
+	getErrorMsg = function (self) return 'Field "%s" must be valid number.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if value == nil then
@@ -55,20 +58,22 @@ local Int = Validator:extend{
 				return true
 			end
 		end
-		self:addError "Field \"%s\" must be valid number."
+		self:addError(self:getErrorMsg())
 		return false
-	end
+	end;
+	getJs = function (self) return "validInt()" end;
 }
 
 local Length = Validator:extend{
-	__tag = .....".Length",
+	__tag = .....".Length";
 	init = function (self, minLength, maxLength)
 		Validator.init(self)
 		self.minLength = minLength
 		self.maxLength = maxLength
-	end,
-	getMaxLength = function (self) return self.maxLength end,
-	getMinLength = function (self) return self.minLength end,
+	end;
+	getErrorMsg = function (self) return 'Field "%s" has incorrect length.' end;
+	getMaxLength = function (self) return self.maxLength end;
+	getMinLength = function (self) return self.minLength end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if value == nil or value == "" then
@@ -81,38 +86,42 @@ local Length = Validator:extend{
 		end
 		if (self.maxLength ~= 0 and string.utf8len(value) > self.maxLength)
 		or (self.minLength and string.utf8len(value) < self.minLength) then
-			self:addError 'Field "%s" has incorrect length.'
+			self:addError(self:getErrorMsg())
 			return false
 		end
 		return true
-	end
+	end;
+	getJs = function (self) return "validLength("..(self:getMinLength() or "null")..", "..(self:getMaxLength() or "null")..")" end;
 }
 
 local Regexp = Validator:extend{
-	__tag = .....".Regexp",
+	__tag = .....".Regexp";
 	init = function (self, regexp)
 		Validator.init(self)
 		self.regexp = regexp
-	end,
+	end;
+	getErrorMsg = function (self) return 'Field "%s" has not valid value.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if value == nil or value == "" then
 			return true
 		end
 		if not string.find(tostring(value), self.regexp) then
-			self:addError "Field \"%s\" has not valid value."
+			self:addError(self:getErrorMsg())
 			return false
 		end
 		return true
-	end
+	end;
+	getJs = function (self) return "validRegexp("..string.format("%q", self.regexp)..")" end;
 }
 
 local Value = Validator:extend{
-	__tag = .....".Value",
+	__tag = .....".Value";
 	init = function (self, value)
 		Validator.init(self)
 		self.value = value
-	end,
+	end;
+	getErrorMsg = function (self) return 'Field "%s" has invalid value.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if self.value == value then
@@ -122,16 +131,13 @@ local Value = Validator:extend{
 		elseif type(self.value) == "number" and self.value == tonumber(value) then
 			return true
 		end
-		self:addError "Field \"%s\" has invalid value."
+		self:addError(self:getErrorMsg())
 		return false
-	end
+	end;
+	getJs = function (self) return "validValue("..json.serialize(self.value)..")" end;
 }
 
 return {
-	Validator = Validator,
-	Filled = Filled,
-	Int = Int,
-	Length = Length,
-	Regexp = Regexp,
-	Value = Value
+	Validator=Validator;Filled=Filled;Int=Int;Length=Length;
+	Regexp=Regexp;Value=Value;
 }

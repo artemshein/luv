@@ -99,6 +99,7 @@ local Field = Object:extend{
 	setClasses = function (self, classes) self._classes = classes return self end;
 	setErrors = function (self, errors) self.errors = errors return self end,
 	getErrors = function (self) return self.errors end,
+	getValidators = function (self) return self.validators end;
 	isValid = function (self, value)
 		local value = value or self:getValue()
 		if nil == value then value = self:getDefaultValue() end
@@ -303,7 +304,6 @@ local Boolean = Int:extend{
 	__tag = .....".Boolean";
 	init = function (self, params)
 		params = params or {}
-		params.required = true
 		params.widget = params.widget or widgets.Checkbox()
 		Int.init(self, params)
 	end;
@@ -311,28 +311,17 @@ local Boolean = Int:extend{
 		if "string" == type(value) then
 			value = tonumber(value)
 		end
-		if nil == value then
-			self.value = nil
-		elseif "number" == type(value) then
-			self.value = value
-		else
-			self.value = value and 1 or 0
+		if value then
+			value = value ~= 0 and 1 or 0
 		end
+		Int.setValue(self, value)
 	end;
-	getValue = function (self) if nil == self.value then return nil end return self.value ~= 0 end;
 	getDefaultValue = function (self)
-		if nil == self.defaultValue then return nil end
-		if "boolean" == type(self.defaultValue) then return self.defaultValue and 1 or 0 end
-		return self.defaultValue ~= 0
-	end;
-	isValid = function (self, value)
-		value = value or self:getValue()
-		if nil == value then value = self:getDefaultValue() end
-		if nil == value then
-			return Int.isValid(self, value)
-		else
-			return Int.isValid(self, value and 1 or 0)
+		local defaultValue = Int.getDefaultValue(self)
+		if nil == defaultValue then
+			return nil
 		end
+		return defaultValue and 1 or 0
 	end;
 }
 

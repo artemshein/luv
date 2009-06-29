@@ -8,168 +8,172 @@ local json = require "luv.utils.json"
 
 module(...)
 
-function getId(form, field)
-	return field:getId() or (form:getId()..string.capitalize(field:getName()))
-end
-
-local Input = Widget:extend{
-	__tag = .....'.Input';
-	init = function () end;
+local Field = Widget:extend{
+	__tag = .....".Field";
+	_getFieldId = function (self, f, form)
+		return f:getId() or (form:getId()..string.capitalize(f:getName()))
+	end;
+	_renderType = function (self)
+		return " type="..string.format("%q", self:getType())
+	end;
 	_renderOnClick = function (self, f)
 		if f:getOnClick() then
-			return ' onclick='..string.format("%q", f:getOnClick())
+			return " onclick="..string.format("%q", f:getOnClick())
 		end
 		return ""
 	end;
 	_renderOnChange = function (self, f)
 		if f:getOnChange() then
-			return ' onchange='..string.format("%q", f:getOnChange())
+			return " onchange="..string.format("%q", f:getOnChange())
 		end
 		return ""
 	end;
-	render = function (self, field, form, tail)
-		tail = tail or ''
-		local classes = field:getClasses()
-		return
-		'<input type='..string.format('%q', self.type)
-		..' name='..string.format('%q', html.escape(field:getName()))
-		..' id='..string.format('%q', html.escape(getId(form, field)))
-		..' value='..string.format('%q', html.escape(tostring(field:getValue() or field:getDefaultValue() or '')))
-		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
-		..self:_renderOnClick(field)
-		..self:_renderOnChange(field)
-		..tail..' />'
-		..(field:getHint() and (' '..field:getHint()) or '')
+	_renderClasses = function (self, f)
+		if f:getClasses() and not table.isEmpty(f:getClasses()) then
+			return " class="..string.format("%q", table.join(f:getClasses(), " "))
+		end
+		return ""
+	end;
+	_renderName = function (self, f)
+		return " type="..string.format("%q", html.escape(f:getName()))
+	end;
+	_renderId = function (self, f, form)
+		return " id="..string.format("%q", html.escape(self:_getFieldId(f, form)))
+	end;
+	_renderValue = function (self, f)
+		return " value="..string.format("%q", html.escape(tostring(f:getValue() or f:getDefaultValue() or "")))
+	end;
+	_renderHint = function (self, f)
+		return (f:getHint() and (" "..f:getHint()) or "")
 	end;
 }
 
-local TextArea = Widget:extend{
-	__tag = .....'.TextArea';
-	_renderOnClick = function (self, f)
-		if f:getOnClick() then
-			return ' onclick='..string.format("%q", f:getOnClick())
-		end
-		return ""
-	end;
-	_renderOnChange = function (self, f)
-		if f:getOnChange() then
-			return ' onchange='..string.format("%q", f:getOnChange())
-		end
-		return ""
-	end;
+local Input = Field:extend{
+	__tag = .....".Input";
 	init = function () end;
-	render = function (self, field, form)
-		local classes = field:getClasses()
-		return [[<textarea name="]]..html.escape(field:getName())
-		..[[" id="]]..html.escape(getId(form, field))
-		..(classes and ([[" class="]]..table.join(classes, ' ')) or '')
+	getType = function (self) return self._type end;
+	setType = function (self, type) self._type = type return self end;
+	render = function (self, field, form, tail)
+		tail = tail or ""
+		return
+		"<input"
+		..self:_renderType()
+		..self:_renderName(field)
+		..self:_renderId(field, form)
+		..self:_renderValue(field)
+		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
-		..[[">]]..html.escape(tostring(field:getValue() or field:getDefaultValue() or ''))..[[</textarea>]]
-		..(field:getHint() and (' '..field:getHint()) or '')
+		..tail.." />"
+		..self:_renderHint(field)
+	end;
+}
+
+local TextArea = Field:extend{
+	__tag = .....".TextArea";
+	init = function () end;
+	render = function (self, field, form)
+		return "<textarea"
+		..self:_renderName(field)
+		..self:_renderId(field, form)
+		..self:_renderClasses(field)
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
+		..">"
+		..self:_renderValue(field)
+		.."</textarea>"
+		..self:_renderHint(field)
 	end;
 }
 
 local Checkbox = Input:extend{
-	__tag = .....'.Checkbox';
-	type = 'checkbox';
+	__tag = .....".Checkbox";
+	_type = "checkbox";
 	render = function (self, field, form)
-		local tail = ''
-		if field:getValue() then
-			tail = [[ checked="checked"]]
+		local tail = ""
+		if field:getValue() == 1 then
+			tail = ' checked="checked"'
 		end
-		local classes = field:getClasses()
-		return [[<input type="]]..self.type..[[" name="]]..html.escape(field:getName())
-		..[[" id="]]..html.escape(getId(form, field))
-		..[[" value="1]]
-		..(classes and ([[" class="]]..table.join(classes, ' ')) or '')
-		..[["]]
+		return "<input"
+		..self:_renderType()
+		..self:_renderName(field)
+		..self:_renderId(field, form)
+		..' value="1"'
+		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
-		..tail..[[ />]]
+		..tail.." />"
 	end;
 }
 
 local FileInput = Input:extend{
-	__tag = .....'.FileInput';
-	type = 'file';
+	__tag = .....".FileInput";
+	_type = "file";
 	render = function (self, field, form, tail)
-		tail = tail or ''
-		local classes = field:getClasses()
+		tail = tail or ""
 		return
-		'<input type='..string.format('%q', self.type)
-		..' name='..string.format('%q', html.escape(field:getName()))
-		..' id='..string.format('%q', html.escape(getId(form, field)))
-		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		"<input"
+		..self:_renderType()
+		..self:_renderName(field)
+		..self:_renderId(field, form)
+		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
-		..tail..' />'
-		..(field:getHint() and (' '..field:getHint()) or '')
+		..tail.." />"
+		..self:_renderHint(field)
 	end
 }
 
 local TextInput = Input:extend{
-	__tag = .....'.TextInput';
-	type = 'text';
+	__tag = .....".TextInput";
+	_type = "text";
 	render = function (self, field, form, tail)
-		return Input.render(self, field, form, (tail or '')..' maxlength='..string.format('%q', field:getMaxLength()))
+		return Input.render(self, field, form, (tail or "").." maxlength="..string.format("%q", field:getMaxLength()))
 	end
 }
 
 local PhoneInput = TextInput:extend{
-	__tag = .....'.PhoneInput';
+	__tag = .....".PhoneInput";
 	render = function (self, ...)
-		return '+'..TextInput.render(self, ...)
+		return "+"..TextInput.render(self, ...)
 	end;
 }
 
 local HiddenInput = TextInput:extend{
-	__tag = .....'.HiddenInput';
-	type = 'hidden';
+	__tag = .....".HiddenInput";
+	_type = "hidden";
 }
 
 local PasswordInput = TextInput:extend{
-	__tag = .....'.PasswordInput';
-	type = 'password';
+	__tag = .....".PasswordInput";
+	_type = "password";
 }
 
 local Button = Input:extend{
-	__tag = .....'.Button';
-	type = 'button';
+	__tag = .....".Button";
+	_type = "button";
 	render = function (self, field, form, tail)
-		tail = tail or ''
+		tail = tail or ""
 		return Input.render(self, field, form, tail)
 	end;
 }
 
 local SubmitButton = Button:extend{
-	__tag = .....'.SubmitButton';
-	type = 'submit';
+	__tag = .....".SubmitButton";
+	_type = "submit";
 }
 
 local ImageButton = Button:extend{
-	__tag = .....'.ImageButton';
-	type = 'image';
+	__tag = .....".ImageButton";
+	_type = "image";
 	render = function (self, field, form)
-		local tail = [[ src="]]..field:getSrc()..[["]]
+		local tail = " src="..string.format("%q", field:getSrc())
 		return Button.render(self, field, form, tail)
 	end
 }
 
-local Select = Widget:extend{
-	__tag = .....'.Select';
-	_renderOnClick = function (self, f)
-		if f:getOnClick() then
-			return ' onclick='..string.format("%q", f:getOnClick())
-		end
-		return ""
-	end;
-	_renderOnChange = function (self, f)
-		if f:getOnChange() then
-			return ' onchange='..string.format("%q", f:getOnChange())
-		end
-		return ""
-	end;
+local Select = Field:extend{
+	__tag = .....".Select";
 	init = function () end;
 	render = function (self, field, form)
 		local models = require "luv.db.models"
@@ -178,41 +182,48 @@ local Select = Widget:extend{
 		local values, fieldValue = "", field:getValue()
 		if not field:isRequired() then values = "<option></option>" end
 		local choices = field:getChoices()
-		if 'function' == type(choices) then
+		if "function" == type(choices) then
 			choices = choices()
 		end
 		if choices.isKindOf and choices:isKindOf(models.QuerySet) then
 			choices = choices:getValue()
 		end
 		for _, v in ipairs(choices) do
-			local key = v.isKindOf and v:isKindOf(models.Model) and v.pk or tostring(v)
+			local key, value
+			if v.isKindOf and v:isKindOf(models.Model) then
+				key = v.pk
+				value = v
+			else
+				key = tostring(v[1])
+				value = v[2]
+			end
 			local selected
 			if "table" ~= type(fieldValue) then
 				selected = tostring(fieldValue) == tostring(key)
 			else
-				selected = fieldValue == v
+				selected = fieldValue == value
 			end
-			values = values.."<option value="..string.format("%q", key)..(selected and ' selected="selected"' or "")..">"..html.escape(tostring(v)).."</option>"
+			values = values.."<option value="..string.format("%q", key)..(selected and ' selected="selected"' or "")..">"..html.escape(tostring(value)).."</option>"
 		end
-		return "<select id="..string.format("%q", html.escape(getId(form, field)))
-		.." name="..string.format("%q", html.escape(field:getName()))
-		..(field:getOnChange() and (" onchange="..string.format("%q", field:getOnChange())) or "")
-		..(classes and (" class="..string.format("%q", table.join(classes, " "))) or "")
+		return "<select"
+		..self:_renderId(field, form)
+		..self:_renderName(field)
+		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
 		..">"..values.."</select>"
-		..(field:getHint() and (" "..field:getHint()) or "")
+		..self:_renderHint(field)
 	end;
 }
 
 local MultipleSelect = Select:extend{
-	__tag = .....'.MiltipleSelect';
+	__tag = .....".MiltipleSelect";
 	render = function (self, field, form)
-		local fields = require 'luv.fields'
+		local fields = require "luv.fields"
 		local classes = field:getClasses()
-		local values, fieldValue = '', field:getValue()
+		local values, fieldValue = "", field:getValue()
 		local choices = field:getChoices()
-		if 'function' == type(choices) then
+		if "function" == type(choices) then
 			choices = choices()
 		end
 		for k, v in pairs(choices) do
@@ -223,25 +234,25 @@ local MultipleSelect = Select:extend{
 					break
 				end
 			end
-			values = values..'<option value='..string.format('%q', tostring(v:getPk():getValue()))..(founded and ' selected="selected"' or '')..'>'..tostring(v)..'</option>'
+			values = values.."<option value="..string.format("%q", tostring(v:getPk():getValue()))..(founded and ' selected="selected"' or "")..">"..tostring(v).."</option>"
 		end
-		return [[<select multiple="multiple" id=]]..string.format('%q', html.escape(getId(form, field)))
-		..' name='..string.format('%q', html.escape(field:getName()))
-		..(field:getOnChange() and (' onchange='..string.format('%q', field:getOnChange())) or '')
-		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		return '<select multiple="multiple"'
+		..self:_renderId(field, form)
+		..self:_renderName(field)
+		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
-		..'>'..values..'</select>'
-		..(field:getHint() and (' '..field:getHint()) or '')
+		..">"..values.."</select>"
+		..self:_renderHint(field)
 	end;
 }
 
 local NestedSetSelect = Select:extend{
-	__tag = .....'.NestedSetSelect';
+	__tag = .....".NestedSetSelect";
 	render = function (self, field, form)
 		local data, minLevel = {}
 		local choices = field:getChoices()
-		if 'function' == type(choices) then
+		if "function" == type(choices) then
 			choices = choices()
 		end
 		for _, v in ipairs(choices) do
@@ -252,39 +263,44 @@ local NestedSetSelect = Select:extend{
 		local id = getId(form, field)
 		local value = field:getValue()
 		return
-		'<div id='..string.format('%q', id..'Back')..'></div>'
+		"<div id="..string.format("%q", id.."Back").."></div>"
 		..Select.render(self, field, form)
 		..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'
-		..'var nestedSetData = nestedSetData || {};\nnestedSetData["'..id..'"] = {"minLevel": '..minLevel..', "data": '
+		.."var nestedSetData = nestedSetData || {};\nnestedSetData['"..id.."'] = {minLevel: "..minLevel..", data: "
 		..json.serialize(data)
-		..'};\nluv.nestedSetSelect('..string.format('%q', id)..(value and '' ~= value and (', luv.nestedSetGetParentFor('..string.format('%q', id)..', '..string.format('%q', value)..')') or '')..');'
-		..(value and '' ~= value and ('luv.setFieldValue('..string.format('%q', id)..', '..string.format('%q', value)..');') or '')..'\n//]]></script>'
+		.."};\nluv.nestedSetSelect("..string.format("%q", id)..(value and "" ~= value and (", luv.nestedSetGetParentFor("..string.format("%q", id)..", "..string.format("%q", value)..")") or "")..");"
+		..(value and "" ~= value and ("luv.setFieldValue("..string.format("%q", id)..", "..string.format("%q", value)..");") or "").."\n//]]></script>"
 	end;
 }
 
 local DateInput = TextInput:extend{
 	__tag = .....".DateInput";
-	format = "%d.%m.%Y";
-	_regional = "us";
+	_format = "%d.%m.%Y";
+	_regional = "ru";
+	getFormat = function (self) return self._format end;
+	setFormat = function (self, format) self._format = format return self end;
 	getRegional = function (self) return self._regional end;
 	setRegional = function (self, regional) self._regional = regional return self end;
-	render = function (self, field, form, tail)
-		local classes = field:getClasses()
-		local value = field:getValue() or field:getDefaultValue()
+	_renderValue = function (self, f)
+		local value = f:getValue() or f:getDefaultValue()
 		if value then
-			value = os.date(self.format, value)
+			value = os.date(self:getFormat(), value)
 		end
+		return " value="..string.format("%q", html.escape(value or ""))
+	end;
+	render = function (self, field, form, tail)
 		local html =
-		'<input type='..string.format('%q', self.type)
-		..' name='..string.format('%q', html.escape(field:getName()))
-		..' id='..string.format('%q', html.escape(getId(form, field)))
-		..' value='..string.format('%q', html.escape(value or ''))
-		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		"<input"
+		..self:_renderType()
+		..self:_renderName(field)
+		..self:_renderId(field, form)
+		..self:_renderValue(field)
+		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
-		..(tail or '')..' />'
-		..(field:getHint() and (' '..field:getHint()) or '')
-		local js = (js or "").."$('#"..getId(form, field).."').datepicker($.datepicker.regional['"..self._regional.."']);"
+		..(tail or "").." />"
+		..self:_renderHint(field)
+		local js = (js or "").."$('#"..self:_getFieldId(field, form).."').datepicker($.datepicker.regional['"..self._regional.."']);"
 		return html, js
 	end;
 }
@@ -294,43 +310,39 @@ local Time = TextInput:extend{
 }
 
 local Datetime = TextInput:extend{
-	__tag = .....'.Datetime';
-	format = "%Y-%m-%d %H:%M:%S";
+	__tag = .....".Datetime";
+	_format = "%Y-%m-%d %H:%M:%S";
 	init = function () end;
-	render = function (self, field, form, tail)
-		tail = tail or ''
-		local classes = field:getClasses()
+	getFormat = function (self) return self._format end;
+	setFormat = function (self, format) self._format = format return self end;
+	_renderValue = function (self, f)
 		local value = field:getValue() or field:getDefaultValue()
 		if value then
-			value = os.date(self.format, value)
+			value = os.date(self:getFormat(), value)
 		end
+		return " value="..string.format("%q", html.escape(value or ""))
+	end;
+	render = function (self, field, form, tail)
+		tail = tail or ""
 		return
-		'<input type='..string.format('%q', self.type)
-		..' name='..string.format('%q', html.escape(field:getName()))
-		..' id='..string.format('%q', html.escape(getId(form, field)))
-		..' value='..string.format('%q', html.escape(value or ''))
-		..(classes and (' class='..string.format('%q', table.join(classes, ' '))) or '')
+		"<input"
+		..self:_renderType()
+		..self:_renderName(field)
+		..self:_renderId(field, form)
+		..self:_renderValue(field)
+		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
-		..tail..' />'
-		..(field:getHint() and (' '..field:getHint()) or '')
+		..tail.." />"
+		..self:_renderHint(field)
 	end
 }
 
 return {
-	TextArea=TextArea;
-	TextInput = TextInput;
-	PhoneInput=PhoneInput;
-	HiddenInput = HiddenInput,
-	PasswordInput = PasswordInput;
-	FileInput=FileInput;
-	DateInput=DateInput;
-	Button = Button,
-	SubmitButton = SubmitButton;
-	ImageButton=ImageButton;
-	Checkbox=Checkbox;
-	Select=Select;
-	MultipleSelect=MultipleSelect;
-	NestedSetSelect=NestedSetSelect;
-	Datetime=Datetime;Time=Time;
+	TextArea=TextArea;TextInput=TextInput;PhoneInput=PhoneInput;
+	HiddenInput=HiddenInput;PasswordInput=PasswordInput;
+	FileInput=FileInput;DateInput=DateInput;Button=Button;
+	SubmitButton=SubmitButton;ImageButton=ImageButton;Checkbox=Checkbox;
+	Select=Select;MultipleSelect=MultipleSelect;
+	NestedSetSelect=NestedSetSelect;Datetime=Datetime;Time=Time;
 }
