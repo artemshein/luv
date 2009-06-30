@@ -72,6 +72,9 @@ local Input = Field:extend{
 local TextArea = Field:extend{
 	__tag = .....".TextArea";
 	init = function () end;
+	_renderValue = function (self, f)
+		return html.escape(tostring(f:getValue() or f:getDefaultValue() or ""))
+	end;
 	render = function (self, field, form)
 		return "<textarea"
 		..self:_renderName(field)

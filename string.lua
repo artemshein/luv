@@ -57,6 +57,9 @@ string.findLast = function (self, substr)
 end
 
 string.explode = function (self, ex)
+	if "string" ~= type(self) then
+		error("string expected "..debug.traceback())
+	end
 	local res, tail, begPos, endPos = {}, self
 	begPos, endPos = string.find(tail, ex, 1, true)
 	while begPos do

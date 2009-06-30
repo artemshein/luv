@@ -1,6 +1,6 @@
 local string = require "luv.string"
 local io, os, pairs, ipairs, tonumber = io, os, pairs, ipairs, tonumber
-local type, table, math, tostring = type, table, math, tostring
+local type, table, math, tostring, require = type, table, math, tostring, require
 local Object, Exception = require "luv.oop".Object, require "luv.exceptions".Exception
 local fs = require "luv.fs"
 local crypt = require "luv.crypt"
@@ -214,17 +214,19 @@ local Cgi = Api:extend{
 		local contentType = self:getRequestHeader "CONTENT_TYPE"
 		if string.beginsWith(contentType, "application/x-www-form-urlencoded") then
 			local data = io.read(tonumber(self:getRequestHeader "CONTENT_LENGTH"))
-			data = string.explode(data, "&")
-			for _, v in ipairs(data) do
-				local key, val = string.split(v, "=")
-				val = urlDecode(val)
-				if not self._post[key] then
-					self._post[key] = val
-				else
-					if "table" == type(self._post[key]) then
-						table.insert(self._post[key], val)
+			if data then
+				data = string.explode(data, "&")
+				for _, v in ipairs(data) do
+					local key, val = string.split(v, "=")
+					val = urlDecode(val)
+					if not self._post[key] then
+						self._post[key] = val
 					else
-						self._post[key] = {self._post[key];val}
+						if "table" == type(self._post[key]) then
+							table.insert(self._post[key], val)
+						else
+							self._post[key] = {self._post[key];val}
+						end
 					end
 				end
 			end
