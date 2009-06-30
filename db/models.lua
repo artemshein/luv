@@ -666,8 +666,9 @@ local QuerySet = Object:extend{
 		return self
 	end;
 	limit = function (self, limitFrom, limitTo)
-		self._limits = {from=limitFrom;to=limitTo}
-		return self
+		local obj = self:clone()
+		obj._limits = {from=limitFrom;to=limitTo}
+		return obj
 	end;
 	_processFieldName = function (self, s, parts)
 		local curModel = self._model
