@@ -10,7 +10,7 @@ local Select = Driver.Select:extend{
 	__tostring = function (self)
 		return
 			"SELECT "
-			..self._db:constructFields(self._fields)
+			..self._db:constructFields(self._fields, self._tables)
 			..self._db:constructFrom(self._tables)
 			..self._db:constructJoins(self._joins)
 			..self._db:constructWhere(self._conditions.where, self._conditions.orWhere)
@@ -226,9 +226,9 @@ local MysqlDriver = Driver:extend{
 			end
 			return res
 		end
-		Driver.Exception("Invalid placeholder \""..placeholder.."\"!")
+		Driver.Exception("Invalid placeholder "..string.format("%q", placeholder).."!")
 	end,
-	constructFields = function (self, fields)
+	constructFields = function (self, fields, tables)
 		local res = {}
 		for k, v in pairs(fields) do
 			if type(k) == "string" then
@@ -242,7 +242,7 @@ local MysqlDriver = Driver:extend{
 			end
 		end
 		res = table.join(res, ", ")
-		if res == "" then return "*" end
+		if res == "" or res == "*" then return self:processPlaceholder("?#", tables[1])..".*" end
 		return res
 	end,
 	constructFrom = function (self, from)

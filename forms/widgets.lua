@@ -1,10 +1,11 @@
 local string = require "luv.string"
-local tr = tr
+local tr, type = tr, type
 local pairs, ipairs, io = pairs, ipairs, io
 local Widget, widgets = require "luv".Widget, require "luv.fields.widgets"
 local references = require "luv.fields.references"
 local forms, fields, html = require "luv.forms", require "luv.fields", require "luv.utils.html"
 local Exception = require "luv.exceptions".Exception
+local json = require "luv.utils.json"
 
 module(...)
 
@@ -86,14 +87,17 @@ local Form = Widget:extend{
 		return "</form>"
 	end;
 	renderJs = function (self, form)
-		local js = '<script type="text/javascript" language="JavaScript">//<![CDATA[\n$("#'..form:getId()..'").submit(function () {'
+		local js = '<script type="text/javascript" language="JavaScript">//<![CDATA[\n$("#'..form:getId()..'").submit(function(){'
 		for _, f in ipairs(form:getFields()) do
 			for _, v in pairs(f:getValidators()) do
 				local id = self:_getFieldId(f, form)
 				js = js.."if(!$('#"..id.."')."..v:getJs().."){$('#"..id.."').showError("..string.format("%q", string.format(v:getErrorMsg(), f:getLabel()))..");return false;}"
 			end
 		end
-		return js.."return true;});\n//]]></script>"
+		return js
+		..(form:getAjax() and ("return false;") or "return true;").."});"
+		..(form:getAjax() and ("$('#"..form:getId().."').ajaxForm("..("string" == type(form:getAjax()) and form:getAjax() or json.serialize(form:getAjax()))..");") or "")
+		.."\n//]]></script>"
 	end;
 	render = function (self, form)
 		return self:renderFormHeader(form)..self:renderFields(form)..self:renderFormEnd(form)..self:renderJs(form)

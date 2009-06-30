@@ -7,6 +7,7 @@
 	}
 
 	luv.importScript('/js/luv/jquery-1.3.2.min.js');
+	luv.importScript('/js/luv/jquery.form.js');
 	luv.importScript('/js/luv/data.js');
 	luv.importScript('/js/luv/forms.js');
 	luv.importScript('/js/luv/validators.js');

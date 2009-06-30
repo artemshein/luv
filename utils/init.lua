@@ -75,6 +75,7 @@ local TreeNode = Object:extend{
 			self._connector = connector
 			self._children = {obj;child}
 		end
+		return self
 	end;
 	getConnector = function (self) return self._connector end;
 	getChildren = function (self) return self._children end;

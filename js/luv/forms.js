@@ -69,19 +69,6 @@
 		this.addClass("error").focus();
 		alert(err);
 	};
-	jQuery.fn.formValues = function ()
-	{
-		var res = {}
-		//jQuery.each(
-	};
-	jQuery.fn.ajaxForm = function (url, handler, errorHandler)
-	{
-		jQuery.ajax({
-			cache: false, data: this.formValues(),
-			type: this.attr("method"), url: url, dataType: "json",
-			success: handler, error: errorHandler
-		});
-	};
 
 	luv.inArray = function (value, array)
 	{

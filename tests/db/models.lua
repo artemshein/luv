@@ -120,11 +120,11 @@ return TestCase:extend{
 	testQ = function (self)
 		self.assertTrue(
 			T01Group:all():filter{students__name__in={"John";"Max";"Pete"}}:asSql(),
-			"SELECT * FROM `group` JOIN `student` ON `group`.`number`=`student`.`group` WHERE (`student`.`name` IN ('John', 'Max', 'Pete'));"
+			"SELECT `group`.* FROM `group` JOIN `student` ON `group`.`number`=`student`.`group` WHERE (`student`.`name` IN ('John', 'Max', 'Pete'));"
 		)
 		self.assertTrue(
 			T01Group:all():filter{students__group__students__name__exact="Vova"}:asSql(),
-			"SELECT * FROM `group` JOIN `student` ON `group`.`number`=`student`.`group` WHERE (`student`.`name`='Vova');"
+			"SELECT `group`.* FROM `group` JOIN `student` ON `group`.`number`=`student`.`group` WHERE (`student`.`name`='Vova');"
 		)
 	end;
 	testT01 = function (self)
@@ -172,11 +172,11 @@ return TestCase:extend{
 		self.assertEquals(g372.students:all():filter{name__exact="Max"}:count(), 1)
 		self.assertEquals(g372.students:filter{name__beginswith="Ma"}:count(), 1)
 		self.assertEquals(g372.students:filter{name__endswith="hn"}:count(), 1)
-		self.assertEquals(g372.students:filter{name__contains="a"}:count(), 2)
+		self.assertEquals(g372.students:filter{name__contains="a"}:count(), 1)
 		self.assertEquals(g372.students:filter"Max":count(), 1)
 		self.assertEquals(g372.students:all():filter{name__in={"Max", "John", "Mary"}}:count(), 2)
-		self.assertEquals(g372.students:exclude"Max":count(), 3)
-		self.assertEquals(g372.students:exclude{name__in={"Max", "John", "Fil"}}:count(), 2)
+		self.assertEquals(g372.students:exclude"Max":count(), 2)
+		self.assertEquals(g372.students:exclude{name__in={"Max", "John", "Fil"}}:count(), 1)
 		self.assertEquals(g581.students:count(), 1)
 
 		-- Index with string keys is bad for nil object fields

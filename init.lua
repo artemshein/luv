@@ -218,18 +218,19 @@ local Core = Object:extend{
 }
 
 local Struct = Object:extend{
-	__tag = .....".Struct",
+	__tag = .....".Struct";
 	init = function (self)
-		self._msgs = {}
-		self._errors = {}
-	end,
+		self:setMsgs{}
+		self:setErrors{}
+	end;
 	__index = function (self, field)
 		if field == "pk" then return self:getPk():getValue() end
-		local res = rawget(self, "fieldsByName")
+		local res = rawget(self, "_fields")
 		if res then
 			res = res[field]
 			if res then
-				if res:isKindOf(require "luv.fields.references".ManyToMany) or res:isKindOf(require "luv.fields.references".OneToMany)then
+				local references = require "luv.fields.references"
+				if res:isKindOf(references.ManyToMany) or res:isKindOf(references.OneToMany)then
 					return res
 				else
 					return res:getValue()
@@ -237,7 +238,7 @@ local Struct = Object:extend{
 			end
 		end
 		return rawget(self, "parent")[field]
-	end,
+	end;
 	__newindex = function (self, field, value)
 		local res = self:getField(field)
 		if res then
@@ -246,61 +247,68 @@ local Struct = Object:extend{
 			rawset(self, field, value)
 		end
 		return value
-	end,
-	-- Fields
-	getField = function (self, field) return self.fieldsByName and self.fieldsByName[field] or nil end;
-	getFields = function (self) return self.fields end;
-	getFieldsByName = function (self) return self.fieldsByName end;
-	getValues = function (self)
-		local res = {}
-		for k, v in pairs(self:getFieldsByName()) do
-			local value = v:getValue()
-			if "table" == type(value) and value.isKindOf and value:isKindOf(require "luv.fields.references".OneToMany) then
-				res[k] = value:all():getValue()
-			else
-				res[k] = v:getValue()
-			end
-		end
-		return res
-	end,
-	setValues = function (self, values)
-		for k, v in pairs(self:getFieldsByName()) do
-			v:setValue(values[k])
-		end
-		return self
 	end;
+	-- Fields
 	addField = function (self, name, field)
+		if not self._fields then
+			Exception "fields required"
+		end
 		if not field:isKindOf(require "luv.fields".Field) then
-			Exception "instance of Field expected!"
+			Exception "instance of Field expected"
 		end
 		field:setContainer(self)
 		field:setName(name)
-		table.insert(self.fields, field)
-		self.fieldsByName[name] = field
+		self._fields[name] = field
+		return self
+	end;
+	getField = function (self, field) return self._fields[field] or nil end;
+	getFields = function (self) return self._fields end;
+	setFields = function (self, fields)
+		self._fields = {}
+		for name, f in pairs(fields) do
+			self:addField(name, f)
+		end
+		return self
+	end;
+	getValues = function (self)
+		local res = {}
+		for name, f in pairs(self:getFields()) do
+			local value = f:getValue()
+			if "table" == type(value) and value.isKindOf and value:isKindOf(require "luv.fields.references".OneToMany) then
+				res[name] = value:all():getValue()
+			else
+				res[name] = f:getValue()
+			end
+		end
+		return res
+	end;
+	setValues = function (self, values)
+		for name, f in pairs(self:getFields()) do
+			f:setValue(values[name])
+		end
 		return self
 	end;
 	-- Validation & errors collect
 	isValid = function (self)
 		self:setErrors{}
-		for _, v in ipairs(self:getFields()) do
-			if not v:isValid() then
-				for _, e in ipairs(v:getErrors()) do
-					local label = v:getLabel()
-					self:addError(string.gsub(_G.tr(e), "%%s", label and string.capitalize(_G.tr(label)) or string.capitalize(_G.tr(v:getName()))))
+		for name, f in pairs(self:getFields()) do
+			if not f:isValid() then
+				for _, e in ipairs(f:getErrors()) do
+					local label = f:getLabel()
+					self:addError(string.gsub(_G.tr(e), "%%s", label and string.capitalize(_G.tr(label)) or string.capitalize(_G.tr(name))))
 				end
 			end
 		end
 		return table.isEmpty(self:getErrors())
-	end,
-	addError = function (self, error) table.insert(self._errors, error) return self end,
-	setErrors = function (self, errors) self._errors = errors return self end,
+	end;
+	addError = function (self, error) table.insert(self._errors, error) return self end;
+	setErrors = function (self, errors) self._errors = errors return self end;
 	addErrors = function (self, errors)
-		for _, v in ipairs(errors) do
-			table.insert(self._errors, v)
+		for _, error in ipairs(errors) do
+			self:addError(error)
 		end
-	end,
-	getErrors = function (self) return self._errors end,
-	getErrorsCount = function (self) return table.maxn(self._errors) end,
+	end;
+	getErrors = function (self) return self._errors end;
 	addMsg = function (self, msg) table.insert(self._msgs, msg) return self end;
 	setMsgs = function (self, msgs) self._msgs = msgs return self end;
 	addMsgs = function (self, msgs)

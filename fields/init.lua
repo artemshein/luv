@@ -60,16 +60,16 @@ local Field = Object:extend{
 	isUnique = function (self) return self.unique end,
 	isPk = function (self) return self.pk end,
 	getId = function (self)
-		if not self.id then
-			self.id = self.container:getId()..string.capitalize(self:getName())
+		if not self._id then
+			self._id = self.container:getId()..string.capitalize(self:getName())
 		end
-		return self.id
+		return self._id
 	end;
-	setId = function (self, id) self.id = id return self end,
+	setId = function (self, id) self._id = id return self end,
 	getLabel = function (self) return self.label or self:getName() end,
 	setLabel = function (self, label) self.label = label return self end;
-	getName = function (self) return self.name end;
-	setName = function (self, name) self.name = name return self end;
+	getName = function (self) return self._name end;
+	setName = function (self, name) self._name = name return self end;
 	getValue = function (self) return self.value end,
 	setValue = function (self, value) self.value = value return self end,
 	getChoices = function (self) return self.choices end;

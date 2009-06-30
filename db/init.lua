@@ -134,6 +134,7 @@ local Select = Object:extend{
 			for _, v in ipairs(joinType) do
 				if v[1] == joinTable then
 					founded = true
+					v[2] = "("..v[2].." OR "..condition..")"
 					break
 				end
 			end
@@ -141,12 +142,6 @@ local Select = Object:extend{
 		if not founded then
 			table.insert(joinType, {joinTable, condition})
 		end
-		-- Fields
-		--[[if fields then
-			self:fields(fields)
-		else
-			self:fields(tbl..".*")
-		end]]
 	end;
 	join = function (self, ...)
 		return self:joinInner(...)

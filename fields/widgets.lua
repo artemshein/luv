@@ -35,7 +35,7 @@ local Field = Widget:extend{
 		return ""
 	end;
 	_renderName = function (self, f)
-		return " type="..string.format("%q", html.escape(f:getName()))
+		return " name="..string.format("%q", html.escape(f:getName()))
 	end;
 	_renderId = function (self, f, form)
 		return " id="..string.format("%q", html.escape(self:_getFieldId(f, form)))

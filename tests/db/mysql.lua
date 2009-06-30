@@ -49,12 +49,12 @@ return TestCase:extend{
 		)
 		self.assertEquals(
 			tostring(self.db:SelectCell():from("tabl`e"):where("?# = 0 OR ?# IS NULL AND (MAX(?#) < 150)", "id", "id", "total"):limit(10, 25)),
-			"SELECT * FROM `tabl``e` WHERE (`id` = 0 OR `id` IS NULL AND (MAX(`total`) < 150)) LIMIT 15 OFFSET 10;"
+			"SELECT `tabl``e`.* FROM `tabl``e` WHERE (`id` = 0 OR `id` IS NULL AND (MAX(`total`) < 150)) LIMIT 15 OFFSET 10;"
 		)
 		-- Test limit
 		self.assertEquals(
 			tostring(self.db:Select():from("test"):limit(5)),
-			"SELECT * FROM `test` LIMIT 5;"
+			"SELECT `test`.* FROM `test` LIMIT 5;"
 		)
 	end,
 	testInsertRow = function (self)
