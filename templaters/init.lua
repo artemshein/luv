@@ -19,7 +19,7 @@ local Api = Object:extend{
 			self._templatesDirs = {}
 			if "table" == type(templatesDirOrDirs) then
 				for _, v in ipairs(templatesDirOrDirs) do
-					self:addTemplatesDir(v)
+					self:addTemplatesDir("table" ~= type(v) and fs.Dir(v) or v)
 				end
 			end
 		end

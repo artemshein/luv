@@ -9,6 +9,9 @@ module(...)
 string.slice = string.utf8sub
 
 string.capitalize = function (self)
+	if not self then
+		error("string expected "..debug.traceback())
+	end
 	if string.len(self) == 0 then return self end
 	return string.utf8upper(string.utf8sub(self, 1, 1))..string.utf8sub(self, 2)
 end
