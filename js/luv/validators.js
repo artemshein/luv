@@ -24,6 +24,11 @@
 			return true;
 		return false;
 	};
+	jQuery.fn.validRegexp = function (regexp)
+	{
+		// TODO
+		return true;
+	};
 
 	luv.filledVal = function (id)
 	{

@@ -5,6 +5,7 @@ local tr = tr
 local models, fields, references, forms, managers, crypt, widgets = require "luv.db.models", require "luv.fields", require "luv.fields.references", require "luv.forms", require "luv.managers", require "luv.crypt", require "luv.fields.widgets"
 local widgets = require "luv.fields.widgets"
 local Exception = require "luv.exceptions".Exception
+local capitalize = string.capitalize
 
 module(...)
 
@@ -25,7 +26,7 @@ GroupRight.superuserRight = GroupRight{model="any model";action="any action"}
 local UserGroup = models.Model:extend{
 	__tag = .....".UserGroup",
 	Meta = {labels={"user group";"user groups"}},
-	title = fields.Text{required=true, unique=true},
+	title = fields.Text{required=true;unique=true},
 	description = fields.Text{maxLength=false},
 	rights = references.ManyToMany{references=GroupRight;relatedName="groups"},
 	__tostring = function (self) return tostring(self.title) end;
@@ -144,8 +145,8 @@ local Login = forms.Form:extend{
 	__tag = .....".Login",
 	Meta = {fields={"login";"password";"authorise"}};
 	login = User:getField "login",
-	password = fields.Password();
-	authorise = fields.Submit{defaultValue=string.capitalize(tr 'log in')}
+	password = fields.Password{required=true};
+	authorise = fields.Submit{defaultValue=capitalize(tr "log in")}
 }
 
 local modelsAdmins

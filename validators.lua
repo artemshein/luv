@@ -1,3 +1,4 @@
+local tr = tr
 local string = require"luv.string"
 local type, tonumber, tostring, table, ipairs = type, tonumber, tostring, table, ipairs
 local json = require "luv.utils.json"
@@ -27,7 +28,7 @@ local Validator = Object:extend{
 
 local Filled = Validator:extend{
 	__tag = .....".Filled";
-	getErrorMsg = function (self) return 'Field "%s" must be filled.' end;
+	getErrorMsg = function (self) return tr 'Field "%s" must be filled.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if type(value) == "string" and 0 ~= #value then
@@ -45,7 +46,7 @@ local Filled = Validator:extend{
 
 local Int = Validator:extend{
 	__tag = .....".Int";
-	getErrorMsg = function (self) return 'Field "%s" must be valid number.' end;
+	getErrorMsg = function (self) return tr 'Field "%s" must be valid number.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if value == nil then
@@ -71,7 +72,7 @@ local Length = Validator:extend{
 		self.minLength = minLength
 		self.maxLength = maxLength
 	end;
-	getErrorMsg = function (self) return 'Field "%s" has incorrect length.' end;
+	getErrorMsg = function (self) return tr 'Field "%s" has incorrect length.' end;
 	getMaxLength = function (self) return self.maxLength end;
 	getMinLength = function (self) return self.minLength end;
 	isValid = function (self, value)
@@ -100,7 +101,7 @@ local Regexp = Validator:extend{
 		Validator.init(self)
 		self.regexp = regexp
 	end;
-	getErrorMsg = function (self) return 'Field "%s" has not valid value.' end;
+	getErrorMsg = function (self) return tr 'Field "%s" has not valid value.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if value == nil or value == "" then
@@ -121,7 +122,7 @@ local Value = Validator:extend{
 		Validator.init(self)
 		self.value = value
 	end;
-	getErrorMsg = function (self) return 'Field "%s" has invalid value.' end;
+	getErrorMsg = function (self) return tr 'Field "%s" has invalid value.' end;
 	isValid = function (self, value)
 		Validator.isValid(self, value)
 		if self.value == value then

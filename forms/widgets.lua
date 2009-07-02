@@ -60,7 +60,7 @@ local Form = Widget:extend{
 		return html, (js or field:getOnLoad() and ((js or "")..(field:getOnLoad() or "")))
 	end;
 	renderFields = function (self, form)
-		local html, js = "", ""
+		local html, js = ""
 		-- Hidden fields first
 		for _, v in ipairs(form:getHiddenFields()) do
 			html = html..self:renderField(form, v)
@@ -69,7 +69,7 @@ local Form = Widget:extend{
 		-- Then visible fields
 		for _, v in ipairs(form:getVisibleFields()) do
 			local fieldHtml, fieldJs = self:renderField(form, v)
-			if fieldJs then js = js..fieldJs end
+			if fieldJs then js = (js or "")..fieldJs end
 			if v:getWidget():isKindOf(widgets.Checkbox) then
 				html = html..self._beforeLabel..self._afterLabel..self._beforeField..fieldHtml.." "..self:renderLabelCheckbox(form, v)..self._afterField
 			else
@@ -81,22 +81,23 @@ local Form = Widget:extend{
 		for _, v in ipairs(form:getButtonFields()) do
 			html = html..self:renderField(form, v)
 		end
-		return html..self._afterField..self._afterFields..(js and '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..js.."\n//]]></script>")
+		return html..self._afterField..self._afterFields..(js and '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..js.."\n//]]></script>" or "")
 	end;
 	renderFormEnd = function (self, form)
 		return "</form>"
 	end;
 	renderJs = function (self, form)
-		local js = '<script type="text/javascript" language="JavaScript">//<![CDATA[\n$("#'..form:getId()..'").submit(function(){'
-		for _, f in ipairs(form:getFields()) do
+		local validationFunc = "function(){"
+		for name, f in pairs(form:getFields()) do
 			for _, v in pairs(f:getValidators()) do
 				local id = self:_getFieldId(f, form)
-				js = js.."if(!$('#"..id.."')."..v:getJs().."){$('#"..id.."').showError("..string.format("%q", string.format(v:getErrorMsg(), f:getLabel()))..");return false;}"
+				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:getJs().."){$('#"..id.."').showError("..string.format("%q", string.format(v:getErrorMsg(), f:getLabel()))..");return false;}"
 			end
 		end
-		return js
-		..(form:getAjax() and ("return false;") or "return true;").."});"
-		..(form:getAjax() and ("$('#"..form:getId().."').ajaxForm("..("string" == type(form:getAjax()) and form:getAjax() or json.serialize(form:getAjax()))..");") or "")
+		validationFunc = validationFunc.."return true;}"
+		local ajax = form:getAjax()
+		return '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'
+		..(ajax and ("var options="..("string" == type(ajax) and ajax or json.serialize(ajax))..";options.beforeSubmit="..validationFunc..';$("#'..form:getId()..'").ajaxForm(options);') or ('$("#'..form:getId()..'").submit('..validationFunc..");"))
 		.."\n//]]></script>"
 	end;
 	render = function (self, form)

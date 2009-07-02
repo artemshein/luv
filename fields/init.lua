@@ -1,10 +1,13 @@
-local error = error
+local error, tr = error, tr
 local require, tostring = require, tostring
-local pairs, tonumber, ipairs, table, os, type, io = pairs, tonumber, ipairs, table, os, type, io
+local pairs, tonumber, ipairs, os, type, io = pairs, tonumber, ipairs, os, type, io
+local table = require "luv.table"
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
 local fs = require 'luv.fs'
 local exceptions = require "luv.exceptions"
 local Exception, try = exceptions.Exception, exceptions.try
+local f = require "luv.function".f
+local capitalize = string.capitalize
 
 module(...)
 
@@ -14,21 +17,15 @@ local Field = Object:extend{
 	__tag = .....".Field",
 	init = function (self, params)
 		if self.parent.parent == Object then
-			Exception "abstract class"
+			Exception "can't instantiate abstract class"
 		end
-		self.validators = {}
-		self.errors = {}
+		self:setValidators{}
+		self:setErrors{}
 		self:setParams(params)
 	end,
 	clone = function (self)
 		local new = Object.clone(self)
-		-- Clone validators
-		new.validators = {}
-		if self.validators then
-			for k, v in pairs(self.validators) do
-				new.validators[k] = v:clone()
-			end
-		end
+		new:setValidators(table.map(self:getValidators(), f "a:clone()"))
 		return new
 	end,
 	setParams = function (self, params)
@@ -52,7 +49,7 @@ local Field = Object:extend{
 	setRequired = function (self, required)
 		self._required = required
 		if self._required then
-			self.validators.filled = validators.Filled()
+			self:setValidator("filled", validators.Filled())
 			self:addClass "required"
 		end
 		return self
@@ -66,7 +63,7 @@ local Field = Object:extend{
 		return self._id
 	end;
 	setId = function (self, id) self._id = id return self end,
-	getLabel = function (self) return self.label or self:getName() end,
+	getLabel = function (self) return self.label or capitalize(tr(self:getName())) end,
 	setLabel = function (self, label) self.label = label return self end;
 	getName = function (self) return self._name end;
 	setName = function (self, name) self._name = name return self end;
@@ -99,7 +96,18 @@ local Field = Object:extend{
 	setClasses = function (self, classes) self._classes = classes return self end;
 	setErrors = function (self, errors) self.errors = errors return self end,
 	getErrors = function (self) return self.errors end,
-	getValidators = function (self) return self.validators end;
+	getValidators = function (self) return self._validators end;
+	setValidators = function (self, validators)
+		self._validators = validators
+		return self
+	end;
+	getValidator = function (self, key)
+		return self._validators[key]
+	end;
+	setValidator = function (self, key, validator)
+		self._validators[key] = validator
+		return self
+	end;
 	isValid = function (self, value)
 		local value = value or self:getValue()
 		if nil == value then value = self:getDefaultValue() end
@@ -179,7 +187,9 @@ local Text = Field:extend{
 		params = params or {}
 		if false == params.maxLength then params.maxLength = 0 end
 		if not params.widget then
-			if "number" == type(params.maxLength) and (params.maxLength == 0 or params.maxLength > 65535) then
+			if params.choices then
+				params.widget = widgets.Select()
+			elseif "number" == type(params.maxLength) and (params.maxLength == 0 or params.maxLength > 65535) then
 				params.widget = widgets.TextArea()
 			else
 				params.widget = widgets.TextInput()
@@ -187,15 +197,15 @@ local Text = Field:extend{
 		end
 		Field.setParams(self, params)
 		if params.regexp then
-			self.validators.regexp = validators.Regexp(params.regexp)
+			self:setValidator("regexp", validators.Regexp(params.regexp))
 		end
-		self.validators.length = validators.Length(params.minLength or 0, params.maxLength or 255)
+		self:setValidator("length", validators.Length(params.minLength or 0, params.maxLength or 255))
 	end,
 	getMinLength = function (self)
-		return self.validators.length:getMinLength()
+		return self:getValidator "length":getMinLength()
 	end,
 	getMaxLength = function (self)
-		return self.validators.length:getMaxLength()
+		return self:getValidator "length":getMaxLength()
 	end
 }
 
@@ -289,9 +299,11 @@ local Int = Field:extend{
 	__tag = .....".Int",
 	init = function (self, params)
 		params = params or {}
-		params.widget = params.widget or widgets.TextInput()
+		if not params.widget then
+			params.widget = params.choices and widgets.Select() or widgets.TextInput()
+		end
 		Field.init(self, params)
-		self.validators.int = validators.Int()
+		self:setValidator("int", validators.Int())
 	end,
 	setValue = function (self, value)
 		self.value = tonumber(value)
@@ -571,10 +583,10 @@ local ModelSelect = Field:extend{
 }
 
 local ModelMultipleSelect = MultipleValues:extend{
-	__tag = .....'.ModelMultipleSelect';
+	__tag = .....".ModelMultipleSelect";
 	init = function (self, params)
 		if not params then
-			Exception 'choices required'
+			Exception "choices required"
 		end
 		if not params.choices then
 			params = {choices=params}
@@ -594,7 +606,7 @@ local NestedSetSelect = Field:extend{
 			params = {choices=params}
 		end
 		params.widget = params.widget or widgets.NestedSetSelect
-		params.onChange = 'luv.nestedSetSelect(this.id, luv.getFieldRawValue(this.id));'
+		params.onChange = "luv.nestedSetSelect(this.id, luv.getFieldRawValue(this.id));"
 		Field.init(self, params)
 	end;
 	setValue = function (self, value)
@@ -606,21 +618,11 @@ local NestedSetSelect = Field:extend{
 }
 
 return {
-	Field = Field;
-	MultipleValues=MultipleValues;
-	Text=Text;Password=Password;
-	Int = Int,
-	Boolean=Boolean;
-	Ip=Ip;
-	Login = Login,
-	Id = Id,
-	Button = Button;
-	ImageButton = ImageButton;
-	Submit = Submit;
-	Date=Date;Datetime=Datetime;Time=Time;
-	Email=Email;
-	Phone=Phone;
-	Url=Url;File=File;Image=Image;
-	ModelSelect=ModelSelect;ModelMultipleSelect=ModelMultipleSelect;
+	Field=Field;MultipleValues=MultipleValues;Text=Text;
+	Password=Password;Int=Int;Boolean=Boolean;Ip=Ip;Login=Login;Id=Id;
+	Button=Button;ImageButton=ImageButton;Submit=Submit;Date=Date;
+	Datetime=Datetime;Time=Time;Email=Email;Phone=Phone;Url=Url;
+	File=File;Image=Image;ModelSelect=ModelSelect;
+	ModelMultipleSelect=ModelMultipleSelect;
 	NestedSetSelect=NestedSetSelect;
 }

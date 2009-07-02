@@ -6,6 +6,7 @@ local references = require "luv.fields.references"
 local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
 local widgets = require "luv.fields.widgets"
 local f = require "luv.function".f
+local json = require "luv.utils.json"
 
 module(...)
 
@@ -151,6 +152,16 @@ local Form = Struct:extend{
 		end
 		return self
 	end;
+	-- Experimental
+	processAjaxForm = function (self, action)
+		if self:isSubmitted() then
+			if self:isValid() and false ~= action(self) then
+				io.write(json.serialize{result="ok";msgs=self:getMsgs()})
+			else
+				io.write(json.serialize{result="error";errors=self:getErrors()})
+			end
+		end
+	end;
 }
 
 local ModelForm = Form:extend{
@@ -176,8 +187,8 @@ local ModelForm = Form:extend{
 	getPk = function (self) return self:getModel():getPk() end;
 	getPkName = function (self) return self:getModel():getPkName() end;
 	initModel = function (self, model)
-		if not model:isKindOf(self:getModel()) then
-			Exception 'Instance of Meta.model expected'
+		if not model or not model:isKindOf(self:getModel()) then
+			Exception "instance of Meta.model expected"
 		end
 		for name, f in pairs(model:getFields()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, name))
@@ -187,8 +198,8 @@ local ModelForm = Form:extend{
 		end
 	end;
 	initForm = function (self, model)
-		if not model:isKindOf(self:getModel()) then
-			Exception 'Instance of Meta.model expected'
+		if not model or not model:isKindOf(self:getModel()) then
+			Exception "instance of Meta.model expected"
 		end
 		for name, f in pairs(model:getFields()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, name))
