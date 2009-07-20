@@ -9,33 +9,31 @@ module(...)
 local MODULE = ...
 
 local Reference = fields.Field:extend{
-	__tag = .....".Reference",
+	__tag = .....".Reference";
+	relatedName = fields.Field.property;
+	role = fields.Field.property;
 	init = function (self, params)
-		if self.parent.parent == fields.Field then
+		if self._parent._parent == fields.Field then
 			Exception"Instantiate of abstract class is not allowed!"
 		end
 		local Model = require "luv.db.models".Model
-		if ("table" == type(params) and params.isKindOf and params:isKindOf(Model)) or "string" == type(params) then
+		if ("table" == type(params) and params.isA and params:isA(Model)) or "string" == type(params) then
 			params = {references = params}
 		end
 		fields.Field.init(self, params)
-	end,
-	setParams = function (self, params)
+	end;
+	params = function (self, params)
 		if "table" == type(params)  then
 			self.toField = params.toField
 			if "table" ~= type(params.references) then Exception "References must be a Model!" end
 			self.refModel = params.references
 			self.relatedName = params.relatedName
-			fields.Field.setParams(self, params)
+			fields.Field.params(self, params)
 		else
-			self.refModel = params or Exception"References required!"
+			self.refModel = params or Exception "References required!"
 		end
-	end,
-	getRelatedName = function (self) return self.relatedName end,
-	setRelatedName = function (self, relatedName) self.relatedName = relatedName return self end,
-	getToField = function (self) return self.toField end,
-	getRole = function (self) return self.role end,
-	setRole = function (self, role) self.role = role return self end,
+	end;
+	getToField = function (self) return self.toField end;
 	getRefModel = function (self) return self.refModel end;
 }
 
@@ -208,7 +206,7 @@ local ManyToOne = Reference:extend{
 		return self:getRefModel():getTableName()
 	end,
 	createBackLink = function (self)
-		return require(MODULE).OneToMany{references=self:getContainer();relatedName=self:getName();label=self:getContainer():getLabelMany()}
+		return require(MODULE).OneToMany{references=self:container();relatedName=self:name();label=self:container():labelMany()}
 	end;
 	getRelatedName = function (self)
 		if not self.relatedName then

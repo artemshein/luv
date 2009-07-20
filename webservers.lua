@@ -1,3 +1,4 @@
+local select = select
 local string = require "luv.string"
 local io, os, pairs, ipairs, tonumber = io, os, pairs, ipairs, tonumber
 local type, table, math, tostring, require = type, table, math, tostring, require
@@ -14,33 +15,51 @@ local Http404 = Http4xx:extend{__tag = .....".Http404"}
 
 local HttpRequest = Object:extend{
 	__tag = .....".HttpRequest";
+	backend = Object.property;
 	init = function (self, backend)
-		self:setBackend(backend)
+		self:backend(backend)
 	end;
-	getBackend = function (self) return self._backend end;
-	setBackend = function (self, backend) self._backend = backend return self end;
-	getMethod = function (self) return self:getHeader "REQUEST_METHOD" end;
-	getHeaders = function (self) return self._backend:getRequestHeaders() end;
-	getHeader = function (self, header) return self._backend:getRequestHeader(header) end;
-	getGet = function (self, name) return self._backend:getGet(name) end;
-	getGetData = function (self) return self._backend:getGetData() end;
-	getPost = function (self, name) return self._backend:getPost(name) end;
-	getPostData = function (self) return self._backend:getPostData() end;
-	getCookie = function (self, name) return self._backend:getCookie(name) end;
-	getCookies = function (self) return self._backend:getCookies() end;
+	method = function (self) return self:header "REQUEST_METHOD" end;
+	headers = function (self) return self._backend:requestHeaders() end;
+	header = function (self, header) return self._backend:requestHeader(header) end;
+	get = function (self, ...)
+		if select("#", ...) > 0 then
+			self._backend:get(...)
+			return self
+		else
+			return self._backend:get()
+		end
+	end;
+	getData = function (self) return self._backend:getData() end;
+	post = function (self, ...)
+		if select("#", ...) > 0 then
+			self._backend:post(...)
+			return self
+		else
+			return self._backend:post(...)
+		end
+	end;
+	postData = function (self) return self._backend:postData() end;
+	cookie = function (self, name) return self._backend:cookie(name) end;
+	cookies = function (self) return self._backend:cookies() end;
 }
 
 local HttpResponse = Object:extend{
 	__tag = .....".HttpResponse";
+	backend = Object.property;
 	init = function (self, backend, content)
-		self:setBackend(backend)
-		self:setContent(content)
+		self:backend(backend)
+		self:content(content)
 	end;
-	getBackend = function (self) return self._backend end;
-	setBackend = function (self, backend) self._backend = backend return self end;
-	getHeader = function (self, header) return self:getBackend():getResponseHeader(header) end;
-	setHeader = function (self, header, value) self:getBackend():setResponseHeader(header, value) return self end;
-	setCode = function (self, code) self:getBackend():setResponseCode(code) return self end;
+	header = function (self, header, ...)
+		if select("#", ...) > 0 then
+			self._backend:responseHeader(header, ...)
+			return self
+		else
+			return self._backend:responseHeader(header)
+		end
+	end;
+	code = function (self, code) self:backend():responseCode(code) return self end;
 	setContentType = function (self, contentType) self:setHeader("Content-Type", contentType) return self end;
 	setContent = function (self, content) self._content = content return self end;
 	appendContent = function (self, content) self._content = self._content..content return self end;
@@ -48,24 +67,6 @@ local HttpResponse = Object:extend{
 
 local Api = Object:extend{
 	__tag = .....".Api";
-	getTmpDir = Object.abstractMethod;
-	setTmpDir = Object.abstractMethod;
-	getRequestHeader = Object.abstractMethod;
-	getResponseHeader = Object.abstractMethod;
-	getRequestHeaders = Object.abstractMethod;
-	setResponseHeader = Object.abstractMethod;
-	setResponseCode = Object.abstractMethod;
-	getRequestMethod = Object.abstractMethod;
-	getGet = Object.abstractMethod;
-	setGet = Object.abstractMethod;
-	getGetData = Object.abstractMethod;
-	getPost = Object.abstractMethod;
-	setPost = Object.abstractMethod;
-	getPostData = Object.abstractMethod;
-	getCookie = Object.abstractMethod,
-	setCookie = Object.abstractMethod,
-	getCookies = Object.abstractMethod;
-	sendHeaders = Object.abstractMethod;
 	parseMultipartFormData = function (self, boundary, stream)
 		postData = string.explode(stream, boundary)
 		for i = 2, #postData-1 do
@@ -95,16 +96,16 @@ local Api = Object:extend{
 			data = string.slice(data, 1, -3)
 			if isFile then
 				if "" ~= data then
-					self:getPostData()[key] = {filename=key}
-					if self:getTmpDir() then
-						self:getPostData()[key].tmpFilePath = tostring(self:getTmpDir() / tostring(crypt.Md5(math.random(2000000000))))
-						file = fs.File(self:getPost(key).tmpFilePath):openWriteAndClose(data)
+					self:postData()[key] = {filename=key}
+					if self:tmpDir() then
+						self:postData()[key].tmpFilePath = tostring(self:tmpDir() / tostring(crypt.Md5(math.random(2000000000))))
+						file = fs.File(self:post(key).tmpFilePath):openWriteAndClose(data)
 					else
-						self:getPost(key).data = data
+						self:post(key).data = data
 					end
 				end
 			else
-				self:getPostData()[key] = data
+				self:postData()[key] = data
 			end
 		end
 	end;
@@ -141,8 +142,9 @@ local Cgi = Api:extend{
 	_cookies = {};
 	_get = {};
 	_post = {};
+	tmpDir = Object.property;
 	new = function (self, tmpDir)
-		self:setTmpDir(tmpDir)
+		self:tmpDir(tmpDir)
 		if not self._write then
 			self._write = io.write
 			io.write = function (...)
@@ -155,45 +157,53 @@ local Cgi = Api:extend{
 		end
 		return self
 	end,
-	--
-	getTmpDir = function (self) return self._tmpDir end;
-	setTmpDir = function (self, tmpDir) self._tmpDir = tmpDir return self end;
 	-- Headers
-	getRequestHeader = function (self, header) return os.getenv(header) end;
-	getRequestHeaders = function (self)
+	requestHeader = function (self, header) return os.getenv(header) end;
+	requestHeaders = function (self)
 		local headers = {}
-		setmetatable(headers, {__index=self.getRequestHeader;__newindex=self.maskedMethod})
+		setmetatable(headers, {__index=self.requestHeader;__newindex=self.maskedMethod})
 		return headers
 	end;
-	getResponseHeader = function (self, header)
-		local lowerHeader = string.lower(header)
-		for k, v in pairs(self._responseHeaders) do
-			if string.lower(k) == lowerHeader then
-				return v
+	responseHeader = function (self, header, ...)
+		if select("#", ...) > 0 then
+			if self._headersAlreadySent then
+				Exception "can't change response headers, headers already sent"
 			end
+			self._responseHeaders[header] = value
+			return self
+		else
+			local lowerHeader = string.lower(header)
+			for k, v in pairs(self._responseHeaders) do
+				if string.lower(k) == lowerHeader then
+					return v
+				end
+			end
+			return nil
 		end
-		return nil
 	end;
-	setResponseHeader = function (self, header, value)
-		if self._headersAlreadySent then
-			Exception "can't change response headers, headers already sent"
+	responseCode = function (self, ...)
+		if select("#", ...) > 0 then		
+			self._responseCode = (select(1, ...))
+			return self
+		else
+			return self._responseCode
 		end
-		self._responseHeaders[header] = value
-		return self
 	end;
-	setResponseCode = function (self, code)
-		self._responseCode = code
-		return self
-	end;
-	getRequestMethod = function (self)
-		return self:getRequestHeader "REQUEST_METHOD"
+	requestMethod = function (self)
+		return self:requestHeader "REQUEST_METHOD"
 	end;
 	-- Get
-	getGet = function (self, key) return self._get[key] end;
-	setGet = function (self, key, value) self._get[key] = value return self end;
-	getGetData = function (self) return self._get end;
+	get = function (self, key, ...)
+		if select("#", ...) > 0 then
+			self._get[key] = (select(1, ...))
+			return self
+		else
+			return self._get[key] 
+		end
+	end;
+	getData = function (self) return self._get end;
 	parseGetData = function (self)
-		local _, data = string.split(self:getRequestHeader "REQUEST_URI", "?")
+		local _, data = string.split(self:requestHeader "REQUEST_URI", "?")
 		if data then
 			data = string.explode(data, "&")
 			for _, v in ipairs(data) do
@@ -204,16 +214,22 @@ local Cgi = Api:extend{
 		end
 	end;
 	-- Post
-	getPost = function (self, key) return self._post[key] end;
-	setPost = function (self, key, value) self._post[key] = value return self end;
-	getPostData = function (self) return self._post end;
+	post = function (self, key, ...)
+		if select("#", ...) > 0 then
+			self._post[key] = (select(1, ...))
+			return self
+		else
+			return self._post[key]
+		end
+	end;
+	postData = function (self) return self._post end;
 	parsePostData = function (self)
-		if "POST" ~= self:getRequestHeader "REQUEST_METHOD" then
+		if "POST" ~= self:requestHeader "REQUEST_METHOD" then
 			return
 		end
-		local contentType = self:getRequestHeader "CONTENT_TYPE"
+		local contentType = self:requestHeader "CONTENT_TYPE"
 		if string.beginsWith(contentType, "application/x-www-form-urlencoded") then
-			local data = io.read(tonumber(self:getRequestHeader "CONTENT_LENGTH"))
+			local data = io.read(tonumber(self:requestHeader "CONTENT_LENGTH"))
 			if data then
 				data = string.explode(data, "&")
 				for _, v in ipairs(data) do
@@ -240,7 +256,7 @@ local Cgi = Api:extend{
 	end;
 	-- Cookies
 	parseCookies = function (self)
-		local cookieString = self:getRequestHeader "HTTP_COOKIE"
+		local cookieString = self:requestHeader "HTTP_COOKIE"
 		if not cookieString then
 			return nil
 		end
@@ -257,36 +273,39 @@ local Cgi = Api:extend{
 			self._cookies[string.trim(name)] = string.trim(value)
 		end
 	end;
-	getCookie = function (self, name) return self._cookies[name] end;
-	setCookie = function (self, name, value, expires, domain, path)
-		if not name then
-			Exception "name required"
+	cookie = function (self, name, ...)
+		if select("#", ...) > 0 then
+			local value, expires, domain, path = ...
+			if not name then
+				Exception "name required"
+			end
+			local cookie = name.."="
+			self._cookies[name] = value
+			if value then cookie = cookie..value end
+			if expires then
+				cookie = cookie..";expires="..expires
+			end
+			if domain then
+				cookie = cookie..";domain="..domain
+			end
+			if path then
+				cookie = cookie..";path="..path
+			end
+			self:responseHeader("Set-Cookie", cookie)
+			return self
+		else
+			return self._cookies[name]
 		end
-		local cookie = name.."="
-		self._cookies[name] = value
-		if value then cookie = cookie..value end
-		if expires then
-			cookie = cookie..";expires="..expires
-		end
-		if domain then
-			cookie = cookie..";domain="..domain
-		end
-		if path then
-			cookie = cookie..";path="..path
-		end
-		self:setResponseHeader("Set-Cookie", cookie)
 	end;
-	getCookies = function (self)
-		return self.cookies
-	end;
+	cookies = function (self) return self._cookies end;
 	sendHeaders = function (self)
 		io.write = self._write
 		if not self._responseCode then self._responseCode = 200 end
-		if not self:getResponseHeader "Location" then
+		if not self:responseHeader "Location" then
 			io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\n")
 		end
-		if not self:getResponseHeader("Content-type") then
-			self:setResponseHeader("Content-type", "text/html")
+		if not self:responseHeader("Content-type") then
+			self:responseHeader("Content-type", "text/html")
 		end
 		for k, v in pairs(self._responseHeaders) do
 			io.write(k, ":", v, "\n")
@@ -327,20 +346,22 @@ local Scgi = Object:extend{
 		self._responseHeaders = {}
 		self._headersAlreadySent = false
 	end;
-	getRequestHeader = function (self, header)
+	requestHeader = function (self, header)
 		return self._requestHeaders[header]
 	end;
-	getResponseHeader = function (self, header)
-		local lowerHeader = string.lower(header)
-		for k, v in pairs(self._responseHeaders) do
-			if string.lower(k) == lowerHeader then
-				return v
+	responseHeader = function (self, header, ...)
+		if select("#", ...) > 0 then
+			self._responseHeaders[header] = (select(1, ...))
+			return self
+		else
+			local lowerHeader = string.lower(header)
+			for k, v in pairs(self._responseHeaders) do
+				if string.lower(k) == lowerHeader then
+					return v
+				end
 			end
+			return nil
 		end
-		return nil
-	end;
-	setResponseHeader = function (self, header, value)
-		self._responseHeaders[header] = value
 	end;
 	sendHeaders = function (self)
 		if self._headersAlreadySent then return end

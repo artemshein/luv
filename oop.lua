@@ -22,17 +22,22 @@ local function processProperties (self)
 	end
 end
 
+local function isA (self, class)
+	local parent = self._parent
+	return self == class or (parent and parent:isA(class))
+end
+
 local Object = {
 	__tag = .....".Object";
 	init = abstractMethod;
 	extend = function (self, tbl)
-		tbl.parent = self
+		tbl._parent = self
 		setmetatable(tbl, {__index=self;__call=function (self, ...) return self:new(...) end})
 		processProperties(tbl)
 		return tbl
 	end;
 	new = function (self, ...)
-		local obj = {new=self.maskedMethod;extend=self.maskedMethod;parent=self}
+		local obj = {new=self.maskedMethod;extend=self.maskedMethod;_parent=self}
 		local magicMethods = {"__add";"__sub";"__mul";"__div";"__mod";"__pow";"__unm";"__concat";"__len";"__eq";"__lt";"__le";"__index";"__newindex";"__call";"__tostring"}
 		local mt = table.copy(getmetatable(self) or {})
 		mt.__index = nil
@@ -54,12 +59,8 @@ local Object = {
 		setmetatable(new, getmetatable(self))
 		return new
 	end;
-	isKindOf = function (self, obj)
-		if obj and (self == obj or (self.parent and self.parent:isKindOf(obj))) then
-			return true
-		end
-		return false
-	end;
+	isKindOf = isA;
+	isA = isA;
 	abstractMethod = abstractMethod;
 	maskedMethod = function () error("masked method "..debug.traceback()) end;
 	singleton = function (self) return self end;
@@ -93,7 +94,7 @@ local TypedProperty = Object:extend{
 					return self["_"..name]
 				else
 					local val = (select(1, ...))
-					if not val or not val.isKindOf or not val:isKindOf(propType) then
+					if not val or not val.isA or not val:isA(propType) then
 						error("given parameter type is not valid "..debug.traceback())
 					end
 					self["_"..name] = val
@@ -118,7 +119,7 @@ processProperties = function  (self)
 					return self
 				end
 			end
-		elseif "table" == type(v) and v.isKindOf and v:isKindOf(TypedProperty) then
+		elseif "table" == type(v) and v.isA and v:isA(TypedProperty) then
 			self[k] = v:createGetterAndSetter(k)
 		end
 	end

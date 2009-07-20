@@ -1,5 +1,5 @@
 local string = require "luv.string"
-local os, require = os, require
+local os, require, select, io = os, require, select, io
 local math, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable = math, rawset, rawget, tostring, loadstring, type, pairs, debug, getmetatable
 local oop, crypt, fs = require "luv.oop", require "luv.crypt", require "luv.fs"
 local Object, File, Dir = oop.Object, fs.File, fs.Dir
@@ -12,22 +12,26 @@ local Session = Object:extend{
 	init = function (self, wsApi, storage)
 		rawset(self, "_wsApi", wsApi)
 		rawset(self, "_storage", storage)
-		local id = wsApi:getCookie(self:getCookieName())
+		local id = wsApi:cookie(self._cookieName)
 		if not id or #id ~= 12 then
 			id = string.slice(tostring(crypt.Md5(math.random(2000000000))), 1, 12)
-			wsApi:setCookie(self:getCookieName(), id)
+			wsApi:cookie(self._cookieName, id)
 		end
 		rawset(self, "_id", id)
 		rawset(self, "_data", string.unserialize(storage:read(id)) or {})
 	end;
-	getId = function (self) return self._id end;
-	getCookieName = function (self) return self._cookieName end;
-	setCookieName = function (self, name) rawset(self, "_cookieName", name) return self end;
-	getData = function (self) return self._data end;
-	setData = function (self, data) self._data = data self:save() end;
+	data = function (self, ...)
+		if select("#", ...) > 0 then
+			rawset(self, "_data", (select(1, ...)))
+			self:save()
+			return self
+		else
+			return self._data
+		end
+	end;
 	save = function (self) self._storage:write(self._id, string.serialize(self._data)) end;
 	__index = function (self, key)
-		local res = rawget(self, "parent")[key]
+		local res = rawget(self, "_parent")[key]
 		if res then return res end
 		return rawget(self, "_data")[key]
 	end;
@@ -39,15 +43,18 @@ local Session = Object:extend{
 local SessionFile = Object:extend{
 	__tag = .....".SessionFile";
 	init = function (self, dir)
-		self:setDir(dir)
+		self:dir(dir)
 	end;
-	getDir = function (self) return self._dir end;
-	setDir = function (self, dir)
-		self._dir = dir
-		if not self._dir.isKindOf or not self._dir:isKindOf(Dir) then
-			self._dir = Dir(self._dir)
+	dir = function (self, ...)
+		if select("#", ...) > 0 then
+			self._dir = select(1, ...)
+			if not self._dir.isA or not self._dir:isA(Dir) then
+				self._dir = Dir(self._dir)
+			end
+			return self
+		else
+			return self._dir
 		end
-		return self
 	end;
 	read = function (self, name)
 		local f = File(self._dir / string.slice(name, 1, 2) / string.slice(name, 3))

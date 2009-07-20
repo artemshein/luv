@@ -15,25 +15,25 @@ local MODULE = (...)
 
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
+	request = Object.property;
+	uri = Object.property;
+	tailUri = Object.property;
+	baseUri = Object.property;
+	captures = Object.property;
 	init = function (self, request)
-		self._request = request
-		self._uri = request:getHeader "REQUEST_URI" or ""
+		self:request(request)
+		self:uri(request:header "REQUEST_URI" or "")
 		local queryPos = string.find(self._uri, "?")
 		if queryPos then
-			self._uri = string.sub(self._uri, 1, queryPos-1)
+			self:uri(string.sub(self._uri, 1, queryPos-1))
 		end
-		self._tailUri = self._uri
-		self._baseUri = ""
-		self._captures = {}
+		self:tailUri(self._uri)
+		self:baseUri""
+		self:captures{}
 	end;
-	getRequest = function (self) return self._request end;
-	setRequest = function (self, request) self._request = request return self end;
-	getCapture = function (self, pos)
+	capture = function (self, pos)
 		return self._captures[pos]
 	end;
-	getUri = function (self) return self._uri end;
-	getTailUri = function (self) return self._tailUri end;
-	getBaseUri = function (self) return self._baseUri end;
 	execute = function (self, action)
 		if type(action) == "string" then
 			local result = dofile(action)
@@ -81,7 +81,7 @@ local TemplateSlot = Slot:extend{
 	init = function (self, luv, template, params)
 		self._luv = luv
 		self._template = template
-		return Slot.init(self, luv:getCacher(), tostring(crypt.Md5(template..string.serialize(params))), 60*60)
+		return Slot.init(self, luv:cacher(), tostring(crypt.Md5(template..string.serialize(params))), 60*60)
 	end;
 	displayCached = function (self)
 		local res = self:get()
@@ -100,107 +100,112 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core";
-	version = Version(0, 10, 0, "alpha");
+	_version = Version(0, 10, 0, "alpha");
+	version = Object.property;
+	urlConf = Object.property;
+	wsApi = Object.property;
+	templater = Object.property;
+	session = Object.property;
+	db = Object.property;
+	profiler = Object.property;
+	debugger = Object.property;
+	i18n = Object.property;
 	-- Init
 	init = function (self, wsApi)
-		self:setProfiler(dev.Profiler())
+		self:profiler(dev.Profiler())
 		self:beginProfiling "Luv"
 		--
-		self:setWsApi(wsApi:setResponseHeader("X-Powered-By", "Luv/"..tostring(self.version)))
-		self._urlconf = UrlConf(ws.HttpRequest(self:getWsApi()))
-		self:setCacher(TagEmuWrapper(Memory()))
+		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self.version)))
+		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi())))
+		self:cacher(TagEmuWrapper(Memory()))
 	end;
-	getWsApi = function (self) return self._wsApi end,
-	setWsApi = function (self, wsApi) self._wsApi = wsApi return self end,
-	getTemplater = function (self) return self._templater end,
-	setTemplater = function (self, templater) self._templater = templater return self end,
-	getSession = function (self) return self._session end,
-	setSession = function (self, session) self._session = session return self end,
 	-- Database
-	getDsn = function (self) return self._dsn end,
-	setDsn = function (self, dsn)
-		self._dsn = dsn
-		self._db = require "luv.db".Factory(dsn)
-		require "luv.db.models".Model:setDb(self._db)
-		self._db:setLogger(function (sql, result)
-			--io.write(sql, "<br />")
-			self:debug(sql, "Database")
-		end)
-		return self
-	end,
-	getDb = function (self) return self._db end,
+	dsn = function (self, ...)
+		if select("#", ...) > 0 then
+			self._dsn = (select(1, ...))
+			self:db(require "luv.db".Factory(self._dsn))
+			require "luv.db.models".Model:setDb(self:db())
+			self:db():setLogger(function (sql, result)
+				--io.write(sql, "<br />")
+				self:debug(sql, "Database")
+			end)
+			return self
+		else
+			return self._dsn
+		end
+	end;
 	beginTransaction = function (self) return self._db:beginTransaction() end;
 	commit = function (self) return self._db:commit() end;
 	rollback = function (self) return self._db:rollback() end;
 	-- Web-server
-	getRequestHeader = function (self, ...) return self._wsApi:getRequestHeader(...) end,
-	setResponseHeader = function (self, ...) self._wsApi:setResponseHeader(...) return self end,
-	setResponseCode = function (self, ...) self._wsApi:setResponseCode(...) return self end;
-	sendHeaders = function (self, ...) self._wsApi:sendHeaders(...) return self end;
-	getGet = function (self, name) return self._wsApi:getGet(name) end,
-	getGetData = function (self) return self._wsApi:getGetData() end,
-	getPost = function (self, name) return self._wsApi:getPost(name) end,
-	getPostData = function (self) return self._wsApi:getPostData() end,
-	getCookie = function (self, name) return self.wsApi:getCookie(name) end,
-	setCookie = function (self, ...) self._wsApi:setCookie(...) return self end,
-	getCookies = function (self) return self._wsApi:getCookies() end,
-	getSession = function (self) return self._session end,
-	setSession = function (self, session) self._session = session return self end,
+	requestHeader = function (self, ...) return self:wsApi():requestHeader(...) end;
+	responseHeader = function (self, ...) self:wsApi():responseHeader(...) return self end;
+	responseCode = function (self, ...) self:wsApi():responseCode(...) return self end;
+	sendHeaders = function (self, ...) self:wsApi():sendHeaders(...) return self end;
+	get = function (self, ...) return self:wsApi():get(...) end;
+	getData = function (self) return self:wsApi():getData() end;
+	post = function (self, ...) return self:wsApi():post(...) end;
+	postData = function (self) return self:wsApi():postData() end;
+	cookie = function (self, ...)
+		if select("#", ...) > 0 then
+			self:wsApi():cookie(...)
+			return self
+		else
+			return self:wsApi():cookie()
+		end
+	end;
+	cookies = function (self) return self:wsApi():cookies() end;
 	-- URL conf
-	dispatch = function (self, urlconf) return self._urlconf:dispatch(urlconf) end,
+	dispatch = function (self, urlconf) return self:urlConf():dispatch(urlconf) end;
 	-- Templater
 	addTemplatesDir = function (self, templatesDir)
-		self._templater:addTemplatesDir(templatesDir)
+		self:templater():addTemplatesDir(templatesDir)
 		return self
-	end,
+	end;
 	assign = function (self, ...)
-		self._templater:assign(...)
+		self:templater():assign(...)
 		return self
 	end;
 	fetchString = function (self, template)
 		self:flush()
-		return self._templater:fetchString(template)
+		return self:templater():fetchString(template)
 	end;
 	fetch = function (self, template)
 		self:flush()
-		return self._templater:fetch(template)
+		return self:templater():fetch(template)
 	end;
 	displayString = function (self, template)
 		self:flush()
-		return self._templater:displayString(template)
+		return self:templater():displayString(template)
 	end;
 	display = function (self, template)
 		self:flush()
-		return self._templater:display(template)
+		return self:templater():display(template)
 	end;
 	flush = function (self)
 		self:endProfiling("Luv")
-		for section, info in pairs(self:getProfiler():getStat()) do
+		for section, info in pairs(self:profiler():stat()) do
 			self:info(section.." was executed "..tostring(info.count).." times and takes "..tostring(info.total).." secs", "Profiler")
 		end
-		self:assign{debugger=self._debugger or ""}
+		self:assign{debugger=self:debugger() or ""}
 	end;
 	-- Profiler
-	getProfiler = function (self) return self._profiler end;
-	setProfiler = function (self, profiler) self._profiler = profiler return self end;
-	beginProfiling = function (self, section) self._profiler:beginSection(section) return self end;
-	endProfiling = function (self, section) self._profiler:endSection(section) return self end;
+	beginProfiling = function (self, section) self:profiler():beginSection(section) return self end;
+	endProfiling = function (self, section) self:profiler():endSection(section) return self end;
 	-- Debugger
-	getDebugger = function (self) return self._debugger end;
-	setDebugger = function (self, debugger)
-		self._debugger = debugger
-		return self
-	end;
 	debug = function (self, ...) return self._debugger and self._debugger:debug(...) or self end;
 	info = function (self, ...) return self._debugger and self._debugger:info(...) or self end;
 	warn = function (self, ...) return self._debugger and self._debugger:warn(...) or self end;
 	error = function (self, ...) return self._debugger and self._debugger:error(...) or self end;
 	-- Caching
-	getCacher = function (self) return self._cacher end;
-	setCacher = function (self, cacher)
-		self._cacher = cacher
-		require "luv.db.models".Model:setCacher(cacher)
-		return self
+	cacher = function (self, ...)
+		if select("#", ...) > 0 then
+			self._cacher = cacher
+			require "luv.db.models".Model:cacher(cacher)
+			return self
+		else
+			return self._cacher
+		end
 	end;
 	createTemplateSlot = function (self, template, params)
 		return TemplateSlot(self, template, params)
@@ -209,40 +214,40 @@ local Core = Object:extend{
 		return require "luv.db.models".ModelSlot(self:getCacher(), model)
 	end;]]
 	createModelTag = function (self, model)
-		return require "luv.db.models".ModelTag(self:getCacher(), model)
+		return require "luv.db.models".ModelTag(self:cacher(), model)
 	end;
 	-- I18n
-	getI18n = function (self) return self._i18n end;
-	setI18n = function (self, i18n) self._i18n = i18n return self end;
 	tr = function (self, str) return self._i18n:tr(str) or str end;
 }
 
 local Struct = Object:extend{
 	__tag = .....".Struct";
+	errors = Object.property;
+	msgs = Object.property;
 	init = function (self)
-		self:setMsgs{}
-		self:setErrors{}
+		self:msgs{}
+		self:errors{}
 	end;
 	__index = function (self, field)
-		if field == "pk" then return self:getPk():getValue() end
+		if field == "pk" then return self:pk():value() end
 		local res = rawget(self, "_fields")
 		if res then
 			res = res[field]
 			if res then
 				local references = require "luv.fields.references"
-				if res:isKindOf(references.ManyToMany) or res:isKindOf(references.OneToMany)then
+				if res:isA(references.ManyToMany) or res:isA(references.OneToMany)then
 					return res
 				else
-					return res:getValue()
+					return res:value()
 				end
 			end
 		end
-		return rawget(self, "parent")[field]
+		return rawget(self, "_parent")[field]
 	end;
 	__newindex = function (self, field, value)
-		local res = self:getField(field)
+		local res = self:field(field)
 		if res then
-			res:setValue(value)
+			res:value(value)
 		else
 			rawset(self, field, value)
 		end
@@ -253,7 +258,7 @@ local Struct = Object:extend{
 		if not self._fields then
 			Exception "fields required"
 		end
-		if not field:isKindOf(require "luv.fields".Field) then
+		if not field:isA(require "luv.fields".Field) then
 			Exception "instance of Field expected"
 		end
 		field:container(self)
@@ -261,63 +266,64 @@ local Struct = Object:extend{
 		self._fields[name] = field
 		return self
 	end;
-	getField = function (self, field) return self._fields[field] or nil end;
-	getFields = function (self) return self._fields end;
-	setFields = function (self, fields)
-		self._fields = {}
-		for name, f in pairs(fields) do
-			self:addField(name, f)
-		end
-		return self
-	end;
-	getValues = function (self)
-		local res = {}
-		for name, f in pairs(self:getFields()) do
-			local value = f:getValue()
-			if "table" == type(value) and value.isKindOf and value:isKindOf(require "luv.fields.references".OneToMany) then
-				res[name] = value:all():getValue()
-			else
-				res[name] = f:getValue()
+	field = function (self, field) return self._fields[field] or nil end;
+	fields = function (self, ...)
+		if select("#", ...) > 0 then
+			self._fields = {}
+			for name, f in pairs((select(1, ...))) do
+				self:addField(name, f)
 			end
+			return self
+		else
+			return self._fields
 		end
-		return res
 	end;
-	setValues = function (self, values)
-		for name, f in pairs(self:getFields()) do
-			f:value(values[name])
+	values = function (self, ...)
+		if select("#", ...) > 0 then
+			local values = (select(1, ...))
+			for name, f in pairs(self:fields()) do
+				f:value(values[name])
+			end
+			return self
+		else
+			local res = {}
+			for name, f in pairs(self:fields()) do
+				local value = f:value()
+				if "table" == type(value) and value.isA and value:isA(require "luv.fields.references".OneToMany) then
+					res[name] = value:all():value()
+				else
+					res[name] = f:value()
+				end
+			end
+			return res
 		end
-		return self
 	end;
 	-- Validation & errors collect
 	isValid = function (self)
-		self:setErrors{}
-		for name, f in pairs(self:getFields()) do
+		self:errors{}
+		for name, f in pairs(self:fields()) do
 			if not f:isValid() then
-				for _, e in ipairs(f:getErrors()) do
-					local label = f:getLabel()
+				for _, e in ipairs(f:errors()) do
+					local label = f:label()
 					self:addError(string.gsub(_G.tr(e), "%%s", label and string.capitalize(_G.tr(label)) or string.capitalize(_G.tr(name))))
 				end
 			end
 		end
-		return table.isEmpty(self:getErrors())
+		return table.isEmpty(self:errors())
 	end;
 	addError = function (self, error) table.insert(self._errors, error) return self end;
-	setErrors = function (self, errors) self._errors = errors return self end;
 	addErrors = function (self, errors)
 		for _, error in ipairs(errors) do
 			self:addError(error)
 		end
 	end;
-	getErrors = function (self) return self._errors end;
 	addMsg = function (self, msg) table.insert(self._msgs, msg) return self end;
-	setMsgs = function (self, msgs) self._msgs = msgs return self end;
 	addMsgs = function (self, msgs)
 		for _, msg in ipairs(msgs) do
 			self:addMsg(msg)
 		end
 		return self
 	end;
-	getMsgs = function (self) return self._msgs end;
 }
 
 local Widget = Object:extend{
@@ -327,12 +333,12 @@ local Widget = Object:extend{
 
 local init = function (params)
 	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
-	core:setTemplater(params.templater or require "luv.templaters".Tamplier (params.templatesDirs))
-	core:setSession(sessions.Session(core:getWsApi(), sessions.SessionFile(params.sessionDir)))
-	core:setDsn(params.dsn)
-	core:setDebugger(params.debugger)
-	if params.cacher then core:setCacher(params.cacher) end
-	if params.i18n then core:setI18n(params.i18n) end
+	core:templater(params.templater or require "luv.templaters".Tamplier (params.templatesDirs))
+	core:session(sessions.Session(core:wsApi(), sessions.SessionFile(params.sessionDir)))
+	core:dsn(params.dsn)
+	core:debugger(params.debugger)
+	if params.cacher then core:cacher(params.cacher) end
+	if params.i18n then core:i18n(params.i18n) end
 	return core
 end
 
@@ -353,13 +359,7 @@ end
 end)() -- Excecute it imediately
 
 return {
-	oop = oop,
-	exceptions = exceptions,
-	util = util,
-	Core = Core,
-	UrlConf = UrlConf,
-	Struct = Struct,
-	Widget = Widget,
-	init = init;getObjectOr404=getObjectOr404;
+	oop=oop;exceptions=exceptions;util=util;Core=Core;UrlConf=UrlConf;
+	Struct=Struct;Widget=Widget;init=init;getObjectOr404=getObjectOr404;
 }
 	

@@ -12,7 +12,7 @@ local Exception = Exception:extend{__tag = .....".Exception"}
 
 local Path = Object:extend{
 	__tag = .....".Path";
-	init = function (self, path) self._path = path end;
+	init = function (self, path) self._path = tostring(path) end;
 	exists = function (self) Exception "not implemented" end;
 	__div = function (self, path)
 		path = tostring(path)
@@ -20,16 +20,16 @@ local Path = Object:extend{
 		or string.endsWith(self._path, "\\") then
 			if string.beginsWith(path, "/")
 			or string.beginsWith(path, "\\") then
-				return self.parent(self._path..string.slice(path, 2))
+				return self._parent(self._path..string.slice(path, 2))
 			else
-				return self.parent(self._path..path)
+				return self._parent(self._path..path)
 			end
 		else
 			if string.beginsWith(path, "/")
 			or string.beginsWith(path, "\\") then
-				return self.parent(self._path..path)
+				return self._parent(self._path..path)
 			else
-				return self.parent(self._path..DIR_SEP..path)
+				return self._parent(self._path..DIR_SEP..path)
 			end
 		end
 	end;
@@ -40,7 +40,7 @@ local File = Object:extend{
 	__tag = .....".File",
 	init = function (self, path)
 		self._path = path
-		if not self._path.isKindOf or not self._path:isKindOf(Path) then
+		if not self._path.isA or not self._path:isA(Path) then
 			self._path = Path(self._path)
 		end
 	end;
@@ -145,10 +145,10 @@ local File = Object:extend{
 }
 
 local Dir = Object:extend{
-	__tag = .....".Dir",
+	__tag = .....".Dir";
 	init = function (self, path)
 		self._path = path
-		if not self._path.isKindOf or not self._path:isKindOf(Path) then
+		if not self._path.isA or not self._path:isA(Path) then
 			self._path = Path(self._path)
 		end
 	end;

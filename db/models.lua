@@ -17,14 +17,14 @@ local MODULE = ...
 local ModelTag = cache.Tag:extend{
 	__tag = .....".ModelTag";
 	init = function (self, backend, model)
-		cache.Tag.init(self, backend, model:getTableName())
+		cache.Tag.init(self, backend, model:tableName())
 	end;
 }
 
 local ModelSlot = cache.Slot:extend{
 	__tag = .....".ModelSlot";
 	init = function (self, backend, model, id)
-		cache.Slot.init(self, backend, model:getTableName().."_"..id)
+		cache.Slot.init(self, backend, model:tableName().."_"..id)
 		self:addTag(ModelTag(backend, model))
 	end;
 }
@@ -47,42 +47,43 @@ local ModelSqlSlot = cache.Slot:extend{
 local Model = Struct:extend{
 	__tag = .....".Model",
 	modelsList = {};
-	__tostring = function (self) return tostring(self:getPk():getValue()) end,
+	__tostring = function (self) return tostring(self:pk():value()) end;
+	cacher = Object.property;
 	createBackLinksFieldsFrom = function (self, model)
-		for _, v in ipairs(model:getReferenceFields(self)) do
-			if not self:getField(v:getRelatedName() or Exception("relatedName required for "..v:getName().." field")) then
-				self:addField(v:getRelatedName(), v:createBackLink())
+		for _, v in ipairs(model:referenceFields(self)) do
+			if not self:field(v:relatedName() or Exception("relatedName required for "..v:name().." field")) then
+				self:addField(v:relatedName(), v:createBackLink())
 			end
 		end
 	end;
 	extend = function (self, ...)
 		local new = Struct.extend(self, ...)
 		-- Init fields
-		new:setFields{}
+		new:fields{}
 		local hasPk = false
 		for k, v in pairs(new) do
-			if type(v) == "table" and v.isKindOf and v:isKindOf(fields.Field) then
+			if type(v) == "table" and v.isA and v:isA(fields.Field) then
 				new:addField(k, v)
 				if not v:label() then v:label(k) end
-				if v:isKindOf(references.Reference) then
-					if not v:getRelatedName() then
-						if v:isKindOf(references.OneToMany) then
-							v:setRelatedName(k)
-						elseif v:isKindOf(references.ManyToOne) then
+				if v:isA(references.Reference) then
+					if not v:relatedName() then
+						if v:isA(references.OneToMany) then
+							v:relatedName(k)
+						elseif v:isA(references.ManyToOne) then
 							Exception"Use OneToMany field on related model instead of ManyToOne or set relatedName!"
-						elseif v:isKindOf(references.ManyToMany) then
-							v:setRelatedName(new:getLabelMany() or Exception"LabelMany required!")
+						elseif v:isA(references.ManyToMany) then
+							v:relatedName(new:labelMany() or Exception"LabelMany required!")
 						else
-							v:setRelatedName(new:getLabel() or Exception"Label required!")
+							v:relatedName(new:label() or Exception"Label required!")
 						end
 					end
-					v:getRefModel():addField(v:getRelatedName(), v:createBackLink())
+					v:refModel():addField(v:relatedName(), v:createBackLink())
 				end
 				new[k] = nil
 				hasPk = hasPk or v:pk()
 			end
 		end
-		if not table.isEmpty(new:getFields()) then
+		if not table.isEmpty(new:fields()) then
 			if not hasPk then new:addField("id", fields.Id()) end
 			for _, v in ipairs(self.modelsList) do
 				new:createBackLinksFieldsFrom(v)
@@ -95,22 +96,22 @@ local Model = Struct:extend{
 	end;
 	init = function (self, values)
 		Struct.init(self, values)
-		local classFields = self:getFields()
+		local classFields = self:fields()
 		if not classFields then
 			Exception "abstract model can't be created (extend it first)"
 		end
-		self:setFields(table.map(classFields, f "a:clone()"))
+		self:fields(table.map(classFields, f "a:clone()"))
 		if values then
 			if type(values) == "table" then
-				self:setValues(values)
+				self:values(values)
 			else
-				self:getPk():setValue(values)
+				self:pk():value(values)
 			end
 		end
 	end;
 	clone = function (self)
 		local new = Struct.clone(self)
-		new:setFields(table.map(self:getFields(), f "a:clone()"))
+		new:fields(table.map(self:fields(), f "a:clone()"))
 		return new
 	end;
 	__eq = function (self, second)
@@ -120,12 +121,12 @@ local Model = Struct:extend{
 		end
 		return pkValue == second.pk
 	end;
-	getPkName = function (self)
-		local pk = self:getPk()
+	pkName = function (self)
+		local pk = self:pk()
 		if not pk then
 			return nil
 		end
-		return pk:getName()
+		return pk:name()
 	end;
 	getPk = function (self)
 		for _, f in pairs(self:getFields()) do
@@ -423,8 +424,6 @@ local Model = Struct:extend{
 		return self:dropTable()
 	end;
 	-- Caching
-	getCacher = function (self) return self.cacher end;
-	setCacher = function (self, cacher) self.cacher = cacher return self end;
 	clearCacheTag = function (self)
 		if self:getCacher() then
 			ModelTag(self:getCacher(), self):clear()

@@ -32,19 +32,19 @@ local Field = Object:extend{
 	hint = Object.property;
 	ajaxWidget = Object.property;
 	init = function (self, params)
-		if self.parent.parent == Object then
+		if self._parent._parent == Object then
 			Exception "can't instantiate abstract class"
 		end
 		self:validators{}
 		self:errors{}
-		self:setParams(params)
+		self:params(params)
 	end,
 	clone = function (self)
 		local new = Object.clone(self)
 		new:validators(table.map(self:validators(), f "a:clone()"))
 		return new
 	end,
-	setParams = function (self, params)
+	params = function (self, params)
 		params = params or {}
 		self:pk(params.pk or false)
 		self:unique(params.unique or false)
@@ -168,13 +168,13 @@ local MultipleValues = Field:extend{
 	end;
 	value = function (self, ...)
 		if select("#", ...) > 0 then
-			if 'table' ~= type(value) or value.isKindOf then
+			if 'table' ~= type(value) or value.isA then
 				value = {value}
 			end
 			local resValue = {}
 			for _, v in ipairs(value) do
 				if 'table' == type(v) then
-					table.insert(resValue, v:getPk():getValue())
+					table.insert(resValue, v:pk():value())
 				else
 					table.insert(resValue, v)
 				end
@@ -189,7 +189,7 @@ local MultipleValues = Field:extend{
 
 local Text = Field:extend{
 	__tag = .....".Text",
-	setParams = function (self, params)
+	params = function (self, params)
 		params = params or {}
 		if false == params.maxLength then params.maxLength = 0 end
 		if not params.widget then
@@ -201,7 +201,7 @@ local Text = Field:extend{
 				params.widget = widgets.TextInput()
 			end
 		end
-		Field.setParams(self, params)
+		Field.params(self, params)
 		if params.regexp then
 			self:validator("regexp", validators.Regexp(params.regexp))
 		end
@@ -252,39 +252,45 @@ local File = Text:extend{
 		params.widget = widgets.FileInput()
 		Text.init(self, params)
 	end;
-	setValue = function (self, val)
-		if 'table' == type(val) then
-			val = val.tmpFilePath
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			local val = (select(1, ...))
+			if 'table' == type(val) then
+				val = val.tmpFilePath
+			end
+			Text.value(self, val)
+			return self
+		else
+			return Text.value(self)
 		end
-		Text.setValue(self, val)
 	end;
 	moveTo = function (self, path)
-		if not self.value then
+		if not self._value then
 			return false
 		end
 		local tmpFile = fs.File(self.value)
-		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose '*a'):close()
+		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose "*a"):close()
 		tmpFile:delete()
-		self.value = path
+		self._value = path
 		return true
 	end;
 }
 
 local Image = File:extend{
-	__tag = .....'.Image';
+	__tag = .....".Image";
 	moveToWithExt = function (self, path)
-		if not self.value then
+		if not self._value then
 			return false
 		end
-		local ext = require 'luv.images'.detectFormat(self.value)
+		local ext = require "luv.images".detectFormat(self._value)
 		if not ext then
 			return false
 		end
 		path = tostring(path)..'.'..ext
-		local tmpFile = fs.File(self.value)
-		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose '*a')
+		local tmpFile = fs.File(self._value)
+		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose "*a")
 		tmpFile:delete()
-		self.value = path
+		self._value = path
 		return true
 	end;
 }
@@ -311,8 +317,13 @@ local Int = Field:extend{
 		Field.init(self, params)
 		self:validator("int", validators.Int())
 	end,
-	setValue = function (self, value)
-		self.value = tonumber(value)
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			Field.value(self, (select(1, ...)))
+			return self
+		else
+			return Field.value(self)
+		end
 	end;
 	minLength = function (self) return self:required() and 1 or 0 end;
 	maxLength = function (self) return 12 end;
@@ -325,17 +336,23 @@ local Boolean = Int:extend{
 		params.widget = params.widget or widgets.Checkbox()
 		Int.init(self, params)
 	end;
-	setValue = function (self, value)
-		if "string" == type(value) then
-			value = tonumber(value)
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			local value = (select(1, ...))
+			if "string" == type(value) then
+				value = tonumber(value)
+			end
+			if value then
+				value = value ~= 0 and 1 or 0
+			end
+			Int.value(self, value)
+			return self
+		else
+			return Int.value(self)
 		end
-		if value then
-			value = value ~= 0 and 1 or 0
-		end
-		Int.setValue(self, value)
 	end;
-	getDefaultValue = function (self)
-		local defaultValue = Int.getDefaultValue(self)
+	defaultValue = function (self)
+		local defaultValue = Int.defaultValue(self)
 		if nil == defaultValue then
 			return nil
 		end

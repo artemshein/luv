@@ -14,10 +14,10 @@ local Form = Struct:extend{
 	__tag = .....".Form",
 	extend = function (self, new)
 		local new = Struct.extend(self, new)
-		new:setFields(table.map(self:getFields() or {}, f "a:clone()"))
+		new:fields(table.map(self:fields() or {}, f "a:clone()"))
 		-- Add self fields
 		for k, v in pairs(new) do
-			if type(v) == "table" and v.isKindOf and v:isKindOf(fields.Field) then
+			if type(v) == "table" and v.isA and v:isA(fields.Field) then
 				new:addField(k, v)
 				new[k] = nil
 			end
@@ -26,31 +26,31 @@ local Form = Struct:extend{
 	end,
 	init = function (self, values)
 		Struct.init(self, values)
-		if not self:getFields() then
+		if not self:fields() then
 			Exception "abstract Form can't be created"
 		end
 		self.Meta = self.Meta or {}
 		if not self.Meta.widget then
 			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
 		end
-		self:setFields(table.map(self:getFields(), f "a:clone()"))
+		self:setFields(table.map(self:fields(), f "a:clone()"))
 		if values then
-			if "table" == type(values) and values.isKindOf and values:isKindOf(Model) then
-				self:setValues(values:getValues())
+			if "table" == type(values) and values.isA and values:isA(Model) then
+				self:values(values:values())
 			else
-				self:setValues(values)
+				self:values(values)
 			end
 		end
 	end;
 	addField = function (self, name, f)
-		if f:isKindOf(references.OneToOne) or f:isKindOf(references.ManyToOne) then
-			if f:getRefModel():isKindOf(models.NestedSet) then
-				Struct.addField(self, name, fields.NestedSetSelect{label=f:getLabel();choices=f:getChoices() or f:getRefModel():all();required=f:isRequired()})
+		if f:isA(references.OneToOne) or f:isA(references.ManyToOne) then
+			if f:refModel():isA(models.NestedSet) then
+				Struct.addField(self, name, fields.NestedSetSelect{label=f:label();choices=f:choices() or f:refModel():all();required=f:required()})
 			else
-				Struct.addField(self, name, fields.ModelSelect{label=f:getLabel();choices=f:getChoices() or f:getRefModel():all();required=f:isRequired()})
+				Struct.addField(self, name, fields.ModelSelect{label=f:label();choices=f:choices() or f:refModel():all();required=f:required()})
 			end
-		elseif f:isKindOf(references.OneToMany) or f:isKindOf(references.ManyToMany) then
-			Struct.addField(self, name, fields.ModelMultipleSelect{label=f:getLabel();choices=f:getChoices() or f:getRefModel():all();required=f:isRequired()})
+		elseif f:isA(references.OneToMany) or f:isA(references.ManyToMany) then
+			Struct.addField(self, name, fields.ModelMultipleSelect{label=f:label();choices=f:choices() or f:refModel():all();required=f:required()})
 		else
 			Struct.addField(self, name, f:clone())
 		end
