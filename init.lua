@@ -256,8 +256,8 @@ local Struct = Object:extend{
 		if not field:isKindOf(require "luv.fields".Field) then
 			Exception "instance of Field expected"
 		end
-		field:setContainer(self)
-		field:setName(name)
+		field:container(self)
+		field:name(name)
 		self._fields[name] = field
 		return self
 	end;
@@ -284,7 +284,7 @@ local Struct = Object:extend{
 	end;
 	setValues = function (self, values)
 		for name, f in pairs(self:getFields()) do
-			f:setValue(values[name])
+			f:value(values[name])
 		end
 		return self
 	end;

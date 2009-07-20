@@ -79,7 +79,7 @@ local ManyToMany = Reference:extend{
 		return self.tableName
 	end,
 	createBackLink = function (self)
-		return require(MODULE).ManyToMany{references=self:getContainer();relatedName=self:getName();label=self:getContainer():getLabelMany()}
+		return require(MODULE).ManyToMany{references=self:container();relatedName=self:name();label=self:container():getLabelMany()}
 	end,
 	createTable = function (self)
 		local container, refModel = self:getContainer(), self:getRefModel()

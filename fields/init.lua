@@ -1,4 +1,4 @@
-local error, tr = error, tr
+local error, tr, select = error, tr, select
 local require, tostring = require, tostring
 local pairs, tonumber, ipairs, os, type, io = pairs, tonumber, ipairs, os, type, io
 local table = require "luv.table"
@@ -14,68 +14,85 @@ module(...)
 local MODULE = ...
 
 local Field = Object:extend{
-	__tag = .....".Field",
+	__tag = .....".Field";
+	validators = Object.property;
+	errors = Object.property;
+	container = Object.property;
+	unique = Object.property;
+	pk = Object.property;
+	name = Object.property;
+	value = Object.property;
+	choices = Object.property;
+	defaultValue = Object.property;
+	classes = Object.property;
+	widget = Object.property;
+	onClick = Object.property;
+	onChange = Object.property;
+	onLoad = Object.property;
+	hint = Object.property;
+	ajaxWidget = Object.property;
 	init = function (self, params)
 		if self.parent.parent == Object then
 			Exception "can't instantiate abstract class"
 		end
-		self:setValidators{}
-		self:setErrors{}
+		self:validators{}
+		self:errors{}
 		self:setParams(params)
 	end,
 	clone = function (self)
 		local new = Object.clone(self)
-		new:setValidators(table.map(self:getValidators(), f "a:clone()"))
+		new:validators(table.map(self:validators(), f "a:clone()"))
 		return new
 	end,
 	setParams = function (self, params)
 		params = params or {}
-		self.pk = params.pk or false
-		self.unique = params.unique or false
-		self.required = params.required or false
-		self.label = params.label
-		self:setWidget(params.widget)
-		self:setOnClick(params.onClick)
-		self:setOnChange(params.onChange)
-		self:setHint(params.hint)
-		if params.choices then self:setChoices(params.choices) end
-		self:setRequired(params.required)
-		self:setDefaultValue(params.defaultValue)
+		self:pk(params.pk or false)
+		self:unique(params.unique or false)
+		self:required(params.required or false)
+		self:label(params.label)
+		self:widget(params.widget)
+		self:onClick(params.onClick)
+		self:onChange(params.onChange)
+		self:hint(params.hint)
+		if params.choices then self:choices(params.choices) end
+		self:required(params.required)
+		self:defaultValue(params.defaultValue)
 		return self
 	end,
-	getContainer = function (self) return self.container end;
-	setContainer = function (self, container) self.container = container return self end;
-	isRequired = function (self) return self._required end,
-	setRequired = function (self, required)
-		self._required = required
-		if self._required then
-			self:setValidator("filled", validators.Filled())
-			self:addClass "required"
+	required = function (self, ...)
+		if select("#", ...) > 0 then
+			self._required = (select(1, ...))
+			if self._required then
+				self:validator("filled", validators.Filled())
+				self:addClass "required"
+			end
+			return self
+		else
+			return self._required
 		end
-		return self
 	end;
-	isUnique = function (self) return self.unique end,
-	isPk = function (self) return self.pk end,
-	getId = function (self)
-		if not self._id then
-			self._id = self.container:getId()..string.capitalize(self:getName())
+	id = function (self, ...)
+		if select("#", ...) > 0 then
+			self._id = (select(1, ...))
+			return self
+		else
+			if not self._id then
+				self._id = self:container():id()..string.capitalize(self:name())
+			end
+			return self._id
 		end
-		return self._id
 	end;
-	setId = function (self, id) self._id = id return self end,
-	getLabel = function (self) return self.label or capitalize(tr(self:getName())) end,
-	setLabel = function (self, label) self.label = label return self end;
-	getName = function (self) return self._name end;
-	setName = function (self, name) self._name = name return self end;
-	getValue = function (self) return self.value end,
-	setValue = function (self, value) self.value = value return self end,
-	getChoices = function (self) return self.choices end;
-	setChoices = function (self, choices) self.choices = choices return self end;
-	getDefaultValue = function (self) return self.defaultValue end,
-	setDefaultValue = function (self, val) self.defaultValue = val return self end,
-	addError = function (self, error) table.insert(self.errors, error) return self end,
+	label = function (self, ...)
+		if select("#", ...) > 0 then
+			self._label = (select(1, ...))
+			return self
+		else
+			return self._label or capitalize(tr(self:name()))
+		end
+	end;
+	addError = function (self, error) table.insert(self._errors, error) return self end,
 	addErrors = function (self, errors)
-		for _, v in ipairs(errors) do table.insert(self.errors, v) end
+		for _, v in ipairs(errors) do table.insert(self._errors, v) end
 		return self
 	end,
 	addClass = function (self, class)
@@ -92,62 +109,48 @@ local Field = Object:extend{
 		end
 		return self
 	end;
-	getClasses = function (self) return self._classes end;
-	setClasses = function (self, classes) self._classes = classes return self end;
-	setErrors = function (self, errors) self.errors = errors return self end,
-	getErrors = function (self) return self.errors end,
-	getValidators = function (self) return self._validators end;
-	setValidators = function (self, validators)
-		self._validators = validators
-		return self
-	end;
-	getValidator = function (self, key)
-		return self._validators[key]
-	end;
-	setValidator = function (self, key, validator)
-		self._validators[key] = validator
-		return self
+	validator = function (self, key, ...)
+		if select("#", ...) > 0 then
+			self._validators[key] = (select(1, ...))
+			return self
+		else
+			return self._validators[key]
+		end
 	end;
 	isValid = function (self, value)
-		local value = value or self:getValue()
-		if nil == value then value = self:getDefaultValue() end
-		self:setErrors{}
-		if not self.validators then
+		local value = value or self:value()
+		if nil == value then value = self:defaultValue() end
+		self:errors{}
+		if not self:validators() then
 			return true
 		end
-		for _, val in pairs(self.validators) do
+		for _, val in pairs(self:validators()) do
 			if not val:isValid(value) then
-				self:addErrors(val:getErrors())
+				self:addErrors(val:errors())
 				return false
 			end
 		end
 		return true
 	end,
 	-- Representation
-	getWidget = function (self) return self.widget end,
-	setWidget = function (self, widget) self.widget = widget return self end,
 	asHtml = function (self, form)
-		if not self.widget then
+		if not self:widget() then
 			Exception "widget required"
 		end
-		return self.widget:render(self, form or self:getContainer())
+		return self:widget():render(self, form or self:container())
 	end;
-	getOnClick = function (self) return self.onClick end;
-	setOnClick = function (self, onClick) self.onClick = onClick return self end;
-	getOnChange = function (self) return self.onChange end;
-	setOnChange = function (self, onChange) self.onChange = onChange return self end;
-	getOnLoad = function (self) return self._onLoad end;
-	setOnLoad = function (self, onLoad) self._onLoad = onLoad return self end;
-	getHint = function (self) return self.hint end;
-	setHint = function (self, hint) self.hint = hint return self end;
 	-- Ajax
-	getAjaxUrl = function (self) return self.container:getAjaxUrl() end;
-	setAjaxUrl = function (self, url) self.containt:setAjaxUrl(url) return self end;
-	getAjaxWidget = function (self) return self._ajaxWidget end;
-	setAjaxWidget = function (self, widget) self._ajaxWidget = widget return self end;
+	ajaxUrl = function (self, ...)
+		if select("#", ...) > 0 then
+			self:container():ajaxUrl((select(1, ...)))
+			return self
+		else
+			return self:container():ajaxUrl()
+		end
+	end;
 	asAjax = function (self, url)
-		local html, js = (self:getAjaxWidget() or self:getWidget()):render(self, self:getContainer())
-		return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:getId().."').ajaxField('"..self:getAjaxUrl().."', '"..self.container.pk.."', '"..self:getName().."');\n//]]></script>"
+		local html, js = (self:ajaxWidget() or self:widget()):render(self, self:container())
+		return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:id().."').ajaxField('"..self:ajaxUrl().."', '"..self:container().pk.."', '"..self:name().."');\n//]]></script>"
 	end;
 }
 
@@ -163,21 +166,24 @@ local MultipleValues = Field:extend{
 		params.widget = params.widget or widgets.MultipleSelect()
 		Field.init(self, params)
 	end;
-	getValue = function (self) return self.value or {} end;
-	setValue = function (self, value)
-		if 'table' ~= type(value) or value.isKindOf then
-			value = {value}
-		end
-		local resValue = {}
-		for _, v in ipairs(value) do
-			if 'table' == type(v) then
-				table.insert(resValue, v:getPk():getValue())
-			else
-				table.insert(resValue, v)
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			if 'table' ~= type(value) or value.isKindOf then
+				value = {value}
 			end
+			local resValue = {}
+			for _, v in ipairs(value) do
+				if 'table' == type(v) then
+					table.insert(resValue, v:getPk():getValue())
+				else
+					table.insert(resValue, v)
+				end
+			end
+			value = resValue
+			return Field.value(self, value)
+		else
+			return self._value or {}
 		end
-		value = resValue
-		return Field.setValue(self, value)
 	end;
 }
 
@@ -197,15 +203,15 @@ local Text = Field:extend{
 		end
 		Field.setParams(self, params)
 		if params.regexp then
-			self:setValidator("regexp", validators.Regexp(params.regexp))
+			self:validator("regexp", validators.Regexp(params.regexp))
 		end
-		self:setValidator("length", validators.Length(params.minLength or 0, params.maxLength or 255))
+		self:validator("length", validators.Length(params.minLength or 0, params.maxLength or 255))
 	end,
-	getMinLength = function (self)
-		return self:getValidator "length":getMinLength()
+	minLength = function (self)
+		return self:validator "length":minLength()
 	end,
-	getMaxLength = function (self)
-		return self:getValidator "length":getMaxLength()
+	maxLength = function (self)
+		return self:validator "length":maxLength()
 	end
 }
 
@@ -303,13 +309,13 @@ local Int = Field:extend{
 			params.widget = params.choices and widgets.Select() or widgets.TextInput()
 		end
 		Field.init(self, params)
-		self:setValidator("int", validators.Int())
+		self:validator("int", validators.Int())
 	end,
 	setValue = function (self, value)
 		self.value = tonumber(value)
 	end;
-	getMinLength = function (self) return self:isRequired() and 1 or 0 end;
-	getMaxLength = function (self) return 12 end;
+	minLength = function (self) return self:required() and 1 or 0 end;
+	maxLength = function (self) return 12 end;
 }
 
 local Boolean = Int:extend{

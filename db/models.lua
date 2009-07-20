@@ -63,7 +63,7 @@ local Model = Struct:extend{
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isKindOf and v:isKindOf(fields.Field) then
 				new:addField(k, v)
-				if not v:getLabel() then v:setLabel(k) end
+				if not v:label() then v:label(k) end
 				if v:isKindOf(references.Reference) then
 					if not v:getRelatedName() then
 						if v:isKindOf(references.OneToMany) then
@@ -79,7 +79,7 @@ local Model = Struct:extend{
 					v:getRefModel():addField(v:getRelatedName(), v:createBackLink())
 				end
 				new[k] = nil
-				hasPk = hasPk or v:isPk()
+				hasPk = hasPk or v:pk()
 			end
 		end
 		if not table.isEmpty(new:getFields()) then

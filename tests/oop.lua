@@ -1,4 +1,4 @@
-local getmetatable = getmetatable
+local getmetatable, require = getmetatable, require
 local Object, TestCase = require "luv.oop".Object, require "luv.dev.unittest".TestCase
 
 module(...)
@@ -139,5 +139,51 @@ return TestCase:extend{
 		self.assertEquals(#a, 5)
 		a.a = {1, 2, 3}
 		self.assertEquals(#a, 3)]]
+	end;
+	testProperties = function (self)
+		local A = Object:extend{
+			a = Object.property;
+			_b = 25;
+			b = Object.property;
+			init = function () end;
+		}
+		self.assertNil(A:a())
+		self.assertEquals(A:b(), 25)
+		local a = A()
+		self.assertNil(a:a())
+		self.assertEquals(a:b(), 25)
+		a:a(10)
+		self.assertNil(A:a())
+		self.assertEquals(a:a(), 10)
+		a:b(20)
+		self.assertEquals(A:b(), 25)
+		self.assertEquals(a:b(), 20)
+		a:b(nil)
+		self.assertEquals(A:b(), 25)
+		self.assertEquals(a:b(), 25)
+	end;
+	testTypedProperties = function (self)
+		local A = Object:extend{}
+		local B = Object:extend{
+			a = Object.property(A);
+			_str = "hello";
+			str = Object.property "string";
+			_num = 10;
+			num = Object.property "number";
+			init = function () end;
+		}
+		local b = B()
+		self.assertEquals(b:str(), "hello")
+		self.assertEquals(b:num(), 10)
+		self.assertThrows(function () b:str(101) end)
+		self.assertThrows(function () b:num "nan" end)
+		self.assertThrows(function () b:num{} end)
+		self.assertThrows(function () b:str(nil) end)
+		b:str "hi"
+		self.assertEquals(b:str(), "hi")
+		b:num(23)
+		self.assertEquals(b:num(), 23)
+		self.assertEquals(B:str(), "hello")
+		self.assertEquals(B:num(), 10)
 	end;
 }
