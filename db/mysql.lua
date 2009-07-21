@@ -138,7 +138,7 @@ local MysqlDriver = Driver:extend{
 			Driver.Exception("Could not connect to "..login.."@"..host.." (using password: "..(pass and "yes" or "no").."): "..error)
 		end
 	end,
-	getLastInsertId = function (self)
+	lastInsertId = function (self)
 		local res = self:query("SELECT LAST_INSERT_ID() AS `i`;")
 		if not res then
 			return nil

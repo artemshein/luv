@@ -7,14 +7,14 @@ local Object, Exception, try = require"luv.oop".Object, exceptions.Exception, ex
 module(...)
 
 local TestCase = Object:extend{
-	__tag = .....".TestCase",
-	Exception = Exception:extend{__tag = .....".Exception"},
-	assertTrue = function (test) if not test then Exception"assertTrue failed" end end,
-	assertFalse = function (test) if test then Exception"assertFalse failed" end end,
-	assertEquals = function (first, second) if first ~= second then Exception"assertEquals failed" end end,
-	assertNotEquals = function (first, second) if first == second then Exception"assertNotEquals failed" end end,
-	assertNil = function (val) if val ~= nil then Exception"assertNil failed" end end,
-	assertNotNil = function (val) if val == nil then Exception"assertNotNil failed" end end,
+	__tag = .....".TestCase";
+	Exception = Exception:extend{__tag = .....".Exception"};
+	assertTrue = function (test) if not test then Exception"assertTrue failed" end end;
+	assertFalse = function (test) if test then Exception"assertFalse failed" end end;
+	assertEquals = function (first, second) if first ~= second then Exception"assertEquals failed" end end;
+	assertNotEquals = function (first, second) if first == second then Exception"assertNotEquals failed" end end;
+	assertNil = function (val) if val ~= nil then Exception"assertNil failed" end end;
+	assertNotNil = function (val) if val == nil then Exception"assertNotNil failed" end end;
 	assertThrows = function (func, ...)
 		local args = {...}
 		try(function()
@@ -22,17 +22,15 @@ local TestCase = Object:extend{
 		end):elseDo(function()
 			Exception"assertThrows failed"
 		end)
-	end,
-	assertNotThrows = function (func, ...)
-		func(...)
-	end,
-	setUp = function (self) end,
-	tearDown = function (self) end,
+	end;
+	assertNotThrows = function (func, ...) func(...) end;
+	setUp = function (self) end;
+	tearDown = function (self) end;
 	run = function (self)
 		local stat = {total = 0, executed = 0, failed = 0, time = os.clock(), methods = {}}
 		local function errorHandler (e)
 			stat.failed = stat.failed+1
-			io.write("\nException: ", e:getMsg(), e:getTrace())
+			io.write("\nException: ", e:msg(), e:trace())
 		end
 		local function runTest (self, test)
 			--setfenv(test, self)
@@ -58,18 +56,19 @@ local TestCase = Object:extend{
 			io.write(" in ", os.clock()-stat.time, " sec")
 		end
 		return stat.total == 0 or (stat.total ~= 0 and stat.failed == 0)
-	end
+	end;
 }
 
 local TestSuite = Object:extend{
-	__tag = .....".TestSuite",
+	__tag = .....".TestSuite";
+	tests = Object.property;
 	init = function (self, ...)
-		self.tests = {...}
-	end,
+		self:tests{...}
+	end;
 	run = function (self)
 		local testModule
-		if not self.tests then
-			Exception"No tests are defined!"
+		if not self:tests() then
+			Exception "No tests are defined!"
 		end
 		local total, failed, time = 0, 0, os.clock()
 		local runTest = function (test)
@@ -80,9 +79,9 @@ local TestSuite = Object:extend{
 			total = total+1
 			io.write"\n\n"
 		end
-		for _, test in pairs(self.tests) do
+		for _, test in pairs(self:tests()) do
 			local t = require(test)
-			if t.isKindOf then
+			if t.isA then
 				io.write(test, ": ")
 				runTest(t)
 			else
@@ -103,6 +102,5 @@ local TestSuite = Object:extend{
 }
 
 return {
-	TestCase = TestCase,
-	TestSuite = TestSuite
+	TestCase=TestCase;TestSuite=TestSuite;
 }

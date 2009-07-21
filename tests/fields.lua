@@ -13,31 +13,31 @@ local Char = TestCase:extend{
 	__tag = .....".Char",
 	testSimple = function (self)
 		local f = Fields.Text()
-		self.assertFalse(f:isRequired())
-		self.assertFalse(f:isUnique())
-		self.assertFalse(f:isPk())
-		f:setValue("value")
-		self.assertTrue(f:getValue(), "value")
-		self.assertEquals(f:getMaxLength(), 255)
+		self.assertFalse(f:required())
+		self.assertFalse(f:unique())
+		self.assertFalse(f:pk())
+		f:value("value")
+		self.assertTrue(f:value(), "value")
+		self.assertEquals(f:maxLength(), 255)
 	end,
 	testMaxLength = function (self)
 		local f = Fields.Text{maxLength = 10}
-		f:setValue("1234567890")
-		self.assertEquals(f:getValue(), "1234567890")
-		self.assertTrue(f:isValid())
-		f:setValue("12345678901")
-		self.assertFalse(f:isValid())
+		f:value("1234567890")
+		self.assertEquals(f:value(), "1234567890")
+		self.assertTrue(f:valid())
+		f:value("12345678901")
+		self.assertFalse(f:valid())
 	end,
 	testMinLength = function (self)
 		local f = Fields.Text{minLength = 4, maxLength = 6}
-		f:setValue("123")
-		self.assertFalse(f:isValid())
-		f:setValue("1234")
-		self.assertTrue(f:isValid())
-		f:setValue("123456")
-		self.assertTrue(f:isValid())
-		f:setValue("1234567")
-		self.assertFalse(f:isValid())
+		f:value("123")
+		self.assertFalse(f:valid())
+		f:value("1234")
+		self.assertTrue(f:valid())
+		f:value("123456")
+		self.assertTrue(f:valid())
+		f:value("1234567")
+		self.assertFalse(f:valid())
 	end
 }
 
@@ -45,18 +45,18 @@ local Login = TestCase:extend{
 	__tag = .....".Login",
 	testSimple = function (self)
 		local l = Fields.Login()
-		l:setValue"admin"
-		self.assertTrue(l:isValid())
-		l:setValue"not_valid_pass--DROP TABLE"
-		self.assertFalse(l:isValid())
-		l:setValue"valid_log.in1234"
-		self.assertTrue(l:isValid())
-		l:setValue""
-		self.assertFalse(l:isValid())
-		l:setValue"Too_long_login_is_not_valid_too__"
-		self.assertFalse(l:isValid())
-		l:setValue"$*)&@#^&)$%@(*#$&"
-		self.assertFalse(l:isValid())
+		l:value"admin"
+		self.assertTrue(l:valid())
+		l:value"not_valid_pass--DROP TABLE"
+		self.assertFalse(l:valid())
+		l:value"valid_log.in1234"
+		self.assertTrue(l:valid())
+		l:value""
+		self.assertFalse(l:valid())
+		l:value"Too_long_login_is_not_valid_too__"
+		self.assertFalse(l:valid())
+		l:value"$*)&@#^&)$%@(*#$&"
+		self.assertFalse(l:valid())
 	end
 }
 
@@ -64,24 +64,24 @@ local Email = TestCase:extend{
 	__tag = .....".Email";
 	testSimple = function (self)
 		local e = Fields.Email()
-		e:setValue "test@test.com"
-		self.assertTrue(e:isValid())
-		e:setValue "test2134@test-sadf.asdfa.info"
-		self.assertTrue(e:isValid())
-		e:setValue "Sfdssdf.test-2134@test-sadf.asd654fa.ru"
-		self.assertTrue(e:isValid())
-		e:setValue "@test.ru"
-		self.assertFalse(e:isValid())
-		e:setValue "asdf@"
-		self.assertFalse(e:isValid())
-		e:setValue "asdf@#%!@#@asdf.ru"
-		self.assertFalse(e:isValid())
-		e:setValue "asdf@asdf."
-		self.assertFalse(e:isValid())
-		e:setValue "asdf@asd@asdf.re"
-		self.assertFalse(e:isValid())
-		e:setValue "--asdfasd@asdf.re"
-		self.assertFalse(e:isValid())
+		e:value "test@test.com"
+		self.assertTrue(e:valid())
+		e:value "test2134@test-sadf.asdfa.info"
+		self.assertTrue(e:valid())
+		e:value "Sfdssdf.test-2134@test-sadf.asd654fa.ru"
+		self.assertTrue(e:valid())
+		e:value "@test.ru"
+		self.assertFalse(e:valid())
+		e:value "asdf@"
+		self.assertFalse(e:valid())
+		e:value "asdf@#%!@#@asdf.ru"
+		self.assertFalse(e:valid())
+		e:value "asdf@asdf."
+		self.assertFalse(e:valid())
+		e:value "asdf@asd@asdf.re"
+		self.assertFalse(e:valid())
+		e:value "--asdfasd@asdf.re"
+		self.assertFalse(e:valid())
 	end;
 }
 

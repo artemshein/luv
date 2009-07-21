@@ -60,25 +60,25 @@ end
 
 local TreeNode = Object:extend{
 	__tag = .....".TreeNode";
+	connector = Object.property;
+	children = Object.property;
 	init = function (self, children, connector)
-		self._connector = connector
-		self._children = children
+		self:connector(connector)
+		self:children(children)
 	end;
 	add = function (self, child, connector)
-		if table.size(self._children) < 2 then
-			connector = self._connector
+		if table.size(self:children()) < 2 then
+			connector = self:connector()
 		end
-		if connector == self._connector then
-			table.insert(self._children, child)
+		if connector == self:connector() then
+			table.insert(self:children(), child)
 		else
 			local obj = self:clone()
-			self._connector = connector
-			self._children = {obj;child}
+			self:connector(connector)
+			self:children{obj;child}
 		end
 		return self
 	end;
-	getConnector = function (self) return self._connector end;
-	getChildren = function (self) return self._children end;
 }
 
 local function lazyRequire (module)

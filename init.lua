@@ -2,7 +2,7 @@ local table = require "luv.table"
 local string = require "luv.string"
 local dev = require "luv.dev"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
-local _G, error = _G, error
+local tr, error = tr, error
 local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 local crypt, backend = require "luv.crypt", require "luv.cache.backend"
@@ -124,9 +124,9 @@ local Core = Object:extend{
 		if select("#", ...) > 0 then
 			self._dsn = (select(1, ...))
 			self:db(require "luv.db".Factory(self._dsn))
-			require "luv.db.models".Model:setDb(self:db())
-			self:db():setLogger(function (sql, result)
-				--io.write(sql, "<br />")
+			require "luv.db.models".Model:db(self:db())
+			self:db():logger(function (sql, result)
+				--io.write("\n", sql, "\n")
 				self:debug(sql, "Database")
 			end)
 			return self
@@ -183,7 +183,7 @@ local Core = Object:extend{
 		return self:templater():display(template)
 	end;
 	flush = function (self)
-		self:endProfiling("Luv")
+		self:endProfiling"Luv"
 		for section, info in pairs(self:profiler():stat()) do
 			self:info(section.." was executed "..tostring(info.count).." times and takes "..tostring(info.total).." secs", "Profiler")
 		end
@@ -228,8 +228,14 @@ local Struct = Object:extend{
 		self:msgs{}
 		self:errors{}
 	end;
+	pkField = function (self)
+		for _, f in pairs(self:fields()) do
+			if f:pk() then return f end
+		end
+		return nil
+	end;
 	__index = function (self, field)
-		if field == "pk" then return self:pk():value() end
+		if field == "pk" then return self:pkField():value() end
 		local res = rawget(self, "_fields")
 		if res then
 			res = res[field]
@@ -299,13 +305,13 @@ local Struct = Object:extend{
 		end
 	end;
 	-- Validation & errors collect
-	isValid = function (self)
+	valid = function (self)
 		self:errors{}
 		for name, f in pairs(self:fields()) do
-			if not f:isValid() then
+			if not f:valid() then
 				for _, e in ipairs(f:errors()) do
 					local label = f:label()
-					self:addError(string.gsub(_G.tr(e), "%%s", label and string.capitalize(_G.tr(label)) or string.capitalize(_G.tr(name))))
+					self:addError(string.gsub(e, "%%s", label and string.capitalize(tr(label)) or string.capitalize(tr(name))))
 				end
 			end
 		end

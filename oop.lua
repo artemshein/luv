@@ -22,11 +22,6 @@ local function processProperties (self)
 	end
 end
 
-local function isA (self, class)
-	local parent = self._parent
-	return self == class or (parent and parent:isA(class))
-end
-
 local Object = {
 	__tag = .....".Object";
 	init = abstractMethod;
@@ -59,8 +54,11 @@ local Object = {
 		setmetatable(new, getmetatable(self))
 		return new
 	end;
-	isKindOf = isA;
-	isA = isA;
+	isA = function (self, class)
+		local parent = self._parent
+		return self == class or (parent and parent:isA(class))
+	end;
+	parent = function (self) return self._parent end;
 	abstractMethod = abstractMethod;
 	maskedMethod = function () error("masked method "..debug.traceback()) end;
 	singleton = function (self) return self end;

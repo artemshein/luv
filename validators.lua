@@ -11,8 +11,9 @@ local Validator = Object:extend{
 	__tag = .....".Validator";
 	errors = Object.property;
 	errorMsg = function (self) return tr(self._errorMsg) end;
+	js = Object.property;
 	init = function (self) self:errors{} end;
-	isValid = function (self) self:errors{} end;
+	valid = function (self) self:errors{} return true end;
 	addError = function (self, error) table.insert(self._errors, error) return self end;
 	addErrors = function (self, errors)
 		for _, v in ipairs(errors) do
@@ -20,18 +21,17 @@ local Validator = Object:extend{
 		end
 		return self
 	end;
-	js = function (self) return self._js end;
 }
 
 local Filled = Validator:extend{
 	__tag = .....".Filled";
 	_errorMsg = 'Field "%s" must be filled.';
 	_js = "validFilled()";
-	isValid = function (self, value)
-		Validator.isValid(self, value)
+	valid = function (self, value)
+		Validator.valid(self, value)
 		if type(value) == "string" and 0 ~= #value then
 			return true
-		elseif type(value) == "table" and (value.isKindOf or not table.isEmpty(value)) then
+		elseif type(value) == "table" and (value.isA or not table.isEmpty(value)) then
 			return true
 		elseif type(value) == "number" then
 			return true
@@ -45,8 +45,8 @@ local Int = Validator:extend{
 	__tag = .....".Int";
 	_errorMsg = 'Field "%s" must be valid number.';
 	_js = "validInt()";
-	isValid = function (self, value)
-		Validator.isValid(self, value)
+	valid = function (self, value)
+		Validator.valid(self, value)
 		if value == nil then
 			return true
 		end
@@ -72,8 +72,8 @@ local Length = Validator:extend{
 		self:minLength(minLength)
 		self:maxLength(maxLength)
 	end;
-	isValid = function (self, value)
-		Validator.isValid(self, value)
+	valid = function (self, value)
+		Validator.valid(self, value)
 		if value == nil or value == "" then
 			return true
 		end
@@ -100,8 +100,8 @@ local Regexp = Validator:extend{
 		Validator.init(self)
 		self:regexp(regexp)
 	end;
-	isValid = function (self, value)
-		Validator.isValid(self, value)
+	valid = function (self, value)
+		Validator.valid(self, value)
 		if value == nil or value == "" then
 			return true
 		end
@@ -122,8 +122,8 @@ local Value = Validator:extend{
 		Validator.init(self)
 		self:value(value)
 	end;
-	isValid = function (self, value)
-		Validator.isValid(self, value)
+	valid = function (self, value)
+		Validator.valid(self, value)
 		local selfVal = self:value()
 		if selfVal == value then
 			return true

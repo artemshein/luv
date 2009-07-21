@@ -11,7 +11,7 @@ local Factory = TestCase:extend{
 	testConnect = function (self)
 		self.assertThrows(function () db.Factory(self.invalidDsn) end)
 		local v = db.Factory(self.validDsn)
-		self.assertTrue(v:isKindOf(db.Driver))
+		self.assertTrue(v:isA(db.Driver))
 	end
 }
 

@@ -7,46 +7,46 @@ module(...)
 -- ManyToOne
 
 local T01Group = Model:extend{
-	__tag = .....".T01Group",
-	number = fields.Int{pk=true},
-	Meta = {label = "group", labelMany = "groups"}
+	__tag = .....".T01Group";
+	number = fields.Int{pk=true};
+	Meta = {label="group";labelMany="groups"};
 }
 
 local T01Student = Model:extend{
-	__tag = .....".T01Student",
-	name = fields.Text{pk = true},
-	group = references.ManyToOne{references=T01Group, required=true, relatedName="students"},
-	Meta = {label = "student", labelMany = "students"}
+	__tag = .....".T01Student";
+	name = fields.Text{pk=true};
+	group = references.ManyToOne{references=T01Group;required=true;relatedName="students"};
+	Meta = {label="student";labelMany="students"};
 }
 
 -- ManyToMany
 
 local T02Category = Model:extend{
-	__tag = .....".T02Category",
-	title = fields.Text{required=true},
-	Meta = {label = "category", labelMany = "categories"}
+	__tag = .....".T02Category";
+	title = fields.Text{required=true};
+	Meta = {label="category";labelMany="categories"};
 }
 
 local T02Article = Model:extend{
-	__tag = .....".T02Article",
-	title = fields.Text{required=true},
-	categories = references.ManyToMany{references=T02Category, required=true, relatedName="articles"},
-	Meta = {label = "article", labelMany = "articles"}
+	__tag = .....".T02Article";
+	title = fields.Text{required=true};
+	categories = references.ManyToMany{references=T02Category;required=true;relatedName="articles"};
+	Meta = {label="article";labelMany="articles"};
 }
 
 -- OneToOne
 
 local T03Man = Model:extend{
-	__tag = .....".T03Man",
-	name = fields.Text{pk=true},
-	Meta = {label = "man", labelMany = "men"}
+	__tag = .....".T03Man";
+	name = fields.Text{pk=true};
+	Meta = {label="man";labelMany="men"};
 }
 
 local T03Student = Model:extend{
-	__tag = .....".T03Student",
-	man = references.OneToOne{references=T03Man, pk=true, relatedName="student"},
-	group = fields.Int{required=true},
-	Meta = {label = "student", labelMany = "students"}
+	__tag = .....".T03Student";
+	man = references.OneToOne{references=T03Man;pk=true;relatedName="student"};
+	group = fields.Int{required=true};
+	Meta = {label="student";labelMany="students"};
 }
 --[[
 local T04Man = Model:extend{
@@ -62,8 +62,8 @@ return TestCase:extend{
 	__tag = ...;
 	setUp = function (self)
 		self.A = Model:extend{
-			title = fields.Text{unique=true},
-			Meta = {label = "a", labelMany = "as"}
+			title = fields.Text{unique=true};
+			Meta = {label="a";labelMany="as"};
 		}
 		self.A:dropTables()
 		self.A:createTables()
@@ -77,19 +77,19 @@ return TestCase:extend{
 	end,
 	testBasic = function (self)
 		local Test = Model:extend{
-			test = fields.Text{minLength = 4, maxLength = 6},
-			Meta = {label = "a", labelMany = "as"}
+			test = fields.Text{minLength=4;maxLength=6};
+			Meta = {label="a";labelMany="as"};
 		}
 		local t = Test()
 		t.test = "123"
 		self.assertEquals(t.test, "123")
-		self.assertEquals(t.test, t:getField"test":getValue())
-		self.assertFalse(t:isValid())
+		self.assertEquals(t.test, t:field"test":value())
+		self.assertFalse(t:valid())
 		t.test = "1234"
-		self.assertTrue(t:isValid())
+		self.assertTrue(t:valid())
 	end,
 	testFindSimple = function (self)
-		local lastId = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc")()
+		local lastId = self.A:db():InsertRow():into(self.A:tableName()):set("?#=?", "title", "abc")()
 		self.assertTrue(lastId)
 		local a = self.A:find(lastId)
 		self.assertEquals(a.id, lastId)
@@ -102,19 +102,19 @@ return TestCase:extend{
 		local a = self.A()
 		a.title = "testTitle"
 		self.assertTrue(a:insert())
-		local b = self.A:getDb():SelectRow():from(self.A:getTableName())()
+		local b = self.A:db():SelectRow():from(self.A:tableName())()
 		self.assertEquals(b.title, "testTitle")
 		a = self.A()
 		a.title = "testTitle"
 		self.assertFalse(a:insert())
 	end,
 	testUpdateSimple = function (self)
-		local id = self.A:getDb():InsertRow():into(self.A:getTableName()):set("?#=?", "title", "abc")()
+		local id = self.A:db():InsertRow():into(self.A:tableName()):set("?#=?", "title", "abc")()
 		local a = self.A()
 		a.id = id
 		a.title = "cde"
 		a:update()
-		local b = self.A:getDb():SelectRow():from(self.A:getTableName()):where("?#=?n", "id", id)()
+		local b = self.A:db():SelectRow():from(self.A:tableName()):where("?#=?n", "id", id)()
 		self.assertTrue(b.title, "cde")
 	end,
 	testQ = function (self)
@@ -210,12 +210,12 @@ return TestCase:extend{
 		Category:createTables()
 		-- Add categories
 		local tech, net = Category:create{title="Tech"}, Category:create{title="Net"}
-		self.assertTrue(tech:isKindOf(Category))
-		self.assertTrue(net:isKindOf(Category))
+		self.assertTrue(tech:isA(Category))
+		self.assertTrue(net:isA(Category))
 		self.assertEquals(tech.title, "Tech")
-		self.assertTrue(tech.articles:isEmpty())
+		self.assertTrue(tech.articles:empty())
 		self.assertEquals(net.title, "Net")
-		self.assertTrue(net.articles:isEmpty())
+		self.assertTrue(net.articles:empty())
 		-- Add articles
 		-- Throws because categories is required field
 		self.assertThrows(function() Article:create{title="A"} end)
@@ -240,7 +240,7 @@ return TestCase:extend{
 
 		Article:dropTables()
 		Category:dropTables()
-	end,
+	end;
 	testT03 = function (self)
 		local Man, Student = T03Man, T03Student
 		Student:dropTables()
@@ -249,10 +249,10 @@ return TestCase:extend{
 		Student:createTables()
 		--
 		local m1 = Man:create{name="John"}
-		self.assertTrue(m1:isKindOf(Man))
+		self.assertTrue(m1:isA(Man))
 		self.assertNil(m1.student)
-		local s1 = Student:create{man=m1, group=122}
-		self.assertTrue(s1:isKindOf(Student))
+		local s1 = Student:create{man=m1;group=122}
+		self.assertTrue(s1:isA(Student))
 		self.assertEquals(s1.group, 122)
 		self.assertEquals(s1.man.name, "John")
 		self.assertEquals(s1.man, m1)
@@ -266,5 +266,5 @@ return TestCase:extend{
 		self.assertNil(s1)
 		Student:dropTables()
 		Man:dropTables()
-		end
+	end;
 }

@@ -18,7 +18,7 @@ local GroupRight = models.Model:extend{
 	action = fields.Text{required=true;minLength=1};
 	description = fields.Text{maxLength=false};
 	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
-	getSuperuserRight = function (self) return self.superuserRight end;
+	superuserRight = function (self) return self._superuserRight end;
 }
 
 GroupRight.superuserRight = GroupRight{model="any model";action="any action"}
@@ -31,7 +31,7 @@ local UserGroup = models.Model:extend{
 	rights = references.ManyToMany{references=GroupRight;relatedName="groups"},
 	__tostring = function (self) return tostring(self.title) end;
 	hasRight = function (self, model, action)
-		local superuserRight = GroupRight:getSuperuserRight()
+		local superuserRight = GroupRight:superuserRight()
 		for _, v in ipairs(self.rights:getValue()) do
 			if (v.model == superuserRight.model and v.action == superuserRight.action)
 			or (v.model == model and v.action == action) then
@@ -52,8 +52,8 @@ local User = models.Model:extend{
 	login = fields.Login();
 	name = fields.Text();
 	email = fields.Email();
-	passwordHash = fields.Text{required = true};
-	group = references.ManyToOne{references=UserGroup, relatedName="users"},
+	passwordHash = fields.Text{required=true};
+	group = references.ManyToOne{references=UserGroup;relatedName="users"};
 	__tostring = function (self) return tostring(self.name) end;
 	-- Methods
 	getSecretSalt = function (self) return self.secretSalt end,
@@ -66,15 +66,15 @@ local User = models.Model:extend{
 			salt = string.slice(salt, math.random(10), math.random(5, string.len(salt)-10))
 		end
 		return method.."$"..salt.."$"..tostring(crypt.hash(method, password..salt..self.secretSalt))
-	end,
+	end;
 	comparePassword = function (self, password)
 		local method, salt, hash = string.split(self.passwordHash, "$", "$")
 		return self:encodePassword(password, method, salt) == self.passwordHash
-	end,
-	getAuthUser = function (self, session, loginForm)
-		if self.authUser then return self.authUser end
-		if not loginForm or "table" ~= type(loginForm) or not loginForm.isKindOf
-			or not loginForm:isKindOf(require(MODULE).forms.Login) or not loginForm:isSubmitted() or not loginForm:isValid() then
+	end;
+	authUser = function (self, session, loginForm)
+		if self._authUser then return self._authUser end
+		if not loginForm or "table" ~= type(loginForm) or not loginForm.isA
+			or not loginForm:isA(require(MODULE).forms.Login) or not loginForm:submitted() or not loginForm:valid() then
 			if not session[self.sessId] then
 				session[self.sessId] = nil
 				session:save()
@@ -86,7 +86,7 @@ local User = models.Model:extend{
 				session[self.sessId] = nil
 				session:save()
 			end
-			self.authUser = user
+			self._authUser = user
 			return user
 		end
 		local user = self:find{login=loginForm.login}
@@ -98,7 +98,7 @@ local User = models.Model:extend{
 		end
 		session[self.sessId] = {user=user.pk}
 		session:save()
-		self.authUser = user
+		self._authUser = user
 		return user
 	end,
 	logout = function (self, session)
@@ -111,19 +111,19 @@ local User = models.Model:extend{
 	end;
 	rightToCreate = function (self, model)
 		if "string" ~= type(model) then
-			model = model:getLabel()
+			model = model:label()
 		end
 		return GroupRight{model=model;action="create";description="Right to create "..model}
 	end;
 	rightToEdit = function (self, model)
 		if "string" ~= type(model) then
-			model = model:getLabel()
+			model = model:label()
 		end
 		return GroupRight{model=model;action="edit";description="Right to edit "..model}
 	end;
 	rightToDelete = function (self, model)
 		if "string" ~= type(model) then
-			model = model:getLabel()
+			model = model:label()
 		end
 		return GroupRight{model=model;action="delete";description="Right to delete "..model}
 	end;
@@ -144,52 +144,52 @@ local User = models.Model:extend{
 local Login = forms.Form:extend{
 	__tag = .....".Login",
 	Meta = {fields={"login";"password";"authorise"}};
-	login = User:getField "login",
+	login = User:field "login",
 	password = fields.Password{required=true};
 	authorise = fields.Submit{defaultValue=capitalize(tr "log in")}
 }
 
-local modelsAdmins
-local getModelsAdmins = function ()
-	if not modelsAdmins then
+local _modelsAdmins
+local modelsAdmins = function ()
+	if not _modelsAdmins then
 		local ModelAdmin = require "luv.contrib.admin".ModelAdmin
-		modelsAdmins = {
+		_modelsAdmins = {
 			ModelAdmin:extend{
 				__tag = MODULE..".GroupRightAdmin";
-				model = GroupRight;
-				category = "authorisation";
-				smallIcon = {path="/images/icons/auth/user_accept16.png";width=16;height=16};
-				bigIcon = {path="/images/icons/auth/user_accept48.png";width=48;height=48};
-				displayList = {"model";"action"};
-				fields = {"id";"model";"action";"description"};
+				_model = GroupRight;
+				_category = "authorisation";
+				_smallIcon = {path="/images/icons/auth/user_accept16.png";width=16;height=16};
+				_bigIcon = {path="/images/icons/auth/user_accept48.png";width=48;height=48};
+				_displayList = {"model";"action"};
+				_fields = {"id";"model";"action";"description"};
 			};
 			ModelAdmin:extend{
 				__tag = MODULE..".UserGroupAdmin";
-				model = UserGroup;
-				category = "authorisation";
-				smallIcon = {path="/images/icons/auth/users16.png";width=16;height=16};
-				bigIcon = {path="/images/icons/auth/users48.png";width=48;width=48};
-				displayList = {"title"};
-				fields = {"id";"title";"description";"rights"};
+				_model = UserGroup;
+				_category = "authorisation";
+				_smallIcon = {path="/images/icons/auth/users16.png";width=16;height=16};
+				_bigIcon = {path="/images/icons/auth/users48.png";width=48;width=48};
+				_displayList = {"title"};
+				_fields = {"id";"title";"description";"rights"};
 			};
 			ModelAdmin:extend{
 				__tag = MODULE..".UserAdmin";
-				model = User;
-				category = "authorisation";
-				smallIcon = {path="/images/icons/auth/community_users16.png";width=16;height=16};
-				bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
-				displayList = {"login";"name";"group"};
-				form = forms.ModelForm:extend{
+				_model = User;
+				_category = "authorisation";
+				_smallIcon = {path="/images/icons/auth/community_users16.png";width=16;height=16};
+				_bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
+				_displayList = {"login";"name";"group"};
+				_form = forms.ModelForm:extend{
 					Meta = {model = User;fields={"id";"login";"password";"password2";"name";"group";"isActive"}};
-					id = User:getField "id":clone();
-					login = User:getField "login":clone();
-					name = User:getField "name":clone();
+					id = User:field "id":clone();
+					login = User:field "login":clone();
+					name = User:field "name":clone();
 					password = fields.Text{minLength=6;maxLength=32;widget=widgets.PasswordInput};
 					password2 = fields.Text{minLength=6;maxLength=32;label="repeat password";widget=widgets.PasswordInput};
-					group = fields.ModelSelect(UserGroup:all():getValue());
-					isActive = User:getField "isActive":clone();
+					group = fields.ModelSelect(UserGroup:all():value());
+					isActive = User:field "isActive":clone();
 					isValid = function (self)
-						if not forms.Form.isValid(self) then
+						if not forms.Form.valid(self) then
 							return false
 						end
 						if self.password then
@@ -214,7 +214,7 @@ local getModelsAdmins = function ()
 			};
 		}
 	end
-	return modelsAdmins
+	return _modelsAdmins
 end
 
 return {
@@ -226,5 +226,5 @@ return {
 	forms = {
 		Login = Login
 	};
-	getModelsAdmins = getModelsAdmins;
+	modelsAdmins = modelsAdmins;
 }

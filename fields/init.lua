@@ -117,7 +117,7 @@ local Field = Object:extend{
 			return self._validators[key]
 		end
 	end;
-	isValid = function (self, value)
+	valid = function (self, value)
 		local value = value or self:value()
 		if nil == value then value = self:defaultValue() end
 		self:errors{}
@@ -125,7 +125,7 @@ local Field = Object:extend{
 			return true
 		end
 		for _, val in pairs(self:validators()) do
-			if not val:isValid(value) then
+			if not val:valid(value) then
 				self:addErrors(val:errors())
 				return false
 			end
@@ -168,13 +168,14 @@ local MultipleValues = Field:extend{
 	end;
 	value = function (self, ...)
 		if select("#", ...) > 0 then
-			if 'table' ~= type(value) or value.isA then
+			local value = (select(1, ...))
+			if "table" ~= type(value) or value.isA then
 				value = {value}
 			end
 			local resValue = {}
 			for _, v in ipairs(value) do
-				if 'table' == type(v) then
-					table.insert(resValue, v:pk():value())
+				if "table" == type(v) then
+					table.insert(resValue, v.pk)
 				else
 					table.insert(resValue, v)
 				end
@@ -319,7 +320,8 @@ local Int = Field:extend{
 	end,
 	value = function (self, ...)
 		if select("#", ...) > 0 then
-			Field.value(self, (select(1, ...)))
+			local value = (select(1, ...))
+			Field.value(self, value and tonumber(value))
 			return self
 		else
 			return Field.value(self)
@@ -419,122 +421,137 @@ local Submit = Button:extend{
 
 local ImageButton = Button:extend{
 	__tag = .....".Image";
+	src = Button.property;
 	init = function (self, params)
 		params = params or {}
 		if "table" ~= type(params) then
 			params = {src=params}
 		end
-		self:setSrc(params.src)
+		self:src(params.src)
 		params.widget = params.widget or widgets.ImageButton()
 		Button.init(self, params)
 	end;
-	getSrc = function (self) return self.src end;
-	setSrc = function (self, src) self.src = src return self end;
 }
 
 local Date = Field:extend{
 	__tag = .....".Date";
-	defaultFormat = "%d.%m.%Y";
+	_defaultFormat = "%d.%m.%Y";
+	autoNow = Field.property;
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.DateInput()
 		if params.regional then
-			params.widget:setRegional(params.regional)
+			params.widget:regional(params.regional)
 		end
-		self:setAutoNow(params.autoNow)
+		self:autoNow(params.autoNow)
 		Field.init(self, params)
 		self:addClass "date"
 	end;
-	getAutoNow = function (self) return self.autoNow end;
-	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
-	getDefaultValue = function (self)
-		if self.defaultValue then
-			return self.defaultValue
+	defaultValue = function (self, ...)
+		if select("#", ...) > 0 then
+			return Field.defaultValue(self, ...)
+		else
+			if self._defaultValue then
+				return self._defaultValue
+			end
+			if self:autoNow() then
+				return os.time()
+			end
+			return nil
 		end
-		if self:getAutoNow() then
-			return os.time()
-		end
-		return nil
 	end;
-	setValue =  function (self, value)
-		if "string" == type(value) then
-			if string.match(value, "^%d%d%d%d[^%d]%d%d[^%d]%d%d") then
-				self.value = os.time{
-					year=tonumber(string.slice(value, 1, 4));
-					month=tonumber(string.slice(value, 6, 7));
-					day=tonumber(string.slice(value, 9, 10));
-					hour=0;
-					min=0;
-					sec=0;
-				}
-			elseif string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d%d%d") then
-				self.value = os.time{
-					year=tonumber(string.slice(value, 7, 10));
-					month=tonumber(string.slice(value, 4, 5));
-					day=tonumber(string.slice(value, 1, 2));
-					hour=0;
-					min=0;
-					sec=0;
-				}
+	value =  function (self, ...)
+		if select("#", ...) > 0 then
+			local value = select(1, ...)
+			if "string" == type(value) then
+				if string.match(value, "^%d%d%d%d[^%d]%d%d[^%d]%d%d") then
+					self._value = os.time{
+						year=tonumber(string.slice(value, 1, 4));
+						month=tonumber(string.slice(value, 6, 7));
+						day=tonumber(string.slice(value, 9, 10));
+						hour=0;
+						min=0;
+						sec=0;
+					}
+				elseif string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d%d%d") then
+					self._value = os.time{
+						year=tonumber(string.slice(value, 7, 10));
+						month=tonumber(string.slice(value, 4, 5));
+						day=tonumber(string.slice(value, 1, 2));
+						hour=0;
+						min=0;
+						sec=0;
+					}
+				else
+					self._value = nil
+				end
 			else
-				self.value = nil
+				self._value = value
 			end
 		else
-			self.value = value
+			return Field.value(self)
 		end
 	end;
 	__tostring = function (self)
-		if self:getValue() then
-			return os.date(self.defaultFormat, self:getValue())
+		if self:value() then
+			return os.date(self._defaultFormat, self:value())
 		end
-		return ''
+		return ""
 	end;
-	getMinLength = function (self) return 19 end;
-	getMaxLength = function (self) return 19 end;
+	minLength = function (self) return 19 end;
+	maxLength = function (self) return 19 end;
 }
 
 local Datetime = Field:extend{
 	__tag = .....".Datetime";
-	defaultFormat = "%Y-%m-%d %H:%M:%S";
+	_defaultFormat = "%Y-%m-%d %H:%M:%S";
+	autoNow = Field.property;
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.Datetime()
-		self:setAutoNow(params.autoNow)
+		self:autoNow(params.autoNow)
 		Field.init(self, params)
 		self:addClass "datetime"
 	end;
-	getAutoNow = function (self) return self.autoNow end;
-	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
-	getDefaultValue = function (self)
-		if self.defaultValue then
-			return self.defaultValue
-		end
-		if self:getAutoNow() then
-			return os.time()--os.date("%Y-%m-%d %H:%M:%S")
-		end
-		return nil
-	end;
-	setValue =  function (self, value)
-		if "string" == type(value) then
-			try(function()
-				self.value = os.time{
-					year=tonumber(string.slice(value, 1, 4));
-					month=tonumber(string.slice(value, 6, 7));
-					day=tonumber(string.slice(value, 9, 10));
-					hour=tonumber(string.slice(value, 12, 13));
-					min=tonumber(string.slice(value, 15, 16));
-					sec=tonumber(string.slice(value, 18, 19));
-				}
-			end):catch(function() -- Invalid date format
-				self.value = nil
-			end)
+	defaultValue = function (self, ...)
+		if select("#", ...) > 0 then
+			return Field.defaultValue(self, ...)
 		else
-			self.value = value
+			if self._defaultValue then
+				return self._defaultValue
+			end
+			if self:autoNow() then
+				return os.time()--os.date("%Y-%m-%d %H:%M:%S")
+			end
+			return nil
+		end
+	end;
+	value =  function (self, ...)
+		if select("#", ...) > 0 then
+			local value = (select(1, ...))
+			if "string" == type(value) then
+				try(function()
+					self._value = os.time{
+						year=tonumber(string.slice(value, 1, 4));
+						month=tonumber(string.slice(value, 6, 7));
+						day=tonumber(string.slice(value, 9, 10));
+						hour=tonumber(string.slice(value, 12, 13));
+						min=tonumber(string.slice(value, 15, 16));
+						sec=tonumber(string.slice(value, 18, 19));
+					}
+				end):catch(function() -- Invalid date format
+					self._value = nil
+				end)
+			else
+				self._value = value
+			end
+		else
+			return Field.value(self)
 		end
 	end;
 	__tostring = function (self)
-		if self:getValue() then
-			return os.date(self.defaultFormat, self:getValue())
+		if self:value() then
+			return os.date(self._defaultFormat, self:value())
 		end
 		return ''
 	end;
@@ -544,45 +561,53 @@ local Datetime = Field:extend{
 
 local Time = Field:extend{
 	__tag = .....".Time";
-	defaultFormat = "%H:%M:%S";
+	_defaultFormat = "%H:%M:%S";
+	autoNow = Field.property;
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.Time()
-		self:setAutoNow(params.autoNow)
+		self:autoNow(params.autoNow)
 		Field.init(self, params)
 		self:addClass "time"
 	end;
-	getAutoNow = function (self) return self.autoNow end;
-	setAutoNow = function (self, autoNow) self.autoNow = autoNow return self end;
-	getDefaultValue = function (self)
-		if self.defaultValue then
-			return self.defaultValue
+	defaultValue = function (self, ...)
+		if select("#", ...) > 0 then
+			return Field.defaultValue(self, ...)
+		else
+			if self._defaultValue then
+				return self._defaultValue
+			end
+			if self:autoNow() then
+				return os.date("%H:%M:%S")
+			end
+			return nil
 		end
-		if self:getAutoNow() then
-			return os.date("%H:%M:%S")
-		end
-		return nil
 	end;
-	setValue = function (self, value)
-		if "string" == type(value) then
-			if string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d$") then
-				self.value = value
-			elseif string.match(value, "^%d%d[^%d]%d%d$") then
-				self.value = string.slice(value, 1, 2)..":"..string.slice(value, 4, 5)..":00"
-			elseif string.match(value, "^%d%d$") then
-				self.value = value..":00:00"
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			local value = (select(1, ...))
+			if "string" == type(value) then
+				if string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d$") then
+					self._value = value
+				elseif string.match(value, "^%d%d[^%d]%d%d$") then
+					self._value = string.slice(value, 1, 2)..":"..string.slice(value, 4, 5)..":00"
+				elseif string.match(value, "^%d%d$") then
+					self._value = value..":00:00"
+				else
+					self._value = nil
+				end
 			else
-				self.value = nil
+				self._value = value
 			end
 		else
-			self.value = value
+			return Field.value(self)
 		end
 	end;
 	__tostring = function (self)
-		return self:getValue() or ""
+		return self:value() or ""
 	end;
-	getMinLength = function (self) return 1 end;
-	getMaxLength = function (self) return 8 end;
+	minLength = function (self) return 1 end;
+	maxLength = function (self) return 8 end;
 }
 
 local ModelSelect = Field:extend{
@@ -597,11 +622,16 @@ local ModelSelect = Field:extend{
 		params.widget = params.widget or widgets.Select
 		Field.init(self, params)
 	end;
-	setValue = function (self, value)
-		if "table" == type(value) then
-			value = value:getPk():getValue()
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			local value = (select(1, ...))
+			if "table" == type(value) then
+				value = value.pk
+			end
+			return Field.value(self, value)
+		else
+			return Field.value(self)
 		end
-		return Field.setValue(self, value)
 	end;
 }
 
@@ -632,11 +662,16 @@ local NestedSetSelect = Field:extend{
 		params.onChange = "luv.nestedSetSelect(this.id, luv.getFieldRawValue(this.id));"
 		Field.init(self, params)
 	end;
-	setValue = function (self, value)
-		if "table" == type(value) then
-			value = value:getPk():getValue()
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			local value = (select(1, ...))
+			if "table" == type(value) then
+				value = value.pk
+			end
+			return Field.value(self, value)
+		else
+			Field.value(self)
 		end
-		return Field.setValue(self, value)
 	end;
 }
 

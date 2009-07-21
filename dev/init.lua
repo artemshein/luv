@@ -62,18 +62,18 @@ local function dprint (...) io.write(dump(...)) end
 
 local Profiler = Object:extend{
 	__tag = .....".Profiler";
-	init = function (self) self.stat = {} end;
+	stat = Object.property;
+	init = function (self) self:stat{} end;
 	beginSection = function (self, section)
-		self.stat[section] = self.stat[section] or {}
-		local statSection = self.stat[section]
+		self._stat[section] = self._stat[section] or {}
+		local statSection = self._stat[section]
 		statSection.begin = os.clock()
 	end;
 	endSection = function (self, section)
-		local statSection = self.stat[section] or Exception "begin section first"
+		local statSection = self._stat[section] or Exception "begin section first"
 		statSection.total = (statSection.total or 0) + (os.clock()-statSection.begin)
 		statSection.count = (statSection.count or 0) + 1
 	end;
-	getStat = function (self) return self.stat end;
 }
 
 return {dump=dump;dprint=dprint;Profiler=Profiler}

@@ -1,5 +1,5 @@
 local string = require "luv.string"
-local tr, type = tr, type
+local tr, type, require = tr, type, require
 local pairs, ipairs, io = pairs, ipairs, io
 local Widget, widgets = require "luv".Widget, require "luv.fields.widgets"
 local references = require "luv.fields.references"
@@ -11,19 +11,19 @@ module(...)
 
 local Form = Widget:extend{
 	__tag = .....".FormWidget";
-	_getFieldId = function (self, f, form)
-		return f:getId() or (form:getId()..string.capitalize(f:getName()))
+	_fieldId = function (self, f, form)
+		return f:id() or (form:id()..string.capitalize(f:name()))
 	end;
 	_renderId = function (self, form)
-		return form:getId() and (" id="..string.format("%q", form:getId())) or ""
+		return form:id() and (" id="..string.format("%q", form:id())) or ""
 	end;
 	_renderAction = function (self, form)
-		return " action="..string.format("%q", form:getAction() or "")
+		return " action="..string.format("%q", form:action() or "")
 	end;
 	renderFormHeader = function (self, form)
 		local fileUploadFlag
-		for _, f in ipairs(form:getFields()) do
-			if f:getWidget():isKindOf(widgets.FileInput) then
+		for _, f in ipairs(form:fields()) do
+			if f:widget():isA(widgets.FileInput) then
 				fileUploadFlag = true
 			end
 		end
@@ -36,41 +36,41 @@ local Form = Widget:extend{
 			..">"
 	end;
 	renderLabel = function (self, form, field)
-		if not field:getLabel() then
+		if not field:label() then
 			return ""
 		end
-		local id = self:_getFieldId(field, form)
+		local id = self:_fieldId(field, form)
 		if not id then
-			return string.capitalize(field:getLabel())..":"
+			return string.capitalize(field:label())..":"
 		end
-		return "<label for="..string.format("%q", html.escape(id))..">"..string.capitalize(tr(field:getLabel())).."</label>:"
+		return "<label for="..string.format("%q", html.escape(id))..">"..string.capitalize(tr(field:label())).."</label>:"
 	end;
 	renderLabelCheckbox = function (self, form, field)
-		if not field:getLabel() then
+		if not field:label() then
 			return ""
 		end
-		local id = self:_getFieldId(field, form)
+		local id = self:_fieldId(field, form)
 		if not id then
-			return field:getLabel()
+			return field:label()
 		end
-		return "<label for="..string.format("%q", html.escape(id))..">"..tr(field:getLabel()).."</label>"
+		return "<label for="..string.format("%q", html.escape(id))..">"..tr(field:label()).."</label>"
 	end;
 	renderField = function (self, form, field)
 		local html, js = field:asHtml(form)
-		return html, (js or field:getOnLoad() and ((js or "")..(field:getOnLoad() or "")))
+		return html, (js or field:onLoad() and ((js or "")..(field:onLoad() or "")))
 	end;
 	renderFields = function (self, form)
 		local html, js = ""
 		-- Hidden fields first
-		for _, v in ipairs(form:getHiddenFields()) do
+		for _, v in ipairs(form:hiddenFields()) do
 			html = html..self:renderField(form, v)
 		end
 		html = html..self._beforeFields
 		-- Then visible fields
-		for _, v in ipairs(form:getVisibleFields()) do
+		for _, v in ipairs(form:visibleFields()) do
 			local fieldHtml, fieldJs = self:renderField(form, v)
 			if fieldJs then js = (js or "")..fieldJs end
-			if v:getWidget():isKindOf(widgets.Checkbox) then
+			if v:widget():isA(widgets.Checkbox) then
 				html = html..self._beforeLabel..self._afterLabel..self._beforeField..fieldHtml.." "..self:renderLabelCheckbox(form, v)..self._afterField
 			else
 				html = html..self._beforeLabel..self:renderLabel(form, v)..self._afterLabel..self._beforeField..fieldHtml..self._afterField
@@ -78,7 +78,7 @@ local Form = Widget:extend{
 		end
 		-- Buttons
 		html = html..self._beforeLabel..self._afterLabel..self._beforeField
-		for _, v in ipairs(form:getButtonFields()) do
+		for _, v in ipairs(form:buttonFields()) do
 			html = html..self:renderField(form, v)
 		end
 		return html..self._afterField..self._afterFields..(js and '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..js.."\n//]]></script>" or "")
@@ -88,16 +88,16 @@ local Form = Widget:extend{
 	end;
 	renderJs = function (self, form)
 		local validationFunc = "function(){"
-		for name, f in pairs(form:getFields()) do
-			for _, v in pairs(f:getValidators()) do
-				local id = self:_getFieldId(f, form)
-				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:getJs().."){$('#"..id.."').showError("..string.format("%q", string.format(v:getErrorMsg(), f:getLabel()))..");return false;}"
+		for name, f in pairs(form:fields()) do
+			for _, v in pairs(f:validators()) do
+				local id = self:_fieldId(f, form)
+				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:js().."){$('#"..id.."').showError("..string.format("%q", string.format(v:errorMsg(), f:label()))..");return false;}"
 			end
 		end
 		validationFunc = validationFunc.."return true;}"
-		local ajax = form:getAjax()
+		local ajax = form:ajax()
 		return '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'
-		..(ajax and ("var options="..("string" == type(ajax) and ajax or json.serialize(ajax))..";options.beforeSubmit="..validationFunc..';$("#'..form:getId()..'").ajaxForm(options);') or ('$("#'..form:getId()..'").submit('..validationFunc..");"))
+		..(ajax and ("var options="..("string" == type(ajax) and ajax or json.serialize(ajax))..";options.beforeSubmit="..validationFunc..';$("#'..form:id()..'").ajaxForm(options);') or ('$("#'..form:id()..'").submit('..validationFunc..");"))
 		.."\n//]]></script>"
 	end;
 	render = function (self, form)

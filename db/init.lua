@@ -32,8 +32,9 @@ local Factory = Object:extend{
 
 local Select = Object:extend{
 	__tag = .....".Select";
+	db = Object.property;
 	init = function (self, db, ...)
-		self._db = db
+		self:db(db)
 		self._fields = {}
 		self:fields(...)
 		self._tables = {}
@@ -371,10 +372,8 @@ local Driver = Object:extend{
 	DeleteRow = DeleteRow;
 	CreateTable = CreateTable;
 	DropTable = DropTable;
-	-- Logger
 	_logger = function (sql, result, time) end;
-	getLogger = function (self) return self._logger end;
-	setLogger = function (self, logger) self._logger = logger return self end;
+	logger = Object.property;
 	processPlaceholder = Object.abstractMethod;
 	processPlaceholders = function (self, sql, ...)
 		local begPos, endPos, res, match, i, lastEnd = 0, 0, {}, nil, 1, 0
@@ -455,8 +454,8 @@ local Driver = Object:extend{
 		self._logger(rawSql.." return "..cur)
 		return cur
 	end;
-	getLastInsertId = Object.abstractMethod;
-	getError = function (self) return self._error end;
+	lastInsertId = Object.abstractMethod;
+	error = function (self) return self._error end;
 }
 
 return {Exception=Exception;Factory=Factory;Driver=Driver}

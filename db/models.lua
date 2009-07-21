@@ -45,10 +45,11 @@ local ModelSqlSlot = cache.Slot:extend{
 }
 
 local Model = Struct:extend{
-	__tag = .....".Model",
+	__tag = .....".Model";
 	modelsList = {};
-	__tostring = function (self) return tostring(self:pk():value()) end;
+	__tostring = function (self) return tostring(self.pk) end;
 	cacher = Object.property;
+	ajaxUrl = Object.property;
 	createBackLinksFieldsFrom = function (self, model)
 		for _, v in ipairs(model:referenceFields(self)) do
 			if not self:field(v:relatedName() or Exception("relatedName required for "..v:name().." field")) then
@@ -105,7 +106,7 @@ local Model = Struct:extend{
 			if type(values) == "table" then
 				self:values(values)
 			else
-				self:pk():value(values)
+				self:pkField():value(values)
 			end
 		end
 	end;
@@ -122,94 +123,120 @@ local Model = Struct:extend{
 		return pkValue == second.pk
 	end;
 	pkName = function (self)
-		local pk = self:pk()
+		local pk = self:pkField()
 		if not pk then
 			return nil
 		end
 		return pk:name()
 	end;
-	getPk = function (self)
-		for _, f in pairs(self:getFields()) do
-			if f:isPk() then
+	pk = function (self)
+		for _, f in pairs(self:fields()) do
+			if f:pk() then
 				return f
 			end
 		end
 		return nil
 	end;
-	getReferenceFields = function (self, model, class)
+	referenceFields = function (self, model, class)
 		local res = {}
-		for _, f in pairs(self:getFields()) do
-			if f:isKindOf(references.Reference) and  (not model or model:isKindOf(f:getRefModel())) and (not class or f:isKindOf(class)) then
+		for _, f in pairs(self:fields()) do
+			if f:isA(references.Reference) and  (not model or model:isA(f:refModel())) and (not class or f:isA(class)) then
 				table.insert(res, f)
 			end
 		end
 		return res
 	end;
-	getReferenceField = function (self, model, class)
-		for name, f in pairs(self:getFields()) do
-			if f:isKindOf(references.Reference) and (not class or f:isKindOf(class)) and (not model or model:isKindOf(f:getRefModel())) then
+	referenceField = function (self, model, class)
+		for name, f in pairs(self:fields()) do
+			if f:isA(references.Reference) and (not class or f:isA(class)) and (not model or model:isA(f:refModel())) then
 				return name
 			end
 		end
 		return nil
-	end,
-	getDb = function (self) return self.db end;
-	setDb = function (self, db) rawset(self, "db", db) return self end,
-	getLabel = function (self) return self.Meta.label or self.Meta.labels[1] end,
-	getLabelMany = function (self) return self.Meta.labelMany or self.Meta.labels[2] end,
-	getOrder = function (self) return self.Meta.order end;
-	setOrder = function (self, order) self.Meta.order = order return self end;
+	end;
+	db = function (self, ...)
+		if select("#", ...) > 0 then
+			rawset(self, "_db", (select(1, ...)))
+			return self
+		else
+			return self._db
+		end
+	end;
+	label = function (self, ...)
+		if select("#", ...) > 0 then
+			self.Meta.label = (select(1, ...))
+			return self
+		else
+			return self.Meta.label or self.Meta.labels[1]
+		end
+	end;
+	labelMany = function (self, ...)
+		if select("#", ...) > 0 then
+			self.Meta.label = (select(1, ...))
+			return self
+		else
+			return self.Meta.labelMany or self.Meta.labels[2]
+		end
+	end;
+	order = function (self, ...)
+		if select("#", ...) > 0 then
+			self.Meta.order = (select(1, ...))
+			return self
+		else
+			return self.Meta.order
+		end
+	end;
 	-- Find
-	getFieldPlaceholder = function (self, field)
+	fieldPlaceholder = function (self, field)
 		if not field then
 			Exception "field expected"
 		end
-		if not field.isKindOf then
-			field = self:getField(field)
+		if not field.isA then
+			field = self:field(field)
 		end
-		if not field or not field.isKindOf or not field:isKindOf(fields.Field) then
+		if not field or not field.isA or not field:isA(fields.Field) then
 			Exception "field required"
 		end
-		if not field:isRequired() then
+		if not field:required() then
 			return "?n"
 		end
-		if field:isKindOf(fields.Text) or field:isKindOf(fields.Datetime) then
+		if field:isA(fields.Text) or field:isA(fields.Datetime) then
 			return "?"
-		elseif field:isKindOf(fields.Int) then
+		elseif field:isA(fields.Int) then
 			return "?d"
-		elseif field:isKindOf(references.ManyToOne) or field:isKindOf(references.OneToOne) then
+		elseif field:isA(references.ManyToOne) or field:isA(references.OneToOne) then
 			return "?n"
 		else
 			Exception"Unsupported field type!"
 		end
-	end,
+	end;
 	find = function (self, what)
 		local new = self()
-		local select = self.db:SelectRow():from(self:getTableName())
+		local select = self._db:SelectRow():from(self:tableName())
 		if type(what) == "table" then
-			for name, f in pairs(self:getFields()) do
+			for name, f in pairs(self:fields()) do
 				local value = what[name]
 				if value then
-					select:where("?#="..self:getFieldPlaceholder(f), name, value)
+					select:where("?#="..self:fieldPlaceholder(f), name, value)
 				end
 			end
 		else
-			local pk = self:getPk()
-			select:where("?#="..self:getFieldPlaceholder(pk), pk:getName(), what)
+			local pk = self:pk()
+			select:where("?#="..self:fieldPlaceholder(pk), pk:name(), what)
 		end
-		local res = self:getCacher() and ModelSqlSlot(self:getCacher(), self, select)() or select()
+		local res = self:cacher() and ModelSqlSlot(self:cacher(), self, select)() or select()
 		if not res then
 			return nil
 		end
-		new:setValues(res)
+		new:values(res)
 		return new
-	end,
+	end;
 	all = function (self, limitFrom, limitTo)
 		local qs = require "luv.db.models".QuerySet(self)
 		if limitFrom then
 			qs:limit(limitFrom, limitTo)
 		end
-		local order = self:getOrder()
+		local order = self:order()
 		if order then
 			qs:order("table" == type(order) and unpack(order) or order)
 		end
@@ -217,108 +244,108 @@ local Model = Struct:extend{
 	end;
 	-- Save, insert, update, create
 	insert = function (self)
-		if not self:isValid() then
-			Exception("Validation error!")
+		if not self:valid() then
+			Exception "validation error"
 		end
-		local insert = self:getDb():InsertRow():into(self:getTableName())
-		for name, f in pairs(self:getFields()) do
-			if not f:isKindOf(references.ManyToMany) and not (f:isKindOf(references.OneToOne) and f:isBackLink()) and not f:isKindOf(references.OneToMany) then
-				if f:isKindOf(references.ManyToOne) or f:isKindOf(references.OneToOne) then
-					local val = f:getValue()
+		local insert = self:db():InsertRow():into(self:tableName())
+		for name, f in pairs(self:fields()) do
+			if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) then
+				if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
+					local val = f:value()
 					if val then
-						val = val:getField(f:getToField() or val:getPkName()):getValue()
+						val = val:field(f:toField() or val:pkName()):value()
 					end
-					insert:set("?#="..self:getFieldPlaceholder(f), name, val)
+					insert:set("?#="..self:fieldPlaceholder(f), name, val)
 				else
-					local val = f:getValue()
+					local val = f:value()
 					if "nil" == type(val) then
-						val = f:getDefaultValue()
+						val = f:defaultValue()
 					end
 					if val then
-						if f:isKindOf(fields.Datetime) then
+						if f:isA(fields.Datetime) then
 							val = os.date("%Y-%m-%d %H:%M:%S", val)
-						elseif f:isKindOf(fields.Date) then
+						elseif f:isA(fields.Date) then
 							val = os.date("%Y-%m-%d", val)
 						end
 					end
-					insert:set("?#="..self:getFieldPlaceholder(f), name, val)
+					insert:set("?#="..self:fieldPlaceholder(f), name, val)
 				end
 			end
 		end
 		if not insert() then
-			self:addError(self:getDb():getError())
+			self:addError(self:db():error())
 			return false
 		end
 		-- If Fields.Id than retrieve new generated ID
-		local pk = self:getPk()
-		if pk:isKindOf(fields.Id) then
-			pk:setValue(self.db:getLastInsertId())
+		local pk = self:pkField()
+		if pk:isA(fields.Id) then
+			pk:value(self:db():lastInsertId())
 		end
 		-- Save references
-		for _, f in pairs(self:getFields()) do
-			if f:isKindOf(references.ManyToMany) then
+		for _, f in pairs(self:fields()) do
+			if f:isA(references.ManyToMany) then
 				f:insert()
 			end
 		end
 		self:clearCacheTag()
 		return true
-	end,
+	end;
 	update = function (self)
-		if not self:isValid() then
-			Exception("Validation error! "..require "luv.dev".dump(self:getErrors()))
+		if not self:valid() then
+			Exception("Validation error! "..require "luv.dev".dump(self:errors()))
 		end
-		local updateRow = self:getDb():UpdateRow(self:getTableName())
-		local pk = self:getPk()
-		local pkName = pk:getName()
-		updateRow:where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())
-		for name, f in pairs(self:getFields()) do
-			if not f:isKindOf(references.ManyToMany) and not (f:isKindOf(references.OneToOne) and f:isBackLink()) and not f:isKindOf(references.OneToMany) and not f:isPk() then
-				if f:isKindOf(references.ManyToOne) or f:isKindOf(references.OneToOne) then
-					local val = f:getValue()
+		local updateRow = self:db():UpdateRow(self:tableName())
+		local pk = self:pkField()
+		local pkName = pk:name()
+		updateRow:where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())
+		for name, f in pairs(self:fields()) do
+			if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) and not f:pk() then
+				if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
+					local val = f:value()
 					if val then
-						val = val:getField(f:getToField() or val:getPkName()):getValue()
+						val = val:field(f:toField() or val:pkName()):value()
 					end
-					updateRow:set("?#="..self:getFieldPlaceholder(f), name, val)
+					updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
 				else
-					local val = f:getValue()
+					local val = f:value()
 					if "nil" == type(val) then
-						val = f:getDefaultValue()
+						val = f:defaultValue()
 					end
 					if val then
-						if f:isKindOf(fields.Datetime) then
+						if f:isA(fields.Datetime) then
 							val = os.date("%Y-%m-%d %H:%M:%S", val)
-						elseif f:isKindOf(fields.Date) then
+						elseif f:isA(fields.Date) then
 							val = os.date("%Y-%m-%d", val)
 						end
 					end
-					updateRow:set("?#="..self:getFieldPlaceholder(f), name, val)
+					updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
 				end
 			end
 		end
 		updateRow()
-		for _, f in pairs(self:getFields()) do
-			if f:isKindOf(references.ManyToMany) then
+		for _, f in pairs(self:fields()) do
+			if f:isA(references.ManyToMany) then
 				f:update()
 			end
 		end
 		self:clearCacheTag()
 		return true
-	end,
+	end;
 	save = function (self)
-		local pk = self:getPk()
-		local pkName = pk:getName()
-		if not pk:getValue() or not self:getDb():SelectCell(pkName):from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())() then
+		local pk = self:pkField()
+		local pkName = pk:name()
+		if not pk:value() or not self:db():SelectCell(pkName):from(self:tableName()):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())() then
 			return self:insert()
 		else
 			return self:update()
 		end
-	end,
+	end;
 	delete = function (self)
-		local pk = self:getPk()
-		local pkName = pk:getName()
+		local pk = self:pkField()
+		local pkName = pk:name()
 		self:clearCacheTag()
-		return self:getDb():DeleteRow():from(self:getTableName()):where("?#="..self:getFieldPlaceholder(pk), pkName, pk:getValue())()
-	end,
+		return self:db():DeleteRow():from(self:tableName()):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())()
+	end;
 	create = function (self, ...)
 		local obj = self(...)
 		if not obj:insert() then
@@ -326,75 +353,75 @@ local Model = Struct:extend{
 		end
 		self:clearCacheTag()
 		return obj
-	end,
+	end;
 	-- Create and drop
-	getId = function (self)
-		return self:getTableName()..self.pk
+	id = function (self)
+		return self:tableName()..self.pk
 	end;
-	getTableName = function (self)
-		if (not self.tableName) then
-			self.tableName = string.gsub(self:getLabel(), " ", "_")
-		end
-		if self.tableName then
-			return self.tableName
+	tableName = function (self, ...)
+		if select("#", ...) > 0 then
+			self._tableName = (select(1, ...))
+			return self
 		else
-			Exception"Table name required!"
+			if (not self._tableName) then
+				self._tableName = string.gsub(self:label(), " ", "_")
+			end
+			return self._tableName
 		end
 	end;
-	setTableName = function (self, tableName) self.tableName = tableName return self end,
-	getConstraintModels = function (self)
+	constraintModels = function (self)
 		local models = {}
-		for _, f in pairs(self:getFields()) do
-			if f:isKindOf(references.OneToMany) or (f:isKindOf(references.OneToOne) and not f:isBackLink()) then
-				table.insert(models, f:getRefModel())
+		for _, f in pairs(self:fields()) do
+			if f:isA(references.OneToMany) or (f:isA(references.OneToOne) and not f:backLink()) then
+				table.insert(models, f:refModel())
 			end
 		end
 		return models
 	end,
-	getFieldTypeSql = function (self, field)
-		if field:isKindOf(fields.Text) then
-			if field:getMaxLength() ~= 0 and field:getMaxLength() < 65535 then
-				return "VARCHAR("..field:getMaxLength()..")"
+	fieldTypeSql = function (self, field)
+		if field:isA(fields.Text) then
+			if field:maxLength() ~= 0 and field:maxLength() < 65535 then
+				return "VARCHAR("..field:maxLength()..")"
 			else
 				return "TEXT"
 			end
-		elseif field:isKindOf(fields.Boolean) then
+		elseif field:isA(fields.Boolean) then
 			return "INT(1)"
-		elseif field:isKindOf(fields.Int) then
+		elseif field:isA(fields.Int) then
 			return "INT(4)"
-		elseif field:isKindOf(fields.Datetime) then
+		elseif field:isA(fields.Datetime) then
 			return "DATETIME"
-		elseif field:isKindOf(fields.Date) then
+		elseif field:isA(fields.Date) then
 			return "DATE"
-		elseif field:isKindOf(fields.Time) then
+		elseif field:isA(fields.Time) then
 			return "TIME"
-		elseif field:isKindOf(references.ManyToOne) or field:isKindOf(references.OneToOne) then
-			return self:getFieldTypeSql(field:getRefModel():getField(field:getToField() or field:getRefModel():getPkName()))
+		elseif field:isA(references.ManyToOne) or field:isA(references.OneToOne) then
+			return self:fieldTypeSql(field:refModel():field(field:toField() or field:refModel():pkName()))
 		else
 			Exception"Unsupported field type!"
 		end
-	end,
+	end;
 	createTable = function (self)
-		local c = self.db:CreateTable(self:getTableName())
+		local c = self:db():CreateTable(self:tableName())
 		-- Fields
 		local hasPk = false
-		for name, f in pairs(self:getFields()) do
-			if not f:isKindOf(references.OneToMany) and not f:isKindOf(references.ManyToMany) and not (f:isKindOf(references.OneToOne) and f:isBackLink()) then
-				hasPk = hasPk or f:isPk()
-				c:field(name, self:getFieldTypeSql(f), {
-					primaryKey = f:isPk(),
-					unique = f:isUnique(),
-					null = not f:isRequired(),
-					serial = f:isKindOf(fields.Id)
+		for name, f in pairs(self:fields()) do
+			if not f:isA(references.OneToMany) and not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) then
+				hasPk = hasPk or f:pk()
+				c:field(name, self:fieldTypeSql(f), {
+					primaryKey = f:pk();
+					unique = f:unique();
+					null = not f:required(),
+					serial = f:isA(fields.Id);
 				})
-				if f:isKindOf(references.ManyToOne) or f:isKindOf(references.OneToOne) then
+				if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
 					local onDelete
-					if f:isRequired() or f:isPk() then
+					if f:required() or f:pk() then
 						onDelete = "CASCADE"
 					else
 						onDelete = "SET NULL"
 					end
-					c:constraint(name, f:getTableName(), f:getRefModel():getPkName(), "CASCADE", onDelete)
+					c:constraint(name, f:tableName(), f:refModel():pkName(), "CASCADE", onDelete)
 				end
 			end
 		end
@@ -405,19 +432,19 @@ local Model = Struct:extend{
 	createTables = function (self)
 		self:createTable()
 		-- Create references tables
-		for _, f in pairs(self:getFields()) do
-			if f:isKindOf(references.ManyToMany) then
+		for _, f in pairs(self:fields()) do
+			if f:isA(references.ManyToMany) then
 				f:createTable()
 			end
 		end
 	end,
 	dropTable = function (self)
 		self:clearCacheTag()
-		return self.db:DropTable(self:getTableName())()
+		return self:db():DropTable(self:tableName())()
 	end;
 	dropTables = function (self)
-		for _, f in pairs(self:getFields()) do
-			if f:isKindOf(references.ManyToMany) then
+		for _, f in pairs(self:fields()) do
+			if f:isA(references.ManyToMany) then
 				f:dropTable()
 			end
 		end
@@ -425,33 +452,31 @@ local Model = Struct:extend{
 	end;
 	-- Caching
 	clearCacheTag = function (self)
-		if self:getCacher() then
-			ModelTag(self:getCacher(), self):clear()
+		if self:cacher() then
+			ModelTag(self:cacher(), self):clear()
 		end
 		return self
 	end;
 	-- Ajax
-	getAjaxUrl = function (self) return self._ajaxUrl end;
-	setAjaxUrl = function (self, url) self._ajaxUrl = url return self end;
 	ajaxHandler = function (self, data)
-		if not data.field or not self:getField(data.field) then
+		if not data.field or not self:field(data.field) then
 			return false
 		end
 		local F = require "luv.forms".Form:extend{
-			id = self:getPk():clone();
+			id = self:pk():clone();
 			field = fields.Text{required=true};
-			value = self:getField(data.field):clone();
+			value = self:field(data.field):clone();
 			set = fields.Submit{defaultValue="Set"};
 			initModel = function (self, model)
 				model[self.field] = self.value
 			end;
 		}
 		local f = F(data)
-		if not f:isSubmitted() then
+		if not f:submitted() then
 			return false
 		end
-		if not f:isValid() then
-			return json.serialize{status="error";errors=f:getErrors()}
+		if not f:valid() then
+			return json.serialize{status="error";errors=f:errors()}
 		end
 		local obj = self:find(f.id)
 		if not obj then
@@ -459,7 +484,7 @@ local Model = Struct:extend{
 		end
 		f:initModel(obj)
 		if not obj:update() then
-			return json.serialize{status="error";errors=f:getErrors()}
+			return json.serialize{status="error";errors=f:errors()}
 		end
 		return json.serialize{status="ok"}
 	end;
@@ -468,8 +493,8 @@ local Model = Struct:extend{
 local Tree = Model:extend{
 	__tag = .....".Tree";
 	hasChildren = Model.abstractMethod;
-	getChildren = Model.abstractMethod;
-	getParent = Model.abstractMethod;
+	children = Model.abstractMethod;
+	parentNode = Model.abstractMethod;
 	removeChildren = Model.abstractMethod;
 	addChild = Model.abstractMethod;
 	addChildren = Model.abstractMethod;
@@ -480,70 +505,73 @@ local Tree = Model:extend{
 local NestedSet = Tree:extend{
 	__tag = .....".NestedSet";
 	hasChildren = function (self) return self.right-self.left > 1 end;
-	getChildren = function (self)
-		return self.parent:all():filter{left__gt=self.left;right__lt=self.right;level=self.level+1}:getValue()
+	children = function (self)
+		return self._parent:all():filter{left__gt=self.left;right__lt=self.right;level=self.level+1}:value()
 	end;
-	getParent = function (self)
+	parentNode = function (self)
 		if 0 == self.level then
 			return nil
 		end
 		-- TODO: rewrite to find{}
-		return self.parent:all(1):filter{left__lt=self.left;right__gt=self.right;level=self.level-1}:getValue()[1]
+		return self._parent:all(1):filter{left__lt=self.left;right__gt=self.right;level=self.level-1}:value()[1]
 	end;
 	removeChildren = function (self)
 		if not self:hasChildren() then
 			return true
 		end
-		self.db:beginTransaction()
-		self.db:Delete():from(self:getTableName())
+		local db = self:db()
+		db:beginTransaction()
+		db:Delete():from(self:tableName())
 			:where("?#>?d", "left", self.left)
 			:andWhere("?#<?d", "right", self.right)()
-		self.db:Update(self:getTableName())
+		db:Update(self:tableName())
 			:set("?#=?#-?d", "left", "left", self.right-self.left-1)
 			:set("?#=?#-?d", "right", "right", self.right-self.left-1)
 			:where("?#>?d", "left", self.right)()
 		self.right = self.left+1
 		if not self:update() then
-			self.db:rollback()
+			db:rollback()
 			return false
 		end
-		self.db:commit()
+		db:commit()
 		return true
 	end;
 	addChild = function (self, child)
-		if not child:isKindOf(self.parent) then Exception "not valid child class" end
+		if not child:isA(self._parent) then Exception "not valid child class" end
 		child.level = self.level+1
 		child.left = self.left+1
 		child.right = self.left+2
-		self.db:beginTransaction()
-		self.db:Update(self:getTableName())
+		local db = self:db()
+		db:beginTransaction()
+		db:Update(self:tableName())
 			:set("?#=?#+2", "left", "left")
 			:where("?#>?d", "left", self.left)()
-		self.db:Update(self:getTableName())
+		db:Update(self:tableName())
 			:set("?#=?#+2", "right", "right")
 			:where("?#>?d", "right", self.left)()
 		if not child:insert() then
-			self.db:rollback()
+			db:rollback()
 			return false
 		end
-		self.db:commit()
+		db:commit()
 		return true
 	end;
 	childrenCount = function (self) return (self.right-self.left-1)/2 end;
 	findRoot = function (self) return self:find{left=1} end;
 	delete = function (self)
-		self.db:beginTransaction()
-		self.db:Delete():from(self:getTableName())
+		local db = self:db()
+		db:beginTransaction()
+		db:Delete():from(self:tableName())
 			:where("?#>?d", "left", self.left)
 			:where("?#<?d", "right", self.right)()
 		Tree.delete(self)
-		self.db:Update(self:getTableName())
+		db:Update(self:tableName())
 			:set("?#=?#-?d", "left", "left", self.right-self.left+1)
 			:where("?#>?d", "left", self.right)()
-		self.db:Update(self:getTableName())
+		db:Update(self:tableName())
 			:set("?#=?#-?d", "right", "right", self.right-self.left+1)
 			:where("?#>?d", "right", self.right)()
-		self.db:commit()
+		db:commit()
 	end;
 }
 
@@ -553,10 +581,10 @@ local F = TreeNode:extend{
 		TreeNode.init(self, ...)
 		local mt = getmetatable(self)
 		mt.__add = function (self, f2)
-			return self.parent({self;f2}, "+")
+			return self._parent({self;f2}, "+")
 		end;
 		mt.__sub = function (self, f2)
-			return self.parent({self;f2}, "-")
+			return self._parent({self;f2}, "-")
 		end;
 		mt.__tostring = function (self)
 			local function operandToString (op)
@@ -568,27 +596,27 @@ local F = TreeNode:extend{
 					return tostring(op)
 				end
 			end
-			if not self:getConnector() then
+			if not self:connector() then
 				return "?#"
-			elseif "+" == self:getConnector() then
-				return operandToString(self:getChildren()[1]).."+"..operandToString(self:getChildren()[2])
-			elseif "-" == self:getConnector() then
-				return operandToString(self:getChildren()[1]).."-"..operandToString(self:getChildren()[2])
+			elseif "+" == self:connector() then
+				return operandToString(self:children()[1]).."+"..operandToString(self:children()[2])
+			elseif "-" == self:connector() then
+				return operandToString(self:children()[1]).."-"..operandToString(self:children()[2])
 			else
-				Exception("unsupported operand "..self:getConnector())
+				Exception("unsupported operand "..self:connector())
 			end
 		end;
 	end;
-	getValues = function (self)
+	values = function (self)
 		local function operandValues (op)
 			if "string" == type(op) or "number" == type(op) then
 				return {op}
 			else
-				return op:getValues()
+				return op:values()
 			end
 		end
-		local connector = self:getConnector()
-		local children = self:getChildren()
+		local connector = self:connector()
+		local children = self:children()
 		if not connector then
 			return {children[1]}
 		elseif "+" == connector or "-" == connector then
@@ -603,13 +631,13 @@ local F = TreeNode:extend{
 
 local Q = TreeNode:extend{
 	__tag = .....".Q";
+	negated = TreeNode.property;
 	init = function (self, values)
 		if not values then
 			Exception "values expected"
 		end
 		TreeNode.init(self, {values}, "AND")
 	end;
-	isNegated = function (self) return self.negated end;
 	__add = function (self, q)
 		return self:clone():add(q, "AND")
 	end;
@@ -618,7 +646,7 @@ local Q = TreeNode:extend{
 	end;
 	__unm = function (self)
 		local obj = self:clone()
-		obj.negated = obj.negated and false or true
+		obj:negated(not obj:negated())
 		return obj
 	end;
 }
@@ -631,7 +659,7 @@ local QuerySet = Object:extend{
 		self._orders = {}
 		self._limits = {}
 		self._values = {}
-		self._query = model:getDb():Select "*":from(self._model:getTableName())
+		self._query = model:db():Select "*":from(self._model:tableName())
 	end;
 	clone = function (self)
 		local obj = Object.clone(self)
@@ -674,75 +702,75 @@ local QuerySet = Object:extend{
 		local result = {}
 		for i, part in ipairs(parts) do
 			if "pk" == part then
-				part = curModel:getPkName()
+				part = curModel:pkName()
 			end
-			local field = curModel:getField(part)
+			local field = curModel:field(part)
 			if not curModel then
 				Exception "invalid field"
 			end
 			if not field then
 				Exception("field "..string.format("%q", part).." not founded")
 			end
-			if field:isKindOf(references.Reference) then
-				result = {field:getRefModel():getTableName()}
+			if field:isA(references.Reference) then
+				result = {field:refModel():tableName()}
 				result.sql = "?#"
 				if i == #parts then
-					table.insert(result, field:getRefModel():getPkName())
+					table.insert(result, field:refModel():pkName())
 					result.sql = result.sql..".?#"
 				end
-				if field:isKindOf(references.OneToOne) then
-					if field:isBackLink() then
+				if field:isA(references.OneToOne) then
+					if field:backLink() then
 						s:join(
-							field:getRefModel():getTableName(),
+							field:refModel():tableName(),
 							{
 								"?#.?#=?#.?#";
-								curModel:getTableName();curModel:getPkName();
-								field:getRefModel():getTableName();field:getBackRefFieldName()
+								curModel:tableName();curModel:pkName();
+								field:refModel():tableName();field:backRefFieldName()
 							}
 						)
 					else
 						s:join(
-							field:getRefModel():getTableName(),
+							field:refModel():tableName(),
 							{
 								"?#.?#=?#.?#";
-								curModel:getTableName();part;
-								field:getRefModel():getTableName();field:getRefModel():getPkName()
+								curModel:tableName();part;
+								field:refModel():tableName();field:refModel():pkName()
 							}
 						)
 					end
-				elseif field:isKindOf(references.OneToMany) then
+				elseif field:isA(references.OneToMany) then
 					s:join(
-						field:getRefModel():getTableName(),
+						field:refModel():tableName(),
 						{
 							"?#.?#=?#.?#";
-							curModel:getTableName();curModel:getPkName();
-							field:getRefModel():getTableName();field:getRelatedName()
+							curModel:tableName();curModel:pkName();
+							field:refModel():tableName();field:relatedName()
 						}
 					)
-				elseif field:isKindOf(references.ManyToOne) then
+				elseif field:isA(references.ManyToOne) then
 					s:join(
-						field:getRefModel():getTableName(),
-						{"?#.?#=?#.?#";curModel:getTableName();part;field:getRefModel():getTableName();field:getRefModel():getPkName()}
+						field:refModel():tableName(),
+						{"?#.?#=?#.?#";curModel:tableName();part;field:refModel():tableName();field:refModel():pkName()}
 					)
-				elseif field:isKindOf(references.ManyToMany) then
+				elseif field:isA(references.ManyToMany) then
 					s:join(
-						field:getTableName(),
+						field:tableName(),
 						{
 							"?#.?#=?#.?#";
-							curModel:getTableName();curModel:getPkName();
-							field:getTableName();curModel:getTableName()
+							curModel:tableName();curModel:pkName();
+							field:tableName();curModel:tableName()
 						}
 					)
 					s:join(
-						field:getRefModel():getTableName(),
+						field:refModel():tableName(),
 						{
 							"?#.?#=?#.?#";
-							field:getTableName();field:getRefModel():getTableName();
-							field:getRefModel():getTableName();field:getRefModel():getPkName()
+							field:tableName();field:refModel():tableName();
+							field:refModel():tableName();field:refModel():pkName()
 						}
 					)
 				end
-				curModel = field:getRefModel()
+				curModel = field:refModel()
 			else
 				curModel = nil
 				result.field = field
@@ -791,29 +819,29 @@ local QuerySet = Object:extend{
 					end
 				end
 			else
-				valStr = operators[op]..self._model:getFieldPlaceholder(res.field or res[#res])
+				valStr = operators[op]..self._model:fieldPlaceholder(res.field or res[#res])
 			end
 			result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
 			for _, val in ipairs(res) do
 				table.insert(result, val)
 			end
 			if "isnull" ~= op then
-				table.insert(result, "table" == type(v) and v.isKindOf and v:isKindOf(Model) and v.pk or v)
+				table.insert(result, "table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
 			end
 		end
 		return result
 	end;
 	_processQ = function (self, s, q)
 		local result = {}
-		local op = q:getConnector()
-		for _, v in ipairs(q:getChildren()) do
-			local res = v.isKindOf and v:isKindOf(Q) and self:_processQ(s, v) or self:_processFilter(s, v)
+		local op = q:connector()
+		for _, v in ipairs(q:children()) do
+			local res = v.isA and v:isA(Q) and self:_processQ(s, v) or self:_processFilter(s, v)
 			result.sql = (result.sql and (result.sql.." "..op.." ") or "")..res.sql
 			for _, value in ipairs(res) do
 				table.insert(result, value)
 			end
 		end
-		result.sql = (q:isNegated() and "(NOT (" or "(")..result.sql..(q:isNegated() and "))" or ")")
+		result.sql = (q:negated() and "(NOT (" or "(")..result.sql..(q:negated() and "))" or ")")
 		return result
 	end;
 	_applyConditions = function (self, s)
@@ -840,14 +868,14 @@ local QuerySet = Object:extend{
 			table.insert(self._values, self._model(v))
 		end
 	end;
-	getValue = function (self)
+	value = function (self)
 		if not self._evaluated then
 			self:_evaluate()
 		end
 		return self._values
 	end;
 	count = function (self)
-		local s = self._model:getDb():SelectCell "COUNT(*)":from(self._model:getTableName())
+		local s = self._model:db():SelectCell "COUNT(*)":from(self._model:tableName())
 		self:_applyConditions(s)
 		return tonumber(s())
 	end;
@@ -857,24 +885,24 @@ local QuerySet = Object:extend{
 		return tostring(s)
 	end;
 	update = function (self, set)
-		local s = self._model:getDb():Select(self._model:getPkName()):from(self._model:getTableName())
+		local s = self._model:db():Select(self._model:pkName()):from(self._model:tableName())
 		self:_applyConditions(s)
-		local u = self._model:getDb():Update(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
+		local u = self._model:db():Update(self._model:tableName()):where("?# IN (?a)", self._model:pkName(), table.imap(s(), f ("a["..string.format("%q", self._model:pkName()).."]")))
 		local val
 		for k, v in pairs(set) do
-			if type(v) == "table" and v.isKindOf and v:isKindOf(Model) then
+			if type(v) == "table" and v.isA and v:isA(Model) then
 				val = v.pk
 			else
 				val = v
 			end
-			u:set("?#="..self._model:getFieldPlaceholder(self._model:getField(k)), k, val)
+			u:set("?#="..self._model:fieldPlaceholder(self._model:field(k)), k, val)
 		end
 		return u()
 	end;
 	delete = function (self)
-		local s = self._model:getDb():Select(self._model:getPkName()):from(self._model:getTableName())
+		local s = self._model:db():Select(self._model:pkName()):from(self._model:tableName())
 		self:_applyConditions(s)
-		local u = self._model:getDb():Delete():from(self._model:getTableName()):where("?# IN (?a)", self._model:getPkName(), table.imap(s(), f ("a["..string.format("%q", self._model:getPkName()).."]")))
+		local u = self._model:db():Delete():from(self._model:tableName()):where("?# IN (?a)", self._model:pkName(), table.imap(s(), f ("a["..string.format("%q", self._model:pkName()).."]")))
 		return u()
 	end;
 	__call = function (self, ...)
@@ -884,7 +912,7 @@ local QuerySet = Object:extend{
 		return ipairs(self._values, ...)
 	end;
 	__index = function (self, field)
-		local res = self.parent[field]
+		local res = self._parent[field]
 		if res then
 			return res
 		end
@@ -900,23 +928,23 @@ local QuerySet = Object:extend{
 
 local Paginator = Object:extend{
 	__tag = .....".Paginator";
+	model = Object.property;
+	onPage = Object.property;
 	init = function (self, model, onPage)
-		self._model = model
-		self._onPage = onPage
+		self:model(model)
+		self:onPage(onPage)
 		self._query = model:all()
 	end;
-	getModel = function (self) return self._model end;
-	getOnPage = function (self) return self._onPage end;
-	getTotal = function (self)
+	total = function (self)
 		if not self._total then
 			self._total = self._query:count()
 		end
 		return self._total
 	end;
-	getPage = function (self, page)
+	page = function (self, page)
 		return self._query:limit((page-1)*self._onPage, page*self._onPage)
 	end;
-	getPagesTotal = function (self) return math.ceil(self:getTotal()/self:getOnPage()) end;
+	pagesTotal = function (self) return math.ceil(self:total()/self:onPage()) end;
 	order = function (self, ...) self._query = self._query:order(...) return self end;
 	filter = function (self, ...) self._query = self._query:filter(...) return self end;
 	exclude = function (self, ...) self._query = self._query:exclude(...) return self end;
@@ -927,21 +955,21 @@ local Paginator = Object:extend{
 local function tablesListForModels (models)
 	local tables = {}
 	table.imap(models, function (model)
-		local tableName = model:getTableName()
+		local tableName = model:tableName()
 		for _, info in ipairs(tables) do
 			if info[1] == tableName then
 				return nil
 			end
 		end
-		table.insert(tables, {model:getTableName();model})
-		table.imap(model:getReferenceFields(nil, references.ManyToMany), function (field)
-			local tableName = field:getTableName()
+		table.insert(tables, {model:tableName();model})
+		table.imap(model:referenceFields(nil, references.ManyToMany), function (field)
+			local tableName = field:tableName()
 			for _, info in ipairs(tables) do
 				if info[1] == tableName then
 					return nil
 				end
 			end
-			table.insert(tables, {field:getTableName();field})
+			table.insert(tables, {field:tableName();field})
 			return nil
 		end)
 		return nil
@@ -955,16 +983,16 @@ local function sortTablesList (tables)
 		local iTbl, iObj = unpack(tables[i])
 		for j = i+1, size do
 			local jTbl, jObj = unpack(tables[j])
-			if jObj:isKindOf(Model) then
-				local o2o = jObj:getReferenceField(iObj, references.OneToOne)
-				if jObj:getReferenceField(iObj, references.ManyToOne)
-				or (o2o and not jObj:getField(o2o):isBackLink()) then
+			if jObj:isA(Model) then
+				local o2o = jObj:referenceField(iObj, references.OneToOne)
+				if jObj:referenceField(iObj, references.ManyToOne)
+				or (o2o and not jObj:field(o2o):backLink()) then
 					tables[i], tables[j] = tables[j], tables[i]
 					break
 				end
 			else
-				if jObj:getRefModel():getTableName() == iTbl
-				or jObj:getContainer():getTableName() == iTbl then
+				if jObj:refModel():tableName() == iTbl
+				or jObj:container():tableName() == iTbl then
 					tables[i], tables[j] = tables[j], tables[i]
 					break
 				end
@@ -991,8 +1019,9 @@ local function createModels (models)
 end
 
 return {
-	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;NestedSet=NestedSet;
-	QuerySet=QuerySet;Paginator=Paginator;F=F;Q=Q;
-	tablesListForModels=tablesListForModels;sortTablesList=sortTablesList;
-	dropModels=dropModels;createModels=createModels;
+	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;
+	NestedSet=NestedSet;QuerySet=QuerySet;Paginator=Paginator;F=F;Q=Q;
+	tablesListForModels=tablesListForModels;
+	sortTablesList=sortTablesList;dropModels=dropModels;
+	createModels=createModels;
 }

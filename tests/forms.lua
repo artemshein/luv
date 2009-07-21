@@ -1,4 +1,4 @@
-local io, type, tostring = io, type, tostring
+local io, type, tostring, require = io, type, tostring, require
 local TestCase, forms, fields, Model, html = require "luv.dev.unittest".TestCase, require "luv.forms", require "luv.fields", require "luv.db.models".Model, require "luv.utils.html"
 local references = require "luv.fields.references"
 
@@ -19,24 +19,24 @@ local Form = TestCase:extend{
 			comments = fields.Int()
 		}
 		local f = F()
-		self.assertFalse(f:isValid())
+		self.assertFalse(f:valid())
 		f.title = "abc"
 		self.assertEquals(f.title, "abc")
-		self.assertTrue(f:isValid())
+		self.assertTrue(f:valid())
 	end,
 	testModel = function (self)
 		local F = forms.ModelForm:extend{
-			Meta = {model=TestModel, exclude={"test", "test2"}, fields={"title", "comments"}}
+			Meta = {model=TestModel;exclude={"test", "test2"};fields={"title", "comments"}}
 		}
 		local f = F()
-		self.assertFalse(f:isValid())
+		self.assertFalse(f:valid())
 		f.title = "abc"
 		self.assertEquals(f.title, "abc")
-		self.assertTrue(f:isValid())
+		self.assertTrue(f:valid())
 	end,
 	testInstance = function (self)
 		local F = forms.ModelForm:extend{
-			Meta = {model=TestModel, fields={"title", "comments"}}
+			Meta = {model=TestModel;fields={"title", "comments"}}
 		}
 		local t = TestModel{title="abc", comments=25}
 		local f = F(t)
@@ -77,27 +77,27 @@ local ModelForm = TestCase:extend{
 
 		local Form = forms.ModelForm:extend{Meta={model=Article}}
 		local f = Form():addField("add", fields.Submit "Add")
-		self.assertFalse(f:isSubmitted())
-		self.assertFalse(f:isValid())
+		self.assertFalse(f:submitted())
+		self.assertFalse(f:valid())
 
-		f:setValues{title="one"}
-		self.assertFalse(f:isSubmitted())
-		self.assertFalse(f:isValid())
+		f:values{title="one"}
+		self.assertFalse(f:submitted())
+		self.assertFalse(f:valid())
 
-		f:setValues{title="one";categories=Category:all():filter{title__in={"net";"web"}}:getValue()}
-		self.assertFalse(f:isSubmitted())
-		self.assertTrue(f:isValid())
+		f:values{title="one";categories=Category:all():filter{title__in={"net";"web"}}:value()}
+		self.assertFalse(f:submitted())
+		self.assertTrue(f:valid())
 
-		f:setValues{title="one";categories=Category:all():filter{title__in={"net";"web"}}:getValue();add="Add"}
-		self.assertTrue(f:isSubmitted())
-		self.assertTrue(f:isValid())
+		f:values{title="one";categories=Category:all():filter{title__in={"net";"web"}}:value();add="Add"}
+		self.assertTrue(f:submitted())
+		self.assertTrue(f:valid())
 
-		local article = Article(f:getValues())
+		local article = Article(f:values())
 		article:save()
 		self.assertEquals(article.categories:count(), 2)
 	end;
 }
 
 return {
-	Form = Form;ModelForm=ModelForm;
+	Form=Form;ModelForm=ModelForm;
 }

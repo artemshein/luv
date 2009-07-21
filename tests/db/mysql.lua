@@ -10,7 +10,7 @@ return TestCase:extend{
 	dsn = validDsn,
 	setUp = function (self)
 		self.db = db.Factory(self.dsn)
-		self.db:setLogger(function (sql, result)
+		self.db:logger(function (sql, result)
 			io.write(sql, "<br />")
 		end)
 	end,
