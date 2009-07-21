@@ -76,8 +76,9 @@ local Field = Object:extend{
 			self._id = (select(1, ...))
 			return self
 		else
+			local container = self:container()
 			if not self._id then
-				self._id = self:container():id()..string.capitalize(self:name())
+				self._id = container:htmlId()..container.pk..string.capitalize(self:name())
 			end
 			return self._id
 		end
@@ -353,12 +354,16 @@ local Boolean = Int:extend{
 			return Int.value(self)
 		end
 	end;
-	defaultValue = function (self)
-		local defaultValue = Int.defaultValue(self)
-		if nil == defaultValue then
-			return nil
+	defaultValue = function (self, ...)
+		if select("#", ...) > 0 then
+			return Int.defaultValue(self, ...)
+		else
+			local defaultValue = Int.defaultValue(self)
+			if nil == defaultValue then
+				return nil
+			end
+			return defaultValue and 1 or 0
 		end
-		return defaultValue and 1 or 0
 	end;
 }
 

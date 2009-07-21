@@ -100,7 +100,7 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core";
-	_version = Version(0, 10, 0, "alpha");
+	_version = Version(0, 11, 0, "alpha");
 	version = Object.property;
 	urlConf = Object.property;
 	wsApi = Object.property;

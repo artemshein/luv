@@ -78,7 +78,7 @@ local User = models.Model:extend{
 			if not session[self.sessId] then
 				session[self.sessId] = nil
 				session:save()
-				self.authUser = nil
+				self._authUser = nil
 				return nil
 			end
 			local user = self:find(session[self.sessId].user)

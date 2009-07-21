@@ -10,10 +10,10 @@ local html = require "luv.utils.html"
 module(...)
 
 local Api = Object:extend{
-	__tag = .....".Api",
+	__tag = .....".Api";
 	init = function (self, templatesDirOrDirs)
 		if "string" == type(templatesDirOrDirs)
-		or (templatesDirOrDirs and templatesDirOrDirs.isKindOf and templatesDirOrDirs:isKindOf(fs.Dir)) then
+		or (templatesDirOrDirs and templatesDirOrDirs.isA and templatesDirOrDirs:isA(fs.Dir)) then
 			self._templatesDirs = {templatesDirOrDirs}
 		else
 			self._templatesDirs = {}
@@ -37,10 +37,11 @@ local Api = Object:extend{
 
 local SafeHtml = Object:extend{
 	__tag = .....".SafeHtml";
+	html = Object.property;
 	init = function (self, html)
-		self._html = html
+		self:html(html)
 	end;
-	__tostring = function (self) return tostring(self._html) end;
+	__tostring = function (self) return tostring(self:html()) end;
 }
 
 local Tamplier = Api:extend{
@@ -52,7 +53,7 @@ local Tamplier = Api:extend{
 			tostring = tostring;
 			sections = {};
 			escape = function (str)
-				if "table" == type(str) and str.isKindOf and str:isKindOf(SafeHtml) then
+				if "table" == type(str) and str.isA and str:isA(SafeHtml) then
 					return str
 				else
 					return html.escape(str)

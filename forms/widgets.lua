@@ -1,5 +1,5 @@
 local string = require "luv.string"
-local tr, type, require = tr, type, require
+local tr, type, require, debug = tr, type, require, debug
 local pairs, ipairs, io = pairs, ipairs, io
 local Widget, widgets = require "luv".Widget, require "luv.fields.widgets"
 local references = require "luv.fields.references"

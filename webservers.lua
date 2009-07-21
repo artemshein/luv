@@ -169,7 +169,7 @@ local Cgi = Api:extend{
 			if self._headersAlreadySent then
 				Exception "can't change response headers, headers already sent"
 			end
-			self._responseHeaders[header] = value
+			self._responseHeaders[header] = (select(1, ...))
 			return self
 		else
 			local lowerHeader = string.lower(header)

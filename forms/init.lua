@@ -75,6 +75,9 @@ local Form = Struct:extend{
 			return self.Meta.id
 		end
 	end;
+	htmlId = function (self)
+		return self:id()
+	end;
 	ajax = function (self, ...)
 		if select("#", ...) > 0 then
 			self.Meta.ajax = (select(1, ...))

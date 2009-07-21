@@ -18,25 +18,32 @@ local Session = Object:extend{
 			wsApi:cookie(self._cookieName, id)
 		end
 		rawset(self, "_id", id)
-		rawset(self, "_data", string.unserialize(storage:read(id)) or {})
+		local data = storage:read(id)
+		rawset(self, "_data", string.unserialize(data) or {})
+		rawset(self, "_storedData", data)
 	end;
 	data = function (self, ...)
 		if select("#", ...) > 0 then
 			rawset(self, "_data", (select(1, ...)))
-			self:save()
 			return self
 		else
-			return self._data
+			return rawget(self, "_data")
 		end
 	end;
-	save = function (self) self._storage:write(self._id, string.serialize(self._data)) end;
+	save = function (self)
+		local serializedData = string.serialize(self._data)
+		if serializedData ~= rawget(self, "_storedData") then
+			self._storage:write(self._id, serializedData)
+			rawset(self, "_storedData", serializedData)
+		end
+	end;
 	__index = function (self, key)
 		local res = rawget(self, "_parent")[key]
 		if res then return res end
 		return rawget(self, "_data")[key]
 	end;
 	__newindex = function (self, key, value)
-		self._data[key] = value
+		rawget(self, "_data")[key] = value
 	end;
 }
 
