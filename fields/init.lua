@@ -3,7 +3,7 @@ local require, tostring = require, tostring
 local pairs, tonumber, ipairs, os, type, io = pairs, tonumber, ipairs, os, type, io
 local table = require "luv.table"
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
-local fs = require 'luv.fs'
+local fs, Struct = require "luv.fs", require "luv".Struct
 local exceptions = require "luv.exceptions"
 local Exception, try = exceptions.Exception, exceptions.try
 local f = require "luv.function".f
@@ -11,26 +11,27 @@ local capitalize = string.capitalize
 
 module(...)
 
-local MODULE = ...
+local MODULE = (...)
+local property = Object.property
 
 local Field = Object:extend{
 	__tag = .....".Field";
-	validators = Object.property;
-	errors = Object.property;
-	container = Object.property;
-	unique = Object.property;
-	pk = Object.property;
-	name = Object.property;
-	value = Object.property;
-	choices = Object.property;
-	defaultValue = Object.property;
-	classes = Object.property;
-	widget = Object.property;
-	onClick = Object.property;
-	onChange = Object.property;
-	onLoad = Object.property;
-	hint = Object.property;
-	ajaxWidget = Object.property;
+	validators = property "table";
+	errors = property "table";
+	container = property(Struct);
+	unique = property "boolean";
+	pk = property "boolean";
+	name = property "string";
+	value = property;
+	choices = property;
+	defaultValue = property;
+	classes = property "table";
+	widget = property(Widget);
+	onClick = property;
+	onChange = property;
+	onLoad = property;
+	hint = property;
+	ajaxWidget = property(Widget);
 	init = function (self, params)
 		if self._parent._parent == Object then
 			Exception "can't instantiate abstract class"
@@ -50,7 +51,7 @@ local Field = Object:extend{
 		self:unique(params.unique or false)
 		self:required(params.required or false)
 		self:label(params.label)
-		self:widget(params.widget)
+		if params.widget then self:widget(params.widget) end
 		self:onClick(params.onClick)
 		self:onChange(params.onChange)
 		self:hint(params.hint)
@@ -78,7 +79,7 @@ local Field = Object:extend{
 		else
 			local container = self:container()
 			if not self._id then
-				self._id = container:htmlId()..container.pk..string.capitalize(self:name())
+				self._id = container:htmlId()..string.capitalize(self:name())
 			end
 			return self._id
 		end
@@ -88,7 +89,10 @@ local Field = Object:extend{
 			self._label = (select(1, ...))
 			return self
 		else
-			return self._label or capitalize(tr(self:name()))
+			if not self._label then
+				self:label(capitalize(tr(self:name())))
+			end
+			return self._label
 		end
 	end;
 	addError = function (self, error) table.insert(self._errors, error) return self end,
@@ -156,10 +160,10 @@ local Field = Object:extend{
 }
 
 local MultipleValues = Field:extend{
-	__tag = .....'.MultipleValues';
+	__tag = .....".MultipleValues";
 	init = function (self, params)
 		if not params then
-			Exception 'choices required'
+			Exception "choices required"
 		end
 		if not params.choices then
 			params = {choices=params}
@@ -426,7 +430,7 @@ local Submit = Button:extend{
 
 local ImageButton = Button:extend{
 	__tag = .....".Image";
-	src = Button.property;
+	src = property "string";
 	init = function (self, params)
 		params = params or {}
 		if "table" ~= type(params) then
@@ -441,14 +445,14 @@ local ImageButton = Button:extend{
 local Date = Field:extend{
 	__tag = .....".Date";
 	_defaultFormat = "%d.%m.%Y";
-	autoNow = Field.property;
+	autoNow = property "boolean";
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.DateInput()
 		if params.regional then
 			params.widget:regional(params.regional)
 		end
-		self:autoNow(params.autoNow)
+		self:autoNow(params.autoNow or false)
 		Field.init(self, params)
 		self:addClass "date"
 	end;
@@ -510,7 +514,7 @@ local Date = Field:extend{
 local Datetime = Field:extend{
 	__tag = .....".Datetime";
 	_defaultFormat = "%Y-%m-%d %H:%M:%S";
-	autoNow = Field.property;
+	autoNow = property "boolean";
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.Datetime()
@@ -567,11 +571,11 @@ local Datetime = Field:extend{
 local Time = Field:extend{
 	__tag = .....".Time";
 	_defaultFormat = "%H:%M:%S";
-	autoNow = Field.property;
+	autoNow = property "boolean";
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.Time()
-		self:autoNow(params.autoNow)
+		self:autoNow(params.autoNow or false)
 		Field.init(self, params)
 		self:addClass "time"
 	end;

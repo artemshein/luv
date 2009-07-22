@@ -2,7 +2,7 @@ local table = require "luv.table"
 local string = require "luv.string"
 local dev = require "luv.dev"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
-local tr, error = tr, error
+local tr, error, debug = tr, error, debug
 local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 local crypt, backend = require "luv.crypt", require "luv.cache.backend"
@@ -12,14 +12,15 @@ local Slot = require "luv.cache.frontend".Slot
 module(...)
 
 local MODULE = (...)
+local property = Object.property
 
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
-	request = Object.property;
-	uri = Object.property;
-	tailUri = Object.property;
-	baseUri = Object.property;
-	captures = Object.property;
+	request = property(ws.HttpRequest);
+	uri = property "string";
+	tailUri = property "string";
+	baseUri = property "string";
+	captures = property "table";
 	init = function (self, request)
 		self:request(request)
 		self:uri(request:header "REQUEST_URI" or "")
@@ -91,7 +92,7 @@ local TemplateSlot = Slot:extend{
 	end;
 	display = function (self)
 		self.luv:info("Template cache date "..os.date(), "Cacher")
-		local res = self.luv:fetch(self._template)
+		local res = self._luv:fetch(self._template)
 		self:set(res)
 		io.write(res)
 		return self
@@ -101,15 +102,15 @@ local TemplateSlot = Slot:extend{
 local Core = Object:extend{
 	__tag = .....".Core";
 	_version = Version(0, 11, 0, "alpha");
-	version = Object.property;
-	urlConf = Object.property;
-	wsApi = Object.property;
-	templater = Object.property;
-	session = Object.property;
-	db = Object.property;
-	profiler = Object.property;
-	debugger = Object.property;
-	i18n = Object.property;
+	version = property(Version);
+	urlConf = property(UrlConf);
+	wsApi = property(ws.Api);
+	templater = property;
+	session = property;
+	db = property;
+	profiler = property;
+	debugger = property;
+	i18n = property;
 	-- Init
 	init = function (self, wsApi)
 		self:profiler(dev.Profiler())
@@ -222,8 +223,8 @@ local Core = Object:extend{
 
 local Struct = Object:extend{
 	__tag = .....".Struct";
-	errors = Object.property;
-	msgs = Object.property;
+	errors = property "table";
+	msgs = property "table";
 	init = function (self)
 		self:msgs{}
 		self:errors{}

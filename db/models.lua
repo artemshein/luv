@@ -12,7 +12,8 @@ local json = require "luv.utils.json"
 
 module(...)
 
-local MODULE = ...
+local MODULE = (...)
+local property = Object.property
 
 local ModelTag = cache.Tag:extend{
 	__tag = .....".ModelTag";
@@ -48,8 +49,8 @@ local Model = Struct:extend{
 	__tag = .....".Model";
 	modelsList = {};
 	__tostring = function (self) return tostring(self.pk) end;
-	cacher = Object.property;
-	ajaxUrl = Object.property;
+	cacher = property;
+	ajaxUrl = property "string";
 	createBackLinksFieldsFrom = function (self, model)
 		for _, v in ipairs(model:referenceFields(self)) do
 			if not self:field(v:relatedName() or Exception("relatedName required for "..v:name().." field")) then
@@ -631,7 +632,7 @@ local F = TreeNode:extend{
 
 local Q = TreeNode:extend{
 	__tag = .....".Q";
-	negated = TreeNode.property;
+	negated = property;
 	init = function (self, values)
 		if not values then
 			Exception "values expected"
@@ -928,8 +929,8 @@ local QuerySet = Object:extend{
 
 local Paginator = Object:extend{
 	__tag = .....".Paginator";
-	model = Object.property;
-	onPage = Object.property;
+	model = property(Model);
+	onPage = property "number";
 	init = function (self, model, onPage)
 		self:model(model)
 		self:onPage(onPage)
