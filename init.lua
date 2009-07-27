@@ -341,7 +341,7 @@ local Widget = Object:extend{
 local init = function (params)
 	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
 	core:templater(params.templater or require "luv.templaters".Tamplier (params.templatesDirs))
-	core:session(sessions.Session(core:wsApi(), sessions.SessionFile(params.sessionDir)))
+	core:session(sessions.Session(core:wsApi(), sessions.SessionFile(params.sessionsDir)))
 	core:dsn(params.dsn)
 	core:debugger(params.debugger)
 	if params.cacher then core:cacher(params.cacher) end

@@ -54,7 +54,7 @@ local SessionFile = Object:extend{
 	end;
 	dir = function (self, ...)
 		if select("#", ...) > 0 then
-			self._dir = select(1, ...)
+			self._dir = (select(1, ...))
 			if not self._dir.isA or not self._dir:isA(Dir) then
 				self._dir = Dir(self._dir)
 			end
