@@ -357,7 +357,7 @@ local Model = Struct:extend{
 	end;
 	-- Create and drop
 	htmlId = function (self)
-		return self:tableName()
+		return self:tableName()..self.pk
 	end;
 	tableName = function (self, ...)
 		if select("#", ...) > 0 then

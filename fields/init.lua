@@ -56,6 +56,7 @@ local Field = Object:extend{
 		self:onChange(params.onChange)
 		self:hint(params.hint)
 		if params.choices then self:choices(params.choices) end
+		if params.classes then self:classes(params.classes) end
 		self:required(params.required)
 		self:defaultValue(params.defaultValue)
 		return self

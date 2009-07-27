@@ -218,7 +218,7 @@ local ModelForm = Form:extend{
 			return self.Meta.model
 		end
 	end;
-	pk = function (self) return self:model():pk() end;
+	pkField = function (self) return self:model():pkField() end;
 	pkName = function (self) return self:model():pkName() end;
 	initModel = function (self, model)
 		if not model or not model:isA(self:model()) then
