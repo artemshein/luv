@@ -7,6 +7,7 @@ local fs = require "luv.fs"
 local crypt = require "luv.crypt"
 
 module(...)
+local property = Object.property;
 
 local Exception = Exception:extend{__tag = .....".Exception"}
 local Http4xx = Exception:extend{__tag = .....".Http4xx"}
@@ -15,7 +16,7 @@ local Http404 = Http4xx:extend{__tag = .....".Http404"}
 
 local HttpRequest = Object:extend{
 	__tag = .....".HttpRequest";
-	backend = Object.property;
+	backend = property;
 	init = function (self, backend)
 		self:backend(backend)
 	end;
@@ -46,7 +47,7 @@ local HttpRequest = Object:extend{
 
 local HttpResponse = Object:extend{
 	__tag = .....".HttpResponse";
-	backend = Object.property;
+	backend = property;
 	init = function (self, backend, content)
 		self:backend(backend)
 		self:content(content)
@@ -142,7 +143,7 @@ local Cgi = Api:extend{
 	_cookies = {};
 	_get = {};
 	_post = {};
-	tmpDir = Object.property;
+	tmpDir = property;
 	new = function (self, tmpDir)
 		self:tmpDir(tmpDir)
 		if not self._write then

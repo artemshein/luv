@@ -8,6 +8,8 @@ local Exception, try = exceptions.Exception, exceptions.try
 local html = require "luv.utils.html"
 
 module(...)
+local abstract = Object.abstractMethod
+local property = Object.property
 
 local Api = Object:extend{
 	__tag = .....".Api";
@@ -27,17 +29,17 @@ local Api = Object:extend{
 	addTemplatesDir = function (self, dir)
 		table.insert(self._templatesDirs, dir)
 	end;
-	display = Object.abstractMethod;
-	fetch = Object.abstractMethod;
-	fetchString = Object.abstractMethod;
-	displayString = Object.abstractMethod;
-	assign = Object.abstractMethod;
-	clear = Object.abstractMethod;
+	display = abstract;
+	fetch = abstract;
+	fetchString = abstract;
+	displayString = abstract;
+	assign = abstract;
+	clear = abstract;
 }
 
 local SafeHtml = Object:extend{
 	__tag = .....".SafeHtml";
-	html = Object.property;
+	html = property;
 	init = function (self, html)
 		self:html(html)
 	end;

@@ -5,21 +5,21 @@ local Object = require "luv.oop".Object
 local Exception = require "luv.exceptions".Exception
 
 module(...)
+local property = Object.property
 
 -- Main idea has been stolen from dklab.ru PHP classes.
 -- Big thanks goes to Dmitry Koterov.
 
 local Tag = Object:extend{
 	__tag = .....".Tag";
+	id = property "string";
 	init = function (self, backend, id)
-		self._id = id
-		self._backend = backend
+		self:id(id)
+		self:backend(backend)
 	end;
 	clear = function (self)
-		self._backend:clearTags{self:getNativeId()}
+		self:backend():clearTags{self:id()}
 	end;
-	getNativeId = function (self) return self._id end;
-	getBackend = function (self) return self._backend end;
 }
 
 local slotThruCall = function (self, ...)
@@ -56,6 +56,8 @@ end
 
 local SlotThru = Object:extend{
 	__tag = .....".SlotThru";
+	__call = slotThruCall;
+	__index = slotThruIndex;
 	init = function (self, slot, obj)
 		if not slot or not obj then
 			Exception "Slot and obj expected!"
@@ -63,14 +65,14 @@ local SlotThru = Object:extend{
 		self._slot = slot
 		self._obj = obj
 	end;
-	__call = slotThruCall;
-	__index = slotThruIndex;
 }
 
 local Slot = Object:extend{
 	__tag = .....".Slot";
+	id = property "string";
+	defaultLifetime = property;
 	init = function (self, backend, id, lifetime)
-		self._id = id
+		self:id(id)
 		self._lifetime = lifetime
 		self._backend = backend
 		self._tags = {}
@@ -79,20 +81,20 @@ local Slot = Object:extend{
 	set = function (self, data)
 		local tags = {}
 		for _, tag in ipairs(self._tags) do
-			table.insert(tags, tag:getNativeId())
+			table.insert(tags, tag:id())
 		end
 		return self._backend:set(self._id, data, tags, self._lifetime)
 	end;
-	delete = function (self) self.backend:delete(self._id) end;
+	delete = function (self) self._backend:delete(self._id) end;
 	addTag = function (self, tag)
-		if tag:getBackend() ~= self._backend then
+		if tag:backend() ~= self._backend then
 			Exception"Backends for tag and slot must be the same"
 		end
 		table.insert(self._tags, tag)
 	end;
-	getLifetime = function (self) return self._lifetime end;
-	setLifetime = function (self, lifetime) self._lifetime = lifetime return self end;
 	thru = function (self, obj) return SlotThru(self, obj) end;
 }
 
-return {Slot=Slot;Tag=Tag}
+return {
+	Slot=Slot;Tag=Tag;
+}

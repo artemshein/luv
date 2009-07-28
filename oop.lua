@@ -65,45 +65,56 @@ local Object = {
 	property = function () end;
 }
 
-local TypedProperty = Object:extend{
-	__tag = .....".TypedProperty";
+local Property = Object:extend{
+	__tag = .....".Property";
 	type = Object.property;
-	init = function (self, type)
-		self:type(type)
+	getter = Object.property;
+	setter = Object.property;
+	init = function (self, propType, getter, setter)
+		self:type(propType)
+		self:getter(getter)
+		self:setter(setter)
 	end;
 	createGetterAndSetter = function (self, name)
-		local propType = self:type()
-		if "string" == type(propType) then
-			return function (self, ...)
-				if 0 == select("#", ...) then
-					return self["_"..name]
-				else
-					local val = (select(1, ...))
-					if propType ~= type(val) then
-						error(propType.." expected "..type(val).." given "..debug.traceback())
+		local propType, getter, setter = self:type(), self:getter(), self:setter()
+		local typeTest
+		if propType then
+			if "string" == type(propType) then
+				typeTest = function (value)
+					local valueType = type(value)
+					if propType ~= valueType then
+						error(propType.." expected "..valueType.." given "..debug.traceback())
 					end
-					self["_"..name] = val
-					return self
+				end
+			else
+				typeTest = function (value)
+					if not value or not value.isA or not value:isA(propType) then
+						error("invalid type of parameter "..debug.traceback())
+					end
 				end
 			end
 		else
-			return function (self, ...)
-				if 0 == select("#", ...) then
-					return self["_"..name]
-				else
-					local val = (select(1, ...))
-					if not val or not val.isA or not val:isA(propType) then
-						error("given parameter type is not valid "..debug.traceback())
-					end
-					self["_"..name] = val
-					return self
-				end
+			typeTest = function () end
+		end
+		if not getter then
+			getter = function (self) return self["_"..name] end
+		end
+		if not setter then
+			setter = function (self, value) self["_"..name] = value return self end
+		end
+		return function (self, ...)
+			if 0 == select("#", ...) then
+				return getter(self)
+			else
+				local value = (select(1, ...))
+				typeTest(value)
+				return setter(self, value)
 			end
 		end
 	end;
 }
 
-Object.property = function (propType) return TypedProperty(propType) end
+Object.property = function (propType, getter, setter) return Property(propType, getter, setter) end
 
 processProperties = function  (self)
 	local property = self.property
@@ -117,7 +128,7 @@ processProperties = function  (self)
 					return self
 				end
 			end
-		elseif "table" == type(v) and v.isA and v:isA(TypedProperty) then
+		elseif "table" == type(v) and v.isA and v:isA(Property) then
 			self[k] = v:createGetterAndSetter(k)
 		end
 	end

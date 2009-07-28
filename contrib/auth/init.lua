@@ -48,7 +48,7 @@ local User = models.Model:extend{
 	sessId = "LUV_AUTH";
 	secretSalt = "";
 	-- Fields
-	isActive = fields.Boolean{defaultValue=true;label="active user"};
+	isActive = fields.Boolean{defaultValue=true;label=tr"active user"};
 	login = fields.Login();
 	name = fields.Text();
 	email = fields.Email();

@@ -2,6 +2,7 @@ local error, tr, select = error, tr, select
 local require, tostring = require, tostring
 local pairs, tonumber, ipairs, os, type, io = pairs, tonumber, ipairs, os, type, io
 local table = require "luv.table"
+local require = require
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
 local fs, Struct = require "luv.fs", require "luv".Struct
 local exceptions = require "luv.exceptions"
@@ -16,6 +17,26 @@ local property = Object.property
 
 local Field = Object:extend{
 	__tag = .....".Field";
+	required = property("boolean", nil, function (self, value)
+		self._required = value
+		if self._required then
+			self:validator("filled", validators.Filled())
+			self:addClass "required"
+		end
+		return self
+	end);
+	id = property("string", function (self)
+		if not self._id then
+			self:id(self:container():htmlId()..string.capitalize(self:name()))
+		end
+		return self._id
+	end);
+	label = property("string", function (self)
+		if not self._label then
+			self:label(capitalize(tr(self:name())))
+		end
+		return self._label
+	end);
 	validators = property "table";
 	errors = property "table";
 	container = property(Struct);
@@ -50,57 +71,22 @@ local Field = Object:extend{
 		self:pk(params.pk or false)
 		self:unique(params.unique or false)
 		self:required(params.required or false)
-		self:label(params.label)
+		if params.label then self:label(params.label) end
 		if params.widget then self:widget(params.widget) end
 		self:onClick(params.onClick)
 		self:onChange(params.onChange)
 		self:hint(params.hint)
 		if params.choices then self:choices(params.choices) end
 		if params.classes then self:classes(params.classes) end
-		self:required(params.required)
+		self:required(params.required or false)
 		self:defaultValue(params.defaultValue)
 		return self
-	end,
-	required = function (self, ...)
-		if select("#", ...) > 0 then
-			self._required = (select(1, ...))
-			if self._required then
-				self:validator("filled", validators.Filled())
-				self:addClass "required"
-			end
-			return self
-		else
-			return self._required
-		end
 	end;
-	id = function (self, ...)
-		if select("#", ...) > 0 then
-			self._id = (select(1, ...))
-			return self
-		else
-			local container = self:container()
-			if not self._id then
-				self._id = container:htmlId()..string.capitalize(self:name())
-			end
-			return self._id
-		end
-	end;
-	label = function (self, ...)
-		if select("#", ...) > 0 then
-			self._label = (select(1, ...))
-			return self
-		else
-			if not self._label then
-				self:label(capitalize(tr(self:name())))
-			end
-			return self._label
-		end
-	end;
-	addError = function (self, error) table.insert(self._errors, error) return self end,
+	addError = function (self, error) table.insert(self._errors, error) return self end;
 	addErrors = function (self, errors)
 		for _, v in ipairs(errors) do table.insert(self._errors, v) end
 		return self
-	end,
+	end;
 	addClass = function (self, class)
 		self._classes = self._classes or {}
 		if not table.ifind(self._classes, class) then
@@ -262,7 +248,7 @@ local File = Text:extend{
 	value = function (self, ...)
 		if select("#", ...) > 0 then
 			local val = (select(1, ...))
-			if 'table' == type(val) then
+			if "table" == type(val) then
 				val = val.tmpFilePath
 			end
 			Text.value(self, val)
@@ -563,7 +549,7 @@ local Datetime = Field:extend{
 		if self:value() then
 			return os.date(self._defaultFormat, self:value())
 		end
-		return ''
+		return ""
 	end;
 	getMinLength = function (self) return 19 end;
 	getMaxLength = function (self) return 19 end;
