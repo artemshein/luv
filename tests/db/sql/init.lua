@@ -1,4 +1,4 @@
-local TestCase, db = require "luv.dev.unittest".TestCase, require "luv.db"
+local TestCase, sql = require "luv.dev.unittest".TestCase, require "luv.db.sql"
 
 module(...)
 
@@ -10,8 +10,8 @@ local Factory = TestCase:extend{
 	validDsn = validDsn,
 	testConnect = function (self)
 		self.assertThrows(function () db.Factory(self.invalidDsn) end)
-		local v = db.Factory(self.validDsn)
-		self.assertTrue(v:isA(db.Driver))
+		local v = sql.Factory(self.validDsn)
+		self.assertTrue(v:isA(sql.Driver))
 	end
 }
 
@@ -19,7 +19,7 @@ local Driver = TestCase:extend{
 	__tag = .....".Driver",
 	dsn = validDsn,
 	testQueries = function (self)
-		local v = db.Factory(self.dsn)
+		local v = sql.Factory(self.dsn)
 		v:query("DROP TABLE ?#", "test")
 		v:query("CREATE TABLE ?# (?# INTEGER PRIMARY KEY, ?# VARCHAR(255))", "test", "num", "title")
 		self.assertEquals(v:query("INSERT INTO ?# SET ?v", "test", {num=10, title="abc"}), 1)

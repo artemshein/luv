@@ -203,9 +203,9 @@ local Memcached = Backend:extend{
 		end
 		if table.isEmpty(options.servers) then
 			options.servers = {{
-				host = self.defaultHost;
-				port = self.defaultPort;
-				persistent = self.defaultPersistent;
+				host = self._defaultHost;
+				port = self._defaultPort;
+				persistent = self._defaultPersistent;
 			}}
 		end
 		self.options = options

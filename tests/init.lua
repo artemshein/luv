@@ -2,31 +2,29 @@ local TestSuite = require "luv.dev.unittest".TestSuite
 
 module(...)
 
-local all = TestSuite(
+local all = TestSuite{
 	-- Base functional
-	"luv.tests.self", "luv.tests.string", "luv.tests.table", "luv.tests.function", "luv.tests.checktypes", "luv.tests.oop", "luv.tests.utils",
+	"luv.tests.self";"luv.tests.string";"luv.tests.table";"luv.tests.function";"luv.tests.checktypes";"luv.tests.oop";"luv.tests.utils";
 	-- Crypt
-	"luv.tests.crypt",
+	"luv.tests.crypt";
 	-- Template engines
-	"luv.tests.templaters.tamplier",
+	"luv.tests.templaters.tamplier";
 	-- Database
-	"luv.tests.db", "luv.tests.db.mysql",
+	"luv.tests.db.sql";"luv.tests.db.sql.mysql";"luv.tests.db.keyvalue.redis";
 	-- Validators
-	"luv.tests.validators",
+	"luv.tests.validators";
 	-- Fields
-	"luv.tests.fields",
+	"luv.tests.fields";
 	-- Widgets ()
 	--"Tests.Widgets.InputField",
 	-- QuerySet
 	--"luv.tests.querySet",
 	-- Models
-	"luv.tests.db.models",
+	"luv.tests.db.models";
 	-- Forms
-	"luv.tests.forms",
+	"luv.tests.forms";
 	-- Cache
-	"luv.tests.cache"
-)
-
-return {
-	all = all
+	"luv.tests.cache";
 }
+
+return {all=all}

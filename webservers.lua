@@ -423,11 +423,8 @@ local SocketAppServer = Object:extend{
 	end
 }
 
-return {HttpRequest=HttpRequest;HttpResponse=HttpResponse;
-	Exception = Exception,
-	Api = Api,
-	Cgi = Cgi,
-	Scgi = Scgi,
-	SocketAppServer = SocketAppServer;
-	Exception=Exception;Http403=Http403;Http404=Http404;
+return {
+	HttpRequest=HttpRequest;HttpResponse=HttpResponse;
+	Exception=Exception;Api=Api;Cgi=Cgi;Scgi=Scgi;
+	SocketAppServer=SocketAppServer;Http403=Http403;Http404=Http404;
 }

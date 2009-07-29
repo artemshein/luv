@@ -2,14 +2,12 @@ local table = require"luv.table"
 local string = require"luv.string"
 local require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select = require, io, select, type, next, getmetatable, setmetatable, pairs, unpack, tostring, select
 local ipairs = ipairs
-local exceptions = require 'luv.exceptions'
+local exceptions = require"luv.exceptions"
 local Object, Exception, try = require"luv.oop".Object, exceptions.Exception, exceptions.try
 
 module(...)
 
-local MODULE = ...
-
-local Exception = Exception:extend{__tag = .....".Exception"}
+local MODULE = (...)
 
 local Factory = Object:extend{
 	__tag = .....".Factory";
@@ -458,4 +456,4 @@ local Driver = Object:extend{
 	error = function (self) return self._error end;
 }
 
-return {Exception=Exception;Factory=Factory;Driver=Driver}
+return {Factory=Factory;Driver=Driver}

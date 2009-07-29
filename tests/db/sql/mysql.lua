@@ -1,5 +1,5 @@
 local io, tostring = io, tostring
-local TestCase, db, mysql = require "luv.dev.unittest".TestCase, require "luv.db", require "luv.db.mysql"
+local TestCase, sql, mysql = require "luv.dev.unittest".TestCase, require "luv.db.sql", require "luv.db.sql.mysql"
 
 module(...)
 
@@ -9,7 +9,7 @@ return TestCase:extend{
 	__tag = ...,
 	dsn = validDsn,
 	setUp = function (self)
-		self.db = db.Factory(self.dsn)
+		self.db = sql.Factory(self.dsn)
 		self.db:logger(function (sql, result)
 			io.write(sql, "<br />")
 		end)

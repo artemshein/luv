@@ -2,7 +2,7 @@ local table = require "luv.table"
 local string = require "luv.string"
 local dev = require "luv.dev"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
-local tr, error, debug = tr, error, debug
+local error, debug, _G = error, debug, _G
 local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 local crypt, backend = require "luv.crypt", require "luv.cache.backend"
@@ -13,6 +13,11 @@ module(...)
 
 local MODULE = (...)
 local property = Object.property
+
+if not _G.tr then
+	_G.tr = function (str) return str end
+end
+tr = _G.tr
 
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
@@ -124,7 +129,7 @@ local Core = Object:extend{
 	dsn = function (self, ...)
 		if select("#", ...) > 0 then
 			self._dsn = (select(1, ...))
-			self:db(require "luv.db".Factory(self._dsn))
+			self:db(require "luv.db.sql".Factory(self._dsn))
 			require "luv.db.models".Model:db(self:db())
 			self:db():logger(function (sql, result)
 				--io.write("\n", sql, "\n")

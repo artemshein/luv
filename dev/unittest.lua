@@ -1,7 +1,7 @@
 local string = require"luv.string"
 local table = require"luv.table"
 local pairs, io, require, os, type, unpack, tostring = pairs, io, require, os, type, unpack, tostring
-local exceptions = require 'luv.exceptions'
+local exceptions = require"luv.exceptions"
 local Object, Exception, try = require"luv.oop".Object, exceptions.Exception, exceptions.try
 
 module(...)
@@ -24,8 +24,8 @@ local TestCase = Object:extend{
 		end)
 	end;
 	assertNotThrows = function (func, ...) func(...) end;
-	setUp = function (self) end;
-	tearDown = function (self) end;
+	setUp = function () end;
+	tearDown = function () end;
 	run = function (self)
 		local stat = {total = 0, executed = 0, failed = 0, time = os.clock(), methods = {}}
 		local function errorHandler (e)
@@ -39,6 +39,7 @@ local TestCase = Object:extend{
 			self:tearDown()
 			stat.executed = stat.executed+1
 		end
+		require"luv.dev".dprint(self)
 		for key, val in pairs(self) do
 			if string.find(key, "test", 1, true) and type(val) == "function" then
 				stat.total = stat.total+1
@@ -62,8 +63,8 @@ local TestCase = Object:extend{
 local TestSuite = Object:extend{
 	__tag = .....".TestSuite";
 	tests = Object.property;
-	init = function (self, ...)
-		self:tests{...}
+	init = function (self, tests)
+		self:tests(tests)
 	end;
 	run = function (self)
 		local testModule
