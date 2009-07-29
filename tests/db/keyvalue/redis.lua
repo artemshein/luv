@@ -1,3 +1,4 @@
+local require = require
 local table = require"luv.table"
 local TestCase, keyvalue = require"luv.dev.unittest".TestCase, require"luv.db.keyvalue"
 
@@ -18,7 +19,9 @@ local Driver = TestCase:extend{
 	testGetSet = function (self)
 		local redis = self:redis()
 		self.assertNil(redis:get"testKey")
+		self.assertFalse(redis:exists"testKey")
 		self.assertTrue(redis:set("testKey", "testString"))
+		self.assertTrue(redis:exists"testKey")
 		self.assertEquals(redis:get"testKey", "testString")
 		self.assertTrue(redis:set("testKey2", 133))
 		self.assertEquals(redis:get"testKey2", 133)
@@ -53,13 +56,63 @@ local Driver = TestCase:extend{
 		redis:decr("ttt", 8)
 		self.assertEquals(redis:get"ttt", -2)
 	end;
-	--testKeys2 = function (self)
-		--local redis = self:redis()
-		--self.assertTrue(table.isEmpty(redis:keys"*"))
-		--redis:set{abc=123;cde=425;efg=678;aff=124}
-		--self.assertEquals(#redis:keys"*", 4)
-		--self.assertEquals(#redis:keys"a", 2)
-	--end;
+	testKeys2 = function (self)
+		local redis = self:redis()
+		self.assertTrue(table.isEmpty(redis:keys"*"))
+		redis:set{abc=123;cde=425;efg=678;aff=124}
+		self.assertEquals(#redis:keys"*", 4)
+		self.assertEquals(#redis:keys"a*", 2)
+	end;
+	testRename = function (self)
+		local redis = self:redis()
+		redis:set("key", "value")
+		self.assertNil(redis:get"key2")
+		redis:rename("key", "key2")
+		self.assertEquals(redis:get"key2", "value")
+	end;
+	testList = function (self)
+		local redis = self:redis()
+		self.assertFalse(redis:exists"k")
+		redis:rpush("k", "abc")
+		redis:rpush("k", 123)
+		redis:lpush("k", {a=1;b=2;c=3})
+		self.assertEquals(redis:llen"k", 3)
+		redis:lpush("k", false)
+		self.assertEquals(redis:llen"k", 4)
+		self.assertTrue(#redis:lrange("k", 0, 3), 4)
+		self.assertEquals(redis:lrange("k", 0, 3)[1], false)
+		self.assertEquals(redis:lindex("k", 0), false)
+		self.assertEquals(redis:lindex("k", -4), false)
+		self.assertEquals(redis:lindex("k", 1).a, 1)
+		self.assertEquals(redis:lindex("k", -3).a, 1)
+		self.assertEquals(redis:lrange("k", 0, 3)[2].a, 1)
+		self.assertEquals(redis:lrange("k", 0, 3)[2].b, 2)
+		self.assertEquals(redis:lrange("k", 0, 3)[2].c, 3)
+		self.assertEquals(redis:lindex("k", 2), "abc")
+		self.assertEquals(redis:lindex("k", -2), "abc")
+		self.assertEquals(redis:lrange("k", 0, 3)[3], "abc")
+		self.assertEquals(redis:lindex("k", 3), 123)
+		self.assertEquals(redis:lindex("k", -1), 123)
+		self.assertEquals(redis:lrange("k", 0, 3)[4], 123)
+		self.assertTrue(#redis:lrange("k", 0, 1), 2)
+		self.assertTrue(#redis:lrange("k", -1, -4), 4)
+		redis:lset("k", 1, nil)
+		self.assertNil(redis:lindex("k", 1))
+		redis:lrem("k", 0, "abc")
+		require"luv.dev".dprint(redis:llen"k")
+		self.assertEquals(redis:llen"k", 3)
+		self.assertEquals(redis:lpop"k", false)
+		self.assertEquals(redis:rpop"k", 123)
+		self.assertEquals(redis:lpop"k", nil)
+		self.assertEquals(redis:llen"k", 0)
+		
+		for i = 1, 20 do
+			redis:rpush("k", i)
+		end
+		self.assertEquals(redis:llen"k", 20)
+		redis:ltrim("k", 0, 9)
+		self.assertEquals(redis:llen"k", 10)
+	end;
 }
 
 return {Driver=Driver}

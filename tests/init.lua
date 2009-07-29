@@ -10,7 +10,7 @@ local all = TestSuite{
 	-- Template engines
 	"luv.tests.templaters.tamplier";
 	-- Database
-	"luv.tests.db.sql";"luv.tests.db.sql.mysql";"luv.tests.db.keyvalue.redis";
+	"luv.tests.db.sql"; "luv.tests.db.sql.mysql"; "luv.tests.db.keyvalue.redis";
 	-- Validators
 	"luv.tests.validators";
 	-- Fields

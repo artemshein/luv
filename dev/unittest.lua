@@ -39,7 +39,6 @@ local TestCase = Object:extend{
 			self:tearDown()
 			stat.executed = stat.executed+1
 		end
-		require"luv.dev".dprint(self)
 		for key, val in pairs(self) do
 			if string.find(key, "test", 1, true) and type(val) == "function" then
 				stat.total = stat.total+1
