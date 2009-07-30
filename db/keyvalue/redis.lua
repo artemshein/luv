@@ -6,39 +6,59 @@ local serialize, unserialize = string.serialize, string.unserialize
 
 module(...)
 
-local function get (socket)
+local function get (socket, rawFlag)
 	local res = socket:receive()
 	if string.slice(res, 1, 1) ~= "$" then
-		Driver.Exception"invalid server answer"
+		Driver.Exception(res)
 	end
 	local len = tonumber(string.slice(res, 2))
 	if -1 == len then
 		res = nil
 	else
-		res = unserialize(socket:receive(len))
+		res = 0 == len and "" or socket:receive(len)
 		socket:receive()
+		if not rawFlag then
+			res = unserialize(res)
+		end
 	end
 	return res
 end
 
-local function set (socket, key, value)
-	if nil == value then
-		socket:send("DEL "..key.."\r\n")
-	else
-		value = serialize(value)
-		socket:send("SET "..key.." "..string.len(value).."\r\n"..value.."\r\n")
-	end
+local function status (socket)
 	local res = socket:receive()
-	if string.slice(res, 1, 1) == "-" then
+	if "+" ~= string.slice(res, 1, 1) then
 		Driver.Exception(res)
 	end
 end
 
-local function status (socket)
+local function numeric (socket)
 	local res = socket:receive()
-	if "+OK" ~= res then
+	if ":" ~= string.slice(res, 1, 1) then
 		Driver.Exception(res)
 	end
+	return tonumber(string.slice(res, 2))
+end
+
+local function bulk (socket, keys)
+	local res = socket:receive()
+	if "*" ~= string.slice(res, 1, 1) then
+		Driver.Exception(res)
+	end
+	local count = tonumber(string.slice(res, 2))
+	local result = {}
+	if keys then
+		for i = 1, count do
+			result[keys[i]] = get(socket)
+		end
+	else
+		for i = 1, count do
+			res = get(socket)
+			if nil ~= res then
+				table.insert(result, res)
+			end
+		end
+	end
+	return result
 end
 
 local RedisDriver = Driver:extend{
@@ -49,15 +69,13 @@ local RedisDriver = Driver:extend{
 		if not tcpSocket then
 			Driver.Exception(error)
 		end
-		if pass then
-			tcpSocket:send("AUTH "..pass.."\r\n")
-			local res = tcpSocket:receive()
-			if string.slice(res, 1, 1) ~= "+" then
-				Driver.Exception(res)
-			end
-		end
 		self:socket(tcpSocket)
-		self:ping()
+		if pass then
+			self:auth(pass)
+		end
+		if schema then
+			self:select(schema)
+		end
 	end;
 	ping = function (self)
 		local socket = self:socket()
@@ -65,41 +83,58 @@ local RedisDriver = Driver:extend{
 		if not res then
 			Driver.Exception(error)
 		end
-		if "+PONG" ~= socket:receive() then
-			return false
-		end
-		return true
+		status(socket)
+		return self
+	end;
+	auth = function (self, pass)
+		local socket = self:socket()
+		socket:send("AUTH "..pass.."\r\n")
+		status(socket)
+		return self
+	end;
+	select = function (self, schema)
+		local socket = self:socket()
+		socket:send("SELECT "..schema.."\r\n")
+		status(socket)
+		return self
 	end;
 	get = function (self, keyOrKeys)
 		local socket = self:socket()
 		if "table" == type(keyOrKeys) then
 			socket:send("MGET "..table.join(keyOrKeys, " ").."\r\n")
-			local res = socket:receive()
-			if string.slice(res, 1, 1) ~= "*" then
-				Driver.Exception"invalid server answer"
-			end
-			local resCount = tonumber(string.slice(res, 2))
-			if resCount ~= #keyOrKeys then
-				Driver.Exception"invalid answer (number of values)"
-			end
-			local result = {}
-			for i = 1, resCount do
-				result[keyOrKeys[i] ] = get(socket)
-			end
-			return result
+			return bulk(socket, keyOrKeys)
 		else
 			socket:send("GET "..keyOrKeys.."\r\n")
 			return get(socket)
 		end
 	end;
 	set = function (self, key, value)
+		local function setOne (socket, key, value)
+			if nil == value then
+				socket:send("DEL "..key.."\r\n")
+				numeric(socket)
+			else
+				value = serialize(value)
+				socket:send("SET "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+				status(socket)
+			end
+		end
 		local socket = self:socket()
 		if "table" == type(key) then
+			local delKeys = {}
 			for k, v in pairs(key) do
-				set(socket, k, v)
+				if nil == v then
+					table.insert(delKeys, k)
+				else
+					setOne(socket, k, v)
+				end
+			end
+			if not table.isEmpty(delKeys) then
+				socket:send("DEL "..table.join(key, " ").."\r\n")
+				numeric(socket)
 			end
 		else
-			set(socket, key, value)
+			setOne(socket, key, value)
 		end
 		return self
 	end;
@@ -111,11 +146,7 @@ local RedisDriver = Driver:extend{
 		else
 			socket:send("INCR "..key.."\r\n")
 		end
-		local res = socket:receive()
-		if string.slice(res, 1, 1) ~= ":" then
-			Driver.Exception"invalid server answer"
-		end
-		return tonumber(string.slice(res, 2))
+		return numeric(socket)
 	end;
 	decr = function (self, key, value)
 		local socket = self:socket()
@@ -124,11 +155,7 @@ local RedisDriver = Driver:extend{
 		else
 			socket:send("DECR "..key.."\r\n")
 		end
-		local res = socket:receive()
-		if string.slice(res, 1, 1) ~= ":" then
-			Driver.Exception"invalid server answer"
-		end
-		return tonumber(string.slice(res, 2))
+		return numeric(socket)
 	end;
 	flush = function (self)
 		local socket = self:socket()
@@ -139,27 +166,13 @@ local RedisDriver = Driver:extend{
 	keys = function (self, pattern)
 		local socket = self:socket()
 		socket:send("KEYS "..pattern.."\r\n")
-		local res = socket:receive()
-		if string.slice(res, 1, 1) ~= "$" then
-			Driver.Exception"inalid server answer"
-		end
-		local len = tonumber(string.slice(res, 2))
-		if 0 == len then
-			socket:receive()
-			return {}
-		end
-		res = socket:receive(len)
-		socket:receive()
-		return string.explode(res, " ")
+		local res = get(socket, true)
+		return res ~= "" and string.explode(res, " ") or {}
 	end;
 	exists = function (self, key)
 		local socket = self:socket()
 		socket:send("EXISTS "..key.."\r\n")
-		local res = socket:receive()
-		if string.slice(res, 1, 1) ~= ":" then
-			Driver.Exception"invalid server answer"
-		end
-		return res == ":1" and true or false
+		return numeric(socket) == 1
 	end;
 	rename = function (self, oldname, newname)
 		local socket = self:socket()
@@ -185,24 +198,12 @@ local RedisDriver = Driver:extend{
 	llen = function (self, key)
 		local socket = self:socket()
 		socket:send("LLEN "..key.."\r\n")
-		local res = socket:receive()
-		if ":" ~= string.slice(res, 1, 1) then
-			Driver.Exception(res)
-		end
-		return tonumber(string.slice(res, 2))
+		return numeric(socket)
 	end;
 	lrange = function (self, key, from, to)
 		local socket = self:socket()
 		socket:send("LRANGE "..key.." "..from.." "..to.."\r\n")
-		local res = socket:receive()
-		if "*" ~= string.slice(res, 1, 1) then
-			Driver.Exception"invalid server answer"
-		end
-		local result = {}
-		for i = 1, tonumber(string.slice(res, 2)) do
-			result[i] = get(socket)
-		end
-		return result
+		return bulk(socket)
 	end;
 	ltrim = function (self, key, from, to)
 		local socket = self:socket()
@@ -224,13 +225,9 @@ local RedisDriver = Driver:extend{
 	end;
 	lrem = function (self, key, count, value)
 		local socket = self:socket()
-		value = serialize(socket)
+		value = serialize(value)
 		socket:send("LREM "..key.." "..count.." "..string.len(value).."\r\n"..value.."\r\n")
-		local res = socket:receive()
-		if ":" ~= string.slice(res, 1, 1) then
-			Driver.Exception(res)
-		end
-		return tonumber(string.slice(res, 2))
+		return numeric(socket)
 	end;
 	lpop = function (self, key)
 		local socket = self:socket()
@@ -241,6 +238,71 @@ local RedisDriver = Driver:extend{
 		local socket = self:socket()
 		socket:send("RPOP "..key.."\r\n")
 		return get(socket)
+	end;
+	-- Union processing
+	sadd = function (self, key, value)
+		local socket = self:socket()
+		value = serialize(value)
+		socket:send("SADD "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		return numeric(socket) == 1
+	end;
+	srem = function (self, key, value)
+		local socket = self:socket()
+		value = serialize(value)
+		socket:send("SREM "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		return numeric(socket) == 1
+	end;
+	smove = function (self, src, dest, value)
+		local socket = self:socket()
+		value = serialize(value)
+		socket:send("SMOVE "..src.." "..dest.." "..string.len(value).."\r\n"..value.."\r\n")
+		return numeric(socket) == 1
+	end;
+	scard = function (self, key)
+		local socket = self:socket()
+		socket:send("SCARD "..key.."\r\n")
+		return numeric(socket)
+	end;
+	sismember = function (self, key, value)
+		local socket = self:socket()
+		value = serialize(value)
+		socket:send("SISMEMBER "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		return numeric(socket) == 1
+	end;
+	sinter = function (self, keys)
+		local socket = self:socket()
+		socket:send("SINTER "..table.join(keys, " ").."\r\n")
+		return bulk(socket)
+	end;
+	sinterstore = function (self, dest, keys)
+		local socket = self:socket()
+		socket:send("SINTERSTORE "..dest.." "..table.join(keys, " ").."\r\n")
+		return numeric(socket)
+	end;
+	sunion = function (self, keys)
+		local socket = self:socket()
+		socket:send("SUNION "..table.join(keys, " ").."\r\n")
+		return bulk(socket)
+	end;
+	sunionstore = function (self, dest, keys)
+		local socket = self:socket()
+		socket:send("SUNIONSTORE "..dest.." "..table.join(keys, " ").."\r\n")
+		return numeric(socket)
+	end;
+	sdiff = function (self, keys)
+		local socket = self:socket()
+		socket:send("SDIFF "..table.join(keys, " ").."\r\n")
+		return bulk(socket)
+	end;
+	sdiffstore = function (self, dest, keys)
+		local socket = self:socket()
+		socket:send("SDIFFSTORE "..dest.." "..table.join(keys, " ").."\r\n")
+		return numeric(socket)
+	end;
+	smembers = function (self, key)
+		local socket = self:socket()
+		socket:send("SMEMBERS "..key.."\r\n")
+		return bulk(socket)
 	end;
 }
 
