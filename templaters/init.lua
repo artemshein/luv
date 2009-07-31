@@ -176,7 +176,7 @@ local Tamplier = Api:extend{
 		io.write(self:fetchString(str))
 	end;
 	getTemplateContents = function (self, template)
-		if "table" ~= type(self._templatesDirs) or table.isEmpty(self._templatesDirs) then
+		if "table" ~= type(self._templatesDirs) or table.empty(self._templatesDirs) then
 			local tpl = fs.File(template)
 			if tpl:isExists() then
 				return tpl:openReadAndClose "*a"

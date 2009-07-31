@@ -116,6 +116,18 @@ local Core = Object:extend{
 	profiler = property;
 	debugger = property;
 	i18n = property;
+	dsn = property(nil, nil, function (self, dsn)
+		local drivers = {mysql="sql";redis="keyvalue"}
+		self._dsn = dsn
+		local db = require("luv.db."..drivers[string.lower(string.slice(dsn, 1, string.find(dsn, ":")-1))]).Factory(dsn)
+		require"luv.db.models".Model:db(db)
+		db:logger(function (sql, result)
+			--io.write("\n", sql, "\n")
+			self:debug(sql, "Database")
+		end)
+		self:db(db)
+		return self
+	end);
 	-- Init
 	init = function (self, wsApi)
 		self:profiler(dev.Profiler())
@@ -126,20 +138,6 @@ local Core = Object:extend{
 		self:cacher(TagEmuWrapper(Memory()))
 	end;
 	-- Database
-	dsn = function (self, ...)
-		if select("#", ...) > 0 then
-			self._dsn = (select(1, ...))
-			self:db(require "luv.db.sql".Factory(self._dsn))
-			require "luv.db.models".Model:db(self:db())
-			self:db():logger(function (sql, result)
-				--io.write("\n", sql, "\n")
-				self:debug(sql, "Database")
-			end)
-			return self
-		else
-			return self._dsn
-		end
-	end;
 	beginTransaction = function (self) return self._db:beginTransaction() end;
 	commit = function (self) return self._db:commit() end;
 	rollback = function (self) return self._db:rollback() end;
@@ -321,7 +319,7 @@ local Struct = Object:extend{
 				end
 			end
 		end
-		return table.isEmpty(self:errors())
+		return table.empty(self:errors())
 	end;
 	addError = function (self, error) table.insert(self._errors, error) return self end;
 	addErrors = function (self, errors)

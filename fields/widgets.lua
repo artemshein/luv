@@ -29,7 +29,7 @@ local Field = Widget:extend{
 		return ""
 	end;
 	_renderClasses = function (self, f)
-		if f:classes() and not table.isEmpty(f:classes()) then
+		if f:classes() and not table.empty(f:classes()) then
 			return " class="..string.format("%q", table.join(f:classes(), " "))
 		end
 		return ""

@@ -1,5 +1,5 @@
-local table = require "luv.table"
-local string = require "luv.string"
+local table = require"luv.table"
+local string = require"luv.string"
 local os, debug = os, debug
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
@@ -9,10 +9,12 @@ local crypt = require "luv.crypt"
 local TreeNode = require "luv.utils".TreeNode
 local f = require "luv.function".f
 local json = require "luv.utils.json"
+local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
 
 module(...)
 
 local MODULE = (...)
+local abstract = Object.abstractMethod
 local property = Object.property
 
 local ModelTag = cache.Tag:extend{
@@ -34,7 +36,7 @@ local ModelSqlSlot = cache.Slot:extend{
 	__tag = .....".ModelSqlSlot";
 	init = function (self, backend, model, sql)
 		if not backend or not model or not sql then
-			Exception "3 parameters expected!"
+			Exception"3 parameters expected"
 		end
 		self.sql = sql
 		cache.Slot.init(self, backend, tostring(crypt.Md5(tostring(sql))))
@@ -51,6 +53,7 @@ local Model = Struct:extend{
 	__tostring = function (self) return tostring(self.pk) end;
 	cacher = property;
 	ajaxUrl = property "string";
+	db = property;
 	createBackLinksFieldsFrom = function (self, model)
 		for _, v in ipairs(model:referenceFields(self)) do
 			if not self:field(v:relatedName() or Exception("relatedName required for "..v:name().." field")) then
@@ -85,7 +88,7 @@ local Model = Struct:extend{
 				hasPk = hasPk or v:pk()
 			end
 		end
-		if not table.isEmpty(new:fields()) then
+		if not table.empty(new:fields()) then
 			if not hasPk then new:addField("id", fields.Id()) end
 			for _, v in ipairs(self.modelsList) do
 				new:createBackLinksFieldsFrom(v)
@@ -100,9 +103,9 @@ local Model = Struct:extend{
 		Struct.init(self, values)
 		local classFields = self:fields()
 		if not classFields then
-			Exception "abstract model can't be created (extend it first)"
+			Exception"abstract model can't be created (extend it first)"
 		end
-		self:fields(table.map(classFields, f "a:clone()"))
+		self:fields(table.map(classFields, f"a:clone()"))
 		if values then
 			if type(values) == "table" then
 				self:values(values)
@@ -113,7 +116,7 @@ local Model = Struct:extend{
 	end;
 	clone = function (self)
 		local new = Struct.clone(self)
-		new:fields(table.map(self:fields(), f "a:clone()"))
+		new:fields(table.map(self:fields(), f"a:clone()"))
 		return new
 	end;
 	__eq = function (self, second)
@@ -154,14 +157,6 @@ local Model = Struct:extend{
 			end
 		end
 		return nil
-	end;
-	db = function (self, ...)
-		if select("#", ...) > 0 then
-			rawset(self, "_db", (select(1, ...)))
-			return self
-		else
-			return self._db
-		end
 	end;
 	label = function (self, ...)
 		if select("#", ...) > 0 then
@@ -212,28 +207,53 @@ local Model = Struct:extend{
 		end
 	end;
 	find = function (self, what)
-		local new = self()
-		local select = self._db:SelectRow():from(self:tableName())
-		if type(what) == "table" then
-			for name, f in pairs(self:fields()) do
-				local value = what[name]
-				if value then
-					select:where("?#="..self:fieldPlaceholder(f), name, value)
+		local db = self:db()
+		local values
+		if db:isA(sql.Driver) then
+			local select = self._db:SelectRow():from(self:tableName())
+			if type(what) == "table" then
+				for name, f in pairs(self:fields()) do
+					local value = what[name]
+					if value then
+						select:where("?#="..self:fieldPlaceholder(f), name, value)
+					end
+				end
+			else
+				local pk = self:pk()
+				select:where("?#="..self:fieldPlaceholder(pk), pk:name(), what)
+			end
+			values = self:cacher() and ModelSqlSlot(self:cacher(), self, select)() or select()
+		elseif db:isA(Redis) then
+			if "table" == type(what) then
+				Exception"not implemented"
+			else
+				local tableName = self:tableName()
+				keys = db:keys(self:tableName()..":"..what..":*")
+				if not table.isEmpty(keys) then
+					local vals = db:get(keys)
+					values = {}
+					for k, v in pairs(vals) do
+						values[string.slice(k, string.findLast(k, ":")+1)] = v
+					end
 				end
 			end
 		else
-			local pk = self:pk()
-			select:where("?#="..self:fieldPlaceholder(pk), pk:name(), what)
+			Exception"unsupported driver"
 		end
-		local res = self:cacher() and ModelSqlSlot(self:cacher(), self, select)() or select()
-		if not res then
+		if not values then
 			return nil
 		end
-		new:values(res)
-		return new
+		return self(values)
 	end;
 	all = function (self, limitFrom, limitTo)
-		local qs = require "luv.db.models".QuerySet(self)
+		local db, qs = self:db()
+		if db:isA(sql.Driver) then
+			qs = require "luv.db.models".SqlQuerySet(self)
+		elseif db:isA(keyvalue.Driver) then
+			qs = require "luv.db.models".KeyValueQuerySet(self)
+		else
+			Exception"unsupported driver"
+		end
 		if limitFrom then
 			qs:limit(limitFrom, limitTo)
 		end
@@ -246,106 +266,211 @@ local Model = Struct:extend{
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:valid() then
-			Exception "validation error"
+			Exception"validation fail"
 		end
-		local insert = self:db():InsertRow():into(self:tableName())
-		for name, f in pairs(self:fields()) do
-			if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) then
-				if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
-					local val = f:value()
-					if val then
-						val = val:field(f:toField() or val:pkName()):value()
-					end
-					insert:set("?#="..self:fieldPlaceholder(f), name, val)
-				else
-					local val = f:value()
-					if "nil" == type(val) then
-						val = f:defaultValue()
-					end
-					if val then
-						if f:isA(fields.Datetime) then
-							val = os.date("%Y-%m-%d %H:%M:%S", val)
-						elseif f:isA(fields.Date) then
-							val = os.date("%Y-%m-%d", val)
+		local db = self:db()
+		local tableName = self:tableName()
+		if db:isA(sql.Driver) then
+			local insert = db:InsertRow():into(tableName)
+			for name, f in pairs(self:fields()) do
+				if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) then
+					if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
+						local val = f:value()
+						if val then
+							val = val:field(f:toField() or val:pkName()):value()
 						end
+						insert:set("?#="..self:fieldPlaceholder(f), name, val)
+					else
+						local val = f:value()
+						if "nil" == type(val) then
+							val = f:defaultValue()
+						end
+						if val then
+							if f:isA(fields.Datetime) then
+								val = os.date("%Y-%m-%d %H:%M:%S", val)
+							elseif f:isA(fields.Date) then
+								val = os.date("%Y-%m-%d", val)
+							end
+						end
+						insert:set("?#="..self:fieldPlaceholder(f), name, val)
 					end
-					insert:set("?#="..self:fieldPlaceholder(f), name, val)
 				end
 			end
-		end
-		if not insert() then
-			self:addError(self:db():error())
-			return false
-		end
-		-- If Fields.Id than retrieve new generated ID
-		local pk = self:pkField()
-		if pk:isA(fields.Id) then
-			pk:value(self:db():lastInsertId())
-		end
-		-- Save references
-		for _, f in pairs(self:fields()) do
-			if f:isA(references.ManyToMany) then
-				f:insert()
+			if not insert() then
+				self:addError(db:error())
+				return false
 			end
+			-- If Fields.Id than retrieve new generated ID
+			local pk = self:pkField()
+			if pk:isA(fields.Id) then
+				pk:value(db:lastInsertId())
+			end
+			-- Save references
+			for _, f in pairs(self:fields()) do
+				if f:isA(references.ManyToMany) then
+					f:insert()
+				end
+			end
+		elseif db:isA(Redis) then
+			local pk
+			if self:pkField():isA(fields.Id) then
+				self.pk = db:incr(tableName..":lastInsertId")
+			end
+			pk = self.pk
+			db:rpush(tableName, pk)
+			for name, f in pairs(self:fields()) do
+				local value = f:value()
+				if nil == value then
+					value = f:defaultValue()
+				end
+				if value then
+					if f:isA(references.OneToOne) then
+						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:set(tableName..":"..pk..":"..name, value.pk)
+					elseif f:isA(references.OneToMany) then
+						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						local dbKey = tableName..":"..pk..":"..name
+						for _, v in ipairs(value) do
+							db:rpush(dbKey, v)
+						end
+					elseif f:isA(reference.ManyToOne) then
+						db:set(tableName..":"..pk..":"..name, value.pk)
+						db:rpush(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+					elseif f:isA(references.ManyToMany) then
+						db:rpush(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						local dbKey = tableName..":"..pk..":"..name
+						for _, v in ipairs(value) do
+							db:rpush(dbKey, v)
+						end
+					else
+						db:set(tableName..":"..pk..":"..name, value)
+					end
+				end
+			end
+		else
+			Exception"unsupported driver"
 		end
 		self:clearCacheTag()
 		return true
 	end;
 	update = function (self)
 		if not self:valid() then
-			Exception("Validation error! "..require "luv.dev".dump(self:errors()))
+			Exception("validation fail "..require "luv.dev".dump(self:errors()))
 		end
-		local updateRow = self:db():UpdateRow(self:tableName())
-		local pk = self:pkField()
-		local pkName = pk:name()
-		updateRow:where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())
-		for name, f in pairs(self:fields()) do
-			if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) and not f:pk() then
-				if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
-					local val = f:value()
-					if val then
-						val = val:field(f:toField() or val:pkName()):value()
-					end
-					updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
-				else
-					local val = f:value()
-					if "nil" == type(val) then
-						val = f:defaultValue()
-					end
-					if val then
-						if f:isA(fields.Datetime) then
-							val = os.date("%Y-%m-%d %H:%M:%S", val)
-						elseif f:isA(fields.Date) then
-							val = os.date("%Y-%m-%d", val)
+		local db = self:db()
+		local tableName = self:tableName()
+		if db:isA(sql.Driver) then
+			local updateRow = db:UpdateRow(tableName)
+			local pk = self:pkField()
+			local pkName = pk:name()
+			updateRow:where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())
+			for name, f in pairs(self:fields()) do
+				if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) and not f:pk() then
+					if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
+						local val = f:value()
+						if val then
+							val = val:field(f:toField() or val:pkName()):value()
 						end
+						updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
+					else
+						local val = f:value()
+						if nil == val then
+							val = f:defaultValue()
+						end
+						if val then
+							if f:isA(fields.Datetime) then
+								val = os.date("%Y-%m-%d %H:%M:%S", val)
+							elseif f:isA(fields.Date) then
+								val = os.date("%Y-%m-%d", val)
+							end
+						end
+						updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
 					end
-					updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
 				end
 			end
-		end
-		updateRow()
-		for _, f in pairs(self:fields()) do
-			if f:isA(references.ManyToMany) then
-				f:update()
+			updateRow()
+			for _, f in pairs(self:fields()) do
+				if f:isA(references.ManyToMany) then
+					f:update()
+				end
 			end
+		elseif db:isA(Redis) then
+			local pk = self.pk
+			for name, f in pairs(self:fields()) do
+				db:set(tableName..":"..pk..":"..name, nil)
+				local value = f:value()
+				if value then
+					if f:isA(references.OneToOne) then
+						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:set(tableName..":"..pk..":"..name, value.pk)
+					elseif f:isA(references.OneToMany) then
+						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						local dbKey = tableName..":"..pk..":"..name
+						for _, v in ipairs(value) do
+							db:rpush(dbKey, v)
+						end
+					elseif f:isA(reference.ManyToOne) then
+						db:set(tableName..":"..pk..":"..name, value.pk)
+						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName()
+						db:lrem(dbKey, 0, pk)
+						db:rpush(dbKey, pk)
+					elseif f:isA(references.ManyToMany) then
+						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName()
+						db:lrem(dbKey, 0, pk)
+						db:rpush(dbKey, pk)
+						dbKey = tableName..":"..pk..":"..name
+						for _, v in ipairs(value) do
+							db:rpush(dbKey, v)
+						end
+					else
+						db:set(tableName..":"..pk..":"..name, value)
+					end
+				end
+			end
+		else
+			Exception"unsupported driver"
 		end
 		self:clearCacheTag()
 		return true
 	end;
 	save = function (self)
+		local db = self:db()
+		local tableName = self:tableName()
 		local pk = self:pkField()
 		local pkName = pk:name()
-		if not pk:value() or not self:db():SelectCell(pkName):from(self:tableName()):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())() then
-			return self:insert()
+		if db:isA(sql.Driver) then
+			if not pk:value() or not db:SelectCell(pkName):from(tableName):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())() then
+				return self:insert()
+			else
+				return self:update()
+			end
+		elseif db:isA(Redis) then
+			if not pk:value() or not db:get(tableName..":"..pk:value()..":"..pkName) then
+				return self:insert()
+			else
+				return self:update()
+			end
 		else
-			return self:update()
+			Exception"unsupported driver"
 		end
 	end;
 	delete = function (self)
+		local db = self:db()
+		local tableName = self:tableName()
 		local pk = self:pkField()
 		local pkName = pk:name()
 		self:clearCacheTag()
-		return self:db():DeleteRow():from(self:tableName()):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())()
+		if db:isA(sql.Driver) then
+			return db:DeleteRow():from(tableName):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())()
+		elseif db:isA(Redis) then
+			db:lrem(tableName, 0, pk:value())
+			local keys = db:keys(tableName..":"..pk:value()..":*")
+			if not table.empty(keys) then
+				db:del(keys)
+			end
+		else
+			Exception"unsupported driver"
+		end
 	end;
 	create = function (self, ...)
 		local obj = self(...)
@@ -399,35 +524,42 @@ local Model = Struct:extend{
 		elseif field:isA(references.ManyToOne) or field:isA(references.OneToOne) then
 			return self:fieldTypeSql(field:refModel():field(field:toField() or field:refModel():pkName()))
 		else
-			Exception"Unsupported field type!"
+			Exception"unsupported field type"
 		end
 	end;
 	createTable = function (self)
-		local c = self:db():CreateTable(self:tableName())
-		-- Fields
-		local hasPk = false
-		for name, f in pairs(self:fields()) do
-			if not f:isA(references.OneToMany) and not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) then
-				hasPk = hasPk or f:pk()
-				c:field(name, self:fieldTypeSql(f), {
-					primaryKey = f:pk();
-					unique = f:unique();
-					null = not f:required(),
-					serial = f:isA(fields.Id);
-				})
-				if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
-					local onDelete
-					if f:required() or f:pk() then
-						onDelete = "CASCADE"
-					else
-						onDelete = "SET NULL"
+		local db = self:db()
+		if db:isA(sql.Driver) then
+			local c = self:db():CreateTable(self:tableName())
+			-- Fields
+			local hasPk = false
+			for name, f in pairs(self:fields()) do
+				if not f:isA(references.OneToMany) and not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) then
+					hasPk = hasPk or f:pk()
+					c:field(name, self:fieldTypeSql(f), {
+						primaryKey = f:pk();
+						unique = f:unique();
+						null = not f:required(),
+						serial = f:isA(fields.Id);
+					})
+					if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
+						local onDelete
+						if f:required() or f:pk() then
+							onDelete = "CASCADE"
+						else
+							onDelete = "SET NULL"
+						end
+						c:constraint(name, f:tableName(), f:refModel():pkName(), "CASCADE", onDelete)
 					end
-					c:constraint(name, f:tableName(), f:refModel():pkName(), "CASCADE", onDelete)
 				end
 			end
-		end
-		if not c() then
-			return false
+			if not c() then
+				return false
+			end
+		elseif db:isA(Redis) then
+			-- nothing to do?
+		else
+			Exception"unsupported driver"
 		end
 	end;
 	createTables = function (self)
@@ -440,8 +572,20 @@ local Model = Struct:extend{
 		end
 	end,
 	dropTable = function (self)
+		local db = self:db()
+		local tableName = self:tableName()
 		self:clearCacheTag()
-		return self:db():DropTable(self:tableName())()
+		if db:isA(sql.Driver) then
+			return db:DropTable(tableName)()
+		elseif db:isA(Redis) then
+			local keys = db:keys(tableName..":*")
+			if not table.empty(keys) then
+				db:del(keys)
+			end
+		else
+			Exception"unsupported driver"
+		end
+		return self
 	end;
 	dropTables = function (self)
 		for _, f in pairs(self:fields()) do
@@ -464,7 +608,7 @@ local Model = Struct:extend{
 			return false
 		end
 		local F = require "luv.forms".Form:extend{
-			id = self:pk():clone();
+			id = self:pkField():clone();
 			field = fields.Text{required=true};
 			value = self:field(data.field):clone();
 			set = fields.Submit{defaultValue="Set"};
@@ -493,14 +637,14 @@ local Model = Struct:extend{
 
 local Tree = Model:extend{
 	__tag = .....".Tree";
-	hasChildren = Model.abstractMethod;
-	children = Model.abstractMethod;
-	parentNode = Model.abstractMethod;
-	removeChildren = Model.abstractMethod;
-	addChild = Model.abstractMethod;
-	addChildren = Model.abstractMethod;
-	childrenCount = Model.abstractMethod;
-	findRoot = Model.abstractMethod;
+	hasChildren = abstract;
+	children = abstract;
+	parentNode = abstract;
+	removeChildren = abstract;
+	addChild = abstract;
+	addChildren = abstract;
+	childrenCount = abstract;
+	findRoot = abstract;
 }
 
 local NestedSet = Tree:extend{
@@ -654,37 +798,51 @@ local Q = TreeNode:extend{
 
 local QuerySet = Object:extend{
 	__tag = .....".QuerySet";
+	model = property(Model);
+	_evaluated = false;
+	evaluated = property"boolean";
+	orders = property"table";
+	limits = property"table";
+	values = property"table";
+	db = property"table";
+	q = property(Q);
+}
+
+local SqlQuerySet = QuerySet:extend{
+	__tag = .....".SqlQuerySet";
+	query = property;
 	init = function (self, model)
-		self._evaluated = false
-		self._model = model
-		self._orders = {}
-		self._limits = {}
-		self._values = {}
-		self._query = model:db():Select "*":from(self._model:tableName())
+		self:model(model)
+		self:orders{}
+		self:limits{}
+		self:values{}
+		local db = model:db()
+		self:db(db)
+		self:query(db:Select"*":from(model:tableName()))
 	end;
 	clone = function (self)
 		local obj = Object.clone(self)
-		obj._orders = table.copy(obj._orders)
-		obj._limits = table.copy(obj._limits)
-		obj._values = table.copy(obj._values)
-		obj._query = obj._query:clone()
+		obj:orders(table.copy(obj:orders()))
+		obj:limits(table.copy(obj:limits()))
+		obj:values(table.copy(obj:values()))
+		obj:query(obj:query():clone())
 		return obj
 	end;
 	filter = function (self, condition)
 		if not condition then
-			Exception "condition expected"
+			Exception"condition expected"
 		end
 		local obj = self:clone()
-		obj._evaluated = false
-		obj._values = {}
-		obj._q = obj._q and (obj._q + Q(condition)) or Q(condition)
+		obj:evaluated(false)
+		obj:values{}
+		obj:q(obj:q() and (obj:q() + Q(condition)) or Q(condition))
 		return obj
 	end;
 	exclude = function (self, condition)
 		local obj = self:clone()
-		obj._evaluated = false
-		obj._values = {}
-		obj._q = obj._q and (obj._q + -Q(condition)) or -Q(condition)
+		obj:evaluated(false)
+		obj:values{}
+		obj:q(obj:q() and (obj:q() + -Q(condition)) or -Q(condition))
 		return obj
 	end;
 	order = function (self, ...)
@@ -695,7 +853,285 @@ local QuerySet = Object:extend{
 	end;
 	limit = function (self, limitFrom, limitTo)
 		local obj = self:clone()
-		obj._limits = {from=limitFrom;to=limitTo}
+		obj:limits{from=limitFrom;to=limitTo}
+		return obj
+	end;
+	_processFieldName = function (self, s, parts)
+		local curModel = self._model
+		local result = {}
+		for i, part in ipairs(parts) do
+			if "pk" == part then
+				part = curModel:pkName()
+			end
+			local field = curModel:field(part)
+			if not curModel then
+				Exception "invalid field"
+			end
+			if not field then
+				Exception("field "..string.format("%q", part).." not founded")
+			end
+			if field:isA(references.Reference) then
+				result = {field:refModel():tableName()}
+				result.sql = "?#"
+				if i == #parts then
+					table.insert(result, field:refModel():pkName())
+					result.sql = result.sql..".?#"
+				end
+				if field:isA(references.OneToOne) then
+					if field:backLink() then
+						s:join(
+							field:refModel():tableName(),
+							{
+								"?#.?#=?#.?#";
+								curModel:tableName();curModel:pkName();
+								field:refModel():tableName();field:backRefFieldName()
+							}
+						)
+					else
+						s:join(
+							field:refModel():tableName(),
+							{
+								"?#.?#=?#.?#";
+								curModel:tableName();part;
+								field:refModel():tableName();field:refModel():pkName()
+							}
+						)
+					end
+				elseif field:isA(references.OneToMany) then
+					s:join(
+						field:refModel():tableName(),
+						{
+							"?#.?#=?#.?#";
+							curModel:tableName();curModel:pkName();
+							field:refModel():tableName();field:relatedName()
+						}
+					)
+				elseif field:isA(references.ManyToOne) then
+					s:join(
+						field:refModel():tableName(),
+						{"?#.?#=?#.?#";curModel:tableName();part;field:refModel():tableName();field:refModel():pkName()}
+					)
+				elseif field:isA(references.ManyToMany) then
+					s:join(
+						field:tableName(),
+						{
+							"?#.?#=?#.?#";
+							curModel:tableName();curModel:pkName();
+							field:tableName();curModel:tableName()
+						}
+					)
+					s:join(
+						field:refModel():tableName(),
+						{
+							"?#.?#=?#.?#";
+							field:tableName();field:refModel():tableName();
+							field:refModel():tableName();field:refModel():pkName()
+						}
+					)
+				end
+				curModel = field:refModel()
+			else
+				curModel = nil
+				result.field = field
+				result.sql = result.sql and (result.sql..".?#") or "?#"
+				table.insert(result, part)
+			end
+		end
+		return result
+	end;
+	_processFilter = function (self, s, filter)
+		local operators = {
+			eq="=";isnull=" IS NULL";exact="=";lt="<";gt=">";lte="<=";gte=">=";
+			["in"]=" IN (?a)";beginswith=" LIKE ?";endswith=" LIKE ?";contains=" LIKE ?"
+		}
+		local result = {}
+		if "string" == type(filter) then
+			filter = {pk=filter}
+		end
+		for k, v in pairs(filter) do
+			local parts
+			if string.find(k, "__") then
+				parts = string.explode(k, "__")
+			else
+				parts = {k}
+			end
+			local op = parts[table.maxn(parts)]
+			if operators[op] then
+				table.remove(parts)
+			else
+				op = "eq"
+			end
+			local res = self:_processFieldName(s, parts)
+			local valStr, val
+			if "isnull" == op or "in" == op or "beginswith" == op
+			or "endswith" == op or "contains" == op then
+				valStr = operators[op]
+				if "beginswith" == op then
+					v = v.."%"
+				elseif "endswith" == op then
+					v = "%"..v
+				elseif "contains" == op then
+					v ="%"..v.."%"
+				elseif "isnull" == op then
+					if not v then
+						valStr = " IS NOT NULL"
+					end
+				end
+			else
+				valStr = operators[op]..self:model():fieldPlaceholder(res.field or res[#res])
+			end
+			result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
+			for _, val in ipairs(res) do
+				table.insert(result, val)
+			end
+			if "isnull" ~= op then
+				table.insert(result, "table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
+			end
+		end
+		return result
+	end;
+	_processQ = function (self, s, q)
+		local result = {}
+		local op = q:connector()
+		for _, v in ipairs(q:children()) do
+			local res = v.isA and v:isA(Q) and self:_processQ(s, v) or self:_processFilter(s, v)
+			result.sql = (result.sql and (result.sql.." "..op.." ") or "")..res.sql
+			for _, value in ipairs(res) do
+				table.insert(result, value)
+			end
+		end
+		result.sql = (q:negated() and "(NOT (" or "(")..result.sql..(q:negated() and "))" or ")")
+		return result
+	end;
+	_applyConditions = function (self, s)
+		if self._q then
+			local res = self:_processQ(s, self._q)
+			local values = {}
+			for _, v in ipairs(res) do
+				table.insert(values, v)
+			end 
+			s:where(string.slice(res.sql, 2, -2), unpack(values))
+		end
+		if self._limits.from then
+			s:limit(self._limits.from, self._limits.to)
+		end
+		if not table.empty(self._orders) then
+			s:order(unpack(self._orders))
+		end
+	end;
+	_evaluate = function (self)
+		self:evaluated(true)
+		self:_applyConditions(self:query())
+		self:values{}
+		for _, v in ipairs(self:query()() or {}) do
+			table.insert(self:values(), self:model()(v))
+		end
+	end;
+	value = function (self)
+		if not self:evaluated() then
+			self:_evaluate()
+		end
+		return self:values()
+	end;
+	count = function (self)
+		local s = self:db():SelectCell"COUNT(*)":from(self:model():tableName())
+		self:_applyConditions(s)
+		return tonumber(s())
+	end;
+	asSql = function (self)
+		local s = self:query():clone()
+		self:_applyConditions(s)
+		return tostring(s)
+	end;
+	update = function (self, set)
+		local db = self:db()
+		local model = self:model()
+		local s = db:Select(model:pkName()):from(model:tableName())
+		self:_applyConditions(s)
+		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
+		local val
+		for k, v in pairs(set) do
+			if type(v) == "table" and v.isA and v:isA(Model) then
+				val = v.pk
+			else
+				val = v
+			end
+			u:set("?#="..model:fieldPlaceholder(model:field(k)), k, val)
+		end
+		return u()
+	end;
+	delete = function (self)
+		local db = self:db()
+		local model = self:model()
+		local s = db:Select(model:pkName()):from(model:tableName())
+		self:_applyConditions(s)
+		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
+		return u()
+	end;
+	__call = function (self, ...)
+		if not self:evaluated() then
+			self:_evaluate()
+		end
+		return ipairs(self:values(), ...)
+	end;
+	__index = function (self, field)
+		local res = self._parent[field]
+		if res then
+			return res
+		end
+		if "number" ~= type(field) then
+			return nil
+		end
+		if not rawget(self, "_evaluated") then
+			self:_evaluate()
+		end
+		return self._values[field]
+	end;
+}
+
+local KeyValueQuerySet = QuerySet:extend{
+	__tag = .....".KeyValueQuerySet";
+	init = function (self, model)
+		self:model(model)
+		self:orders{}
+		self:limits{}
+		self:values{}
+		local db = model:db()
+		self:db(db)
+	end;
+	clone = function (self)
+		local obj = Object.clone(self)
+		obj:orders(table.copy(obj:orders()))
+		obj:limits(table.copy(obj:limits()))
+		obj:values(table.copy(obj:values()))
+		return obj
+	end;
+	filter = function (self, condition)
+		if not condition then
+			Exception"condition expected"
+		end
+		local obj = self:clone()
+		obj:evaluated(false)
+		obj:values{}
+		obj:q(obj:q() and (obj:q() + Q(condition)) or Q(condition))
+		return obj
+	end;
+	exclude = function (self, condition)
+		local obj = self:clone()
+		obj:evaluated(false)
+		obj:values{}
+		obj:q(obj:q() and (obj:q() + -Q(condition)) or -Q(condition))
+		return obj
+	end;
+	order = function (self, ...)
+		for _, v in ipairs{select(1, ...)} do
+			table.insert(self._orders, v)
+		end
+		return self
+	end;
+	limit = function (self, limitFrom, limitTo)
+		local obj = self:clone()
+		obj:limits{from=limitFrom;to=limitTo}
 		return obj
 	end;
 	_processFieldName = function (self, s, parts)
@@ -846,19 +1282,21 @@ local QuerySet = Object:extend{
 		return result
 	end;
 	_applyConditions = function (self, s)
-		if self._q then
-			local res = self:_processQ(s, self._q)
+		local q = self:q()
+		if q then
+			local res = self:_processQ(s, q)
 			local values = {}
 			for _, v in ipairs(res) do
 				table.insert(values, v)
-			end 
+			end
 			s:where(string.slice(res.sql, 2, -2), unpack(values))
 		end
-		if self._limits.from then
-			s:limit(self._limits.from, self._limits.to)
+		local limits = self:limits()
+		if limits.from then
+			s:limit(limits.from, limits.to)
 		end
-		if not table.isEmpty(self._orders) then
-			s:order(unpack(self._orders))
+		if not table.empty(self:orders()) then
+			s:order(unpack(self:orders()))
 		end
 	end;
 	_evaluate = function (self)
@@ -1021,7 +1459,8 @@ end
 
 return {
 	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;
-	NestedSet=NestedSet;QuerySet=QuerySet;Paginator=Paginator;F=F;Q=Q;
+	NestedSet=NestedSet;QuerySet=QuerySet;SqlQuerySet=SqlQuerySet;
+	KeyValueQuerySet=KeyValueQuerySet;Paginator=Paginator;F=F;Q=Q;
 	tablesListForModels=tablesListForModels;
 	sortTablesList=sortTablesList;dropModels=dropModels;
 	createModels=createModels;

@@ -7,14 +7,15 @@ local widgets = require "luv.fields.widgets"
 
 module(...)
 
-local MODULE = ...
+local MODULE = (...)
+local property = fields.Field.property;
 
 local Reference = fields.Field:extend{
 	__tag = .....".Reference";
-	relatedName = fields.Field.property;
-	toField = fields.Field.property;
-	refModel = fields.Field.property;
-	role = fields.Field.property;
+	relatedName = property;
+	toField = property;
+	refModel = property;
+	role = property;
 	init = function (self, params)
 		if self._parent._parent == fields.Field then
 			Exception"Instantiate of abstract class is not allowed!"
@@ -111,7 +112,7 @@ local ManyToMany = Reference:extend{
 			if not container.pk then
 				Exception"Primary key value must be set first!"
 			end
-			if not table.isEmpty(self._value) then
+			if not table.empty(self._value) then
 				local s = container:db():Insert(container:fieldPlaceholder(container:pkField())..", "..refModel:fieldPlaceholder(refModel:pkField()), container:tableName(), refModel:tableName()):into(self:tableName())
 				for _, v in pairs(self._value) do
 					s:values(container.pk, v.pk)
@@ -143,7 +144,7 @@ local ManyToMany = Reference:extend{
 				Exception"Primary key value must be set first!"
 			end
 			container:db():Delete():from(self:tableName()):where("?#="..container:fieldPlaceholder(container:pkField()), container:tableName(), container.pk)()
-			if "table" == type(self._value) and not table.isEmpty(self._value) then
+			if "table" == type(self._value) and not table.empty(self._value) then
 				local s = container:db():Insert(container:fieldPlaceholder(container:pkField())..", "..refModel:fieldPlaceholder(refModel:pkField()), container:tableName(), refModel:tableName()):into(self:tableName())
 				for _, v in pairs(self._value) do
 					s:values(container.pk, v.pk)
@@ -319,7 +320,7 @@ local OneToMany = Reference:extend{
 
 local OneToOne = Reference:extend{
 	__tag = .....".OneToOne";
-	backLink = Reference.property;
+	backLink = property;
 	init = function (self, params)
 		params = params or {}
 		Reference.init(self, params)

@@ -129,7 +129,7 @@ local RedisDriver = Driver:extend{
 					setOne(socket, k, v)
 				end
 			end
-			if not table.isEmpty(delKeys) then
+			if not table.empty(delKeys) then
 				socket:send("DEL "..table.join(key, " ").."\r\n")
 				numeric(socket)
 			end

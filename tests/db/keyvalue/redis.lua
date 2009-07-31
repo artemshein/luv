@@ -58,7 +58,7 @@ local Driver = TestCase:extend{
 	end;
 	testKeys2 = function (self)
 		local redis = self:redis()
-		self.assertTrue(table.isEmpty(redis:keys"*"))
+		self.assertTrue(table.empty(redis:keys"*"))
 		redis:set{abc=123;cde=425;efg=678;aff=124}
 		self.assertEquals(#redis:keys"*", 4)
 		self.assertEquals(#redis:keys"a*", 2)

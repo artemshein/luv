@@ -116,7 +116,7 @@ table.size = function (tbl)
 	return count
 end
 
-table.isEmpty = function (self)
+table.empty = function (self)
 	return nil == next(self)
 end
 

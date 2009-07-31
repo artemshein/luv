@@ -122,7 +122,7 @@ local TagEmuWrapper = Backend:extend{
 		self._backend = backend
 	end;
 	test = function (self, combined)
-		if combined and "table" == type(combined) and "table" == type(combined[1]) and not table.isEmpty(combined[1]) then
+		if combined and "table" == type(combined) and "table" == type(combined[1]) and not table.empty(combined[1]) then
 			local tags = table.keys(combined[1])
 			local tagsActual = self._backend:get(unpack(tags))
 			if "table" ~= type(tagsActual) then
@@ -146,7 +146,7 @@ local TagEmuWrapper = Backend:extend{
 		local result = {}
 		for i = 1, keysCount do
 			local key = keys[i]
-			if "table" == type(values[key]) and not table.isEmpty(values[key]) and self:test(values[key]) then
+			if "table" == type(values[key]) and not table.empty(values[key]) and self:test(values[key]) then
 				result[key] = values[key][2]
 			end
 		end
@@ -201,7 +201,7 @@ local Memcached = Backend:extend{
 		if not options.servers then
 			options = {servers=options;compression=false}
 		end
-		if table.isEmpty(options.servers) then
+		if table.empty(options.servers) then
 			options.servers = {{
 				host = self._defaultHost;
 				port = self._defaultPort;
@@ -254,7 +254,7 @@ local Memcached = Backend:extend{
 	end;
 	set = function (self, id, data, tags, specificLifetime)
 		-- TODO compression flag
-		if "table" == type(tags) and not table.isEmpty(tags) then
+		if "table" == type(tags) and not table.empty(tags) then
 			Exception "Tags unsupported. Use TagEmuWrapper instead."
 		end
 		local serialized = (mime.b64(serialize(data)))

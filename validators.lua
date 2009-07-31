@@ -6,10 +6,11 @@ local json = require "luv.utils.json"
 local Object = require"luv.oop".Object
 
 module(...)
+local property = Object.property
 
 local Validator = Object:extend{
 	__tag = .....".Validator";
-	errors = Object.property;
+	errors = property;
 	errorMsg = function (self) return tr(self._errorMsg) end;
 	js = Object.property;
 	init = function (self) self:errors{} end;
@@ -31,7 +32,7 @@ local Filled = Validator:extend{
 		Validator.valid(self, value)
 		if type(value) == "string" and 0 ~= #value then
 			return true
-		elseif type(value) == "table" and (value.isA or not table.isEmpty(value)) then
+		elseif type(value) == "table" and (value.isA or not table.empty(value)) then
 			return true
 		elseif type(value) == "number" then
 			return true
@@ -65,8 +66,8 @@ local Int = Validator:extend{
 local Length = Validator:extend{
 	__tag = .....".Length";
 	_errorMsg = 'Field "%s" has incorrect length.';
-	minLength = Validator.property "number";
-	maxLength = Validator.property "number";
+	minLength = property "number";
+	maxLength = property "number";
 	init = function (self, minLength, maxLength)
 		Validator.init(self)
 		self:minLength(minLength)
@@ -95,7 +96,7 @@ local Length = Validator:extend{
 local Regexp = Validator:extend{
 	__tag = .....".Regexp";
 	_errorMsg = 'Field "%s" has not valid value.';
-	regexp = Validator.property "string";
+	regexp = property "string";
 	init = function (self, regexp)
 		Validator.init(self)
 		self:regexp(regexp)
@@ -117,7 +118,7 @@ local Regexp = Validator:extend{
 local Value = Validator:extend{
 	__tag = .....".Value";
 	_errorMsg = 'Field "%s" has invalid value.';
-	value = Validator.property;
+	value = property;
 	init = function (self, value)
 		Validator.init(self)
 		self:value(value)
