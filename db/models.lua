@@ -133,7 +133,7 @@ local Model = Struct:extend{
 		end
 		return pk:name()
 	end;
-	pk = function (self)
+	pkField = function (self)
 		for _, f in pairs(self:fields()) do
 			if f:pk() then
 				return f
@@ -229,7 +229,7 @@ local Model = Struct:extend{
 			else
 				local tableName = self:tableName()
 				keys = db:keys(self:tableName()..":"..what..":*")
-				if not table.isEmpty(keys) then
+				if not table.empty(keys) then
 					local vals = db:get(keys)
 					values = {}
 					for k, v in pairs(vals) do
@@ -328,12 +328,12 @@ local Model = Struct:extend{
 						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
 						db:set(tableName..":"..pk..":"..name, value.pk)
 					elseif f:isA(references.OneToMany) then
-						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
 						local dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
-							db:rpush(dbKey, v)
+							db:rpush(dbKey, v.pk)
+							db:set(f:refModel():tableName()..":"..v.pk..":"..f:relatedName(), pk)
 						end
-					elseif f:isA(reference.ManyToOne) then
+					elseif f:isA(references.ManyToOne) then
 						db:set(tableName..":"..pk..":"..name, value.pk)
 						db:rpush(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
 					elseif f:isA(references.ManyToMany) then
@@ -1300,12 +1300,13 @@ local KeyValueQuerySet = QuerySet:extend{
 		end
 	end;
 	_evaluate = function (self)
-		self._evaluated = true
+		self:evaluated(true)
 		self:_applyConditions(self._query)
-		self._values = {}
+		local values = {}
 		for _, v in ipairs(self._query() or {}) do
-			table.insert(self._values, self._model(v))
+			table.insert(values, self:model()(v))
 		end
+		self:values(values)
 	end;
 	value = function (self)
 		if not self._evaluated then

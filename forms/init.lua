@@ -232,6 +232,9 @@ local ModelForm = Form:extend{
 		end
 	end;
 	initForm = function (self, model)
+		if "table" ~= type(model) or not model.isA or not model:isA(models.Model) then
+			Exception"instance of Model expected"
+		end
 		if not model or not model:isA(self:model()) then
 			Exception "instance of Meta.model expected"
 		end

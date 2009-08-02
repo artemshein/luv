@@ -4,6 +4,7 @@ local f = require "luv.function".f
 local type, require, pairs, table, select, io, ipairs = type, require, pairs, table, select, io, ipairs
 local fields, Exception = require "luv.fields", require "luv.exceptions".Exception
 local widgets = require "luv.fields.widgets"
+local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
 
 module(...)
 
@@ -90,21 +91,37 @@ local ManyToMany = Reference:extend{
 		return require(MODULE).ManyToMany{references=self:container();relatedName=self:name();label=self:container():labelMany()}
 	end;
 	createTable = function (self)
-		local container, refModel = self:container(), self:refModel()
-		local c = container:db():CreateTable(self:tableName())
-		local containerTableName = container:tableName()
-		local containerPkName = container:pkName()
-		local refTableName = refModel:tableName()
-		local refPkName = refModel:pkName()
-		c:field(containerTableName, container:fieldTypeSql(container:field(containerPkName)), {required=true;null=false})
-		c:constraint(containerTableName, containerTableName, containerPkName)
-		c:field(refTableName, refModel:fieldTypeSql(refModel:field(refPkName)), {required=true;null=false})
-		c:constraint(refTableName, refTableName, refPkName)
-		c:uniqueTogether(containerTableName, refTableName)
-		return c()
+		local container = self:container()
+		local db = container:db()
+		if db:isA(sql.Driver) then
+			local refModel = self:refModel()
+			local c = container:db():CreateTable(self:tableName())
+			local containerTableName = container:tableName()
+			local containerPkName = container:pkName()
+			local refTableName = refModel:tableName()
+			local refPkName = refModel:pkName()
+			c:field(containerTableName, container:fieldTypeSql(container:field(containerPkName)), {required=true;null=false})
+			c:constraint(containerTableName, containerTableName, containerPkName)
+			c:field(refTableName, refModel:fieldTypeSql(refModel:field(refPkName)), {required=true;null=false})
+			c:constraint(refTableName, refTableName, refPkName)
+			c:uniqueTogether(containerTableName, refTableName)
+			return c()
+		elseif db:isA(Redis) then
+			return
+		else
+			Exception"unsupported driver"
+		end
 	end;
 	dropTable = function (self)
-		return self:container():db():DropTable(self:tableName())()
+		local db = self:container():db()
+		local tableName = self:tableName()
+		if db:isA(sql.Driver) then
+			return db:DropTable(tableName)()
+		elseif db:isA(Redis) then
+			return
+		else
+			Exception"unsupported driver"
+		end
 	end;
 	insert = function (self)
 		if self._value then
@@ -333,21 +350,32 @@ local OneToOne = Reference:extend{
 		if select("#", ...) > 0 then
 			return Reference.value(self, ...)
 		else
-			if self:backLink() then
-				if not self._value and not self._loaded then
-					self._loaded = true
-					local backRefFieldName = self:backRefFieldName()
-					local container = self:container()
-					local refModel = self:refModel()
-					local val = container:field(refModel:field(backRefFieldName):toField() or container:pkName()):value()
-					if val then
-						self._value = self:refModel():find{[backRefFieldName] = val}
+			local container = self:container()
+			local db = container:db()
+			if db:isA(sql.Drier) then
+				if self:backLink() then
+					if not self._value and not self._loaded then
+						self._loaded = true
+						local backRefFieldName = self:backRefFieldName()
+						local container = self:container()
+						local refModel = self:refModel()
+						local val = container:field(refModel:field(backRefFieldName):toField() or container:pkName()):value()
+						if val then
+							self._value = self:refModel():find{[backRefFieldName] = val}
+						end
+					end
+				else
+					if self._value and "table" ~= type(self._value) then
+						self._value = self:refModel():find(self._value)
 					end
 				end
-			else
-				if self._value and "table" ~= type(self._value) then
-					self._value = self:refModel():find(self._value)
+			elseif db:isA(keyvalue.Driver) then
+				local value = Reference.value(self)
+				if value and "table" ~= type(value) then
+					self:value(self:refModel():find(value))
 				end
+			else
+				Exception"unsupported driver"
 			end
 			return self._value
 		end

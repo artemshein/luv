@@ -40,6 +40,7 @@ local Driver = Object:extend{
 	logger = Object.property;
 	get = abstract;
 	set = abstract;
+	del = abstract;
 	incr = abstract;
 	decr = abstract;
 	exists = absrtract;

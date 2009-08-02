@@ -1,4 +1,5 @@
 local require, tonumber, type, pairs, io, debug = require, tonumber, type, pairs, io, debug
+local ipairs = ipairs
 local Driver = require"luv.db.keyvalue".Driver
 local socket = require"socket"
 local string, table = require"luv.string", require"luv.table"
@@ -89,35 +90,46 @@ local RedisDriver = Driver:extend{
 	auth = function (self, pass)
 		local socket = self:socket()
 		socket:send("AUTH "..pass.."\r\n")
+		self._logger"AUTH ****"
 		status(socket)
 		return self
 	end;
 	select = function (self, schema)
 		local socket = self:socket()
 		socket:send("SELECT "..schema.."\r\n")
+		self._logger("SELECT "..schema)
 		status(socket)
 		return self
 	end;
 	get = function (self, keyOrKeys)
 		local socket = self:socket()
+		local result, request
 		if "table" == type(keyOrKeys) then
-			socket:send("MGET "..table.join(keyOrKeys, " ").."\r\n")
-			return bulk(socket, keyOrKeys)
+			request = "MGET "..table.join(keyOrKeys, " ")
+			socket:send(request.."\r\n")
+			result = bulk(socket, keyOrKeys)
 		else
-			socket:send("GET "..keyOrKeys.."\r\n")
-			return get(socket)
+			request = "GET "..keyOrKeys
+			socket:send(request.."\r\n")
+			result = get(socket)
 		end
+		self._logger(request)
+		return result
 	end;
 	set = function (self, key, value)
 		local function setOne (socket, key, value)
+			local request
 			if nil == value then
-				socket:send("DEL "..key.."\r\n")
+				request = "DEL "..key
+				socket:send(request.."\r\n")
 				numeric(socket)
 			else
 				value = serialize(value)
-				socket:send("SET "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+				request = "SET "..key.." "..string.len(value)
+				socket:send(request.."\r\n"..value.."\r\n")
 				status(socket)
 			end
+			self._logger(request)
 		end
 		local socket = self:socket()
 		if "table" == type(key) then
@@ -130,7 +142,9 @@ local RedisDriver = Driver:extend{
 				end
 			end
 			if not table.empty(delKeys) then
-				socket:send("DEL "..table.join(key, " ").."\r\n")
+				local request = "DEL "..table.join(key, " ")
+				socket:send(request.."\r\n")
+				self._logger(request)
 				numeric(socket)
 			end
 		else
@@ -138,170 +152,244 @@ local RedisDriver = Driver:extend{
 		end
 		return self
 	end;
-	close = function (self) self:socket():send"QUIT" end;
+	del = function (self, keyOrKeys)
+		local socket = self:socket()
+		local request
+		if "table" == type(keyOrKeys) then
+			request = "DEL "..table.join(keyOrKeys, " ")
+			socket:send(request.."\r\n")
+			self._logger(request)
+			numeric(socket)
+		else
+			request = "DEL "..keyOrKeys
+			socket:send(request.."\r\n")
+			self._logger(request)
+			numeric(socket)
+		end
+		return self
+	end;
+	close = function (self) self:socket():send"QUIT\r\n" self._logger"QUIT" end;
 	incr = function (self, key, value)
 		local socket = self:socket()
+		local request
 		if value then
-			socket:send("INCRBY "..key.." "..tonumber(value).."\r\n")
+			request = "INCRBY "..key.." "..tonumber(value)
+			socket:send(request.."\r\n")
 		else
-			socket:send("INCR "..key.."\r\n")
+			request = "INCR "..key
+			socket:send(request.."\r\n")
 		end
+		self._logger(request)
 		return numeric(socket)
 	end;
 	decr = function (self, key, value)
 		local socket = self:socket()
+		local request
 		if value then
-			socket:send("DECRBY "..key.." "..tonumber(value).."\r\n")
+			request = "DECRBY "..key.." "..tonumber(value)
+			socket:send(request.."\r\n")
 		else
-			socket:send("DECR "..key.."\r\n")
+			request = "DECR "..key
+			socket:send(request.."\r\n")
 		end
+		self._logger(request)
 		return numeric(socket)
 	end;
 	flush = function (self)
 		local socket = self:socket()
 		socket:send("FLUSHDB\r\n")
+		socket._logger"FLUSHDB"
 		status(socket)
 		return self
 	end;
 	keys = function (self, pattern)
 		local socket = self:socket()
-		socket:send("KEYS "..pattern.."\r\n")
+		local request = "KEYS "..pattern
+		socket:send(request.."\r\n")
+		self._logger(request)
 		local res = get(socket, true)
 		return res ~= "" and string.explode(res, " ") or {}
 	end;
 	exists = function (self, key)
 		local socket = self:socket()
-		socket:send("EXISTS "..key.."\r\n")
+		local request = "EXISTS "..key
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return numeric(socket) == 1
 	end;
 	rename = function (self, oldname, newname)
 		local socket = self:socket()
-		socket:send("RENAME "..oldname.." "..newname.."\r\n")
+		local request = "RENAME "..oldname.." "..newname
+		socket:send(request.."\r\n")
+		self._logger(request)
 		status(socket)
 		return true
 	end;
 	-- List processing
 	lpush = function (self, key, value)
 		local socket = self:socket()
+		local request = "LPUSH "..key.." "..string.len(value)
 		value = serialize(value)
-		socket:send("LPUSH "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		status(socket)
 		return self
 	end;
 	rpush = function (self, key, value)
 		local socket = self:socket()
+		local request = "RPUSH "..key.." "..string.len(value)
 		value = serialize(value)
-		socket:send("RPUSH "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		status(socket)
 		return self
 	end;
 	llen = function (self, key)
 		local socket = self:socket()
-		socket:send("LLEN "..key.."\r\n")
+		local request = "LLEN "..key
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return numeric(socket)
 	end;
 	lrange = function (self, key, from, to)
 		local socket = self:socket()
-		socket:send("LRANGE "..key.." "..from.." "..to.."\r\n")
+		local request = "LRANGE "..key.." "..from.." "..to
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return bulk(socket)
 	end;
 	ltrim = function (self, key, from, to)
 		local socket = self:socket()
-		socket:send("LTRIM "..key.." "..from.." "..to.."\r\n")
+		local request = "LTRIM "..key.." "..from.." "..to
+		socket:send(request.."\r\n")
+		self._logger(request)
 		status(socket)
 		return self
 	end;
 	lindex = function (self, key, index)
 		local socket = self:socket()
-		socket:send("LINDEX "..key.." "..index.."\r\n")
+		local request = "LINDEX "..key.." "..index
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return get(socket)
 	end;
 	lset = function (self, key, index, value)
 		local socket = self:socket()
+		local request = "LSET "..key.." "..index.." "..string.len(value)
 		value = serialize(value)
-		socket:send("LSET "..key.." "..index.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		status(socket)
 		return self
 	end;
 	lrem = function (self, key, count, value)
 		local socket = self:socket()
+		local request = "LREM "..key.." "..count.." "..string.len(value)
 		value = serialize(value)
-		socket:send("LREM "..key.." "..count.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		return numeric(socket)
 	end;
 	lpop = function (self, key)
 		local socket = self:socket()
-		socket:send("LPOP "..key.."\r\n")
+		local request = "LPOP "..key
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return get(socket)
 	end;
 	rpop = function (self, key)
 		local socket = self:socket()
 		socket:send("RPOP "..key.."\r\n")
+		self._logger(request)
 		return get(socket)
 	end;
 	-- Union processing
 	sadd = function (self, key, value)
 		local socket = self:socket()
+		local request = "SADD "..key.." "..string.len(value)
 		value = serialize(value)
-		socket:send("SADD "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		return numeric(socket) == 1
 	end;
 	srem = function (self, key, value)
 		local socket = self:socket()
+		local request = "SREM "..key.." "..string.len(value)
 		value = serialize(value)
-		socket:send("SREM "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		return numeric(socket) == 1
 	end;
 	smove = function (self, src, dest, value)
 		local socket = self:socket()
+		local request = "SMOVE "..src.." "..dest.." "..string.len(value)
 		value = serialize(value)
-		socket:send("SMOVE "..src.." "..dest.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		return numeric(socket) == 1
 	end;
 	scard = function (self, key)
 		local socket = self:socket()
-		socket:send("SCARD "..key.."\r\n")
+		local request = "SCARD "..key
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return numeric(socket)
 	end;
 	sismember = function (self, key, value)
 		local socket = self:socket()
+		local request = "SISMEMBER "..key.." "..string.len(value)
 		value = serialize(value)
-		socket:send("SISMEMBER "..key.." "..string.len(value).."\r\n"..value.."\r\n")
+		socket:send(request.."\r\n"..value.."\r\n")
+		self._logger(request)
 		return numeric(socket) == 1
 	end;
 	sinter = function (self, keys)
 		local socket = self:socket()
-		socket:send("SINTER "..table.join(keys, " ").."\r\n")
+		local request = "SINTER "..table.join(keys, " ")
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return bulk(socket)
 	end;
 	sinterstore = function (self, dest, keys)
 		local socket = self:socket()
-		socket:send("SINTERSTORE "..dest.." "..table.join(keys, " ").."\r\n")
+		local request = "SINTERSTORE "..dest.." "..table.join(keys, " ")
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return numeric(socket)
 	end;
 	sunion = function (self, keys)
 		local socket = self:socket()
-		socket:send("SUNION "..table.join(keys, " ").."\r\n")
+		local request = "SUNION "..table.join(keys, " ")
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return bulk(socket)
 	end;
 	sunionstore = function (self, dest, keys)
 		local socket = self:socket()
-		socket:send("SUNIONSTORE "..dest.." "..table.join(keys, " ").."\r\n")
+		local request = "SUNIONSTORE "..dest.." "..table.join(keys, " ")
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return numeric(socket)
 	end;
 	sdiff = function (self, keys)
 		local socket = self:socket()
-		socket:send("SDIFF "..table.join(keys, " ").."\r\n")
+		local request = "SDIFF "..table.join(keys, " ")
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return bulk(socket)
 	end;
 	sdiffstore = function (self, dest, keys)
 		local socket = self:socket()
-		socket:send("SDIFFSTORE "..dest.." "..table.join(keys, " ").."\r\n")
+		local request = "SDIFFSTORE "..dest.." "..table.join(keys, " ")
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return numeric(socket)
 	end;
 	smembers = function (self, key)
 		local socket = self:socket()
-		socket:send("SMEMBERS "..key.."\r\n")
+		local request = "SMEMBERS "..key
+		socket:send(request.."\r\n")
+		self._logger(request)
 		return bulk(socket)
 	end;
 }
