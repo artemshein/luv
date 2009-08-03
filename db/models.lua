@@ -1,6 +1,6 @@
 local table = require"luv.table"
 local string = require"luv.string"
-local os, debug = os, debug
+local os, debug, loadstring, assert = os, debug, loadstring, assert
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
@@ -14,6 +14,7 @@ local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", requ
 module(...)
 
 local MODULE = (...)
+local serialize = string.serialize
 local abstract = Object.abstractMethod
 local property = Object.property
 
@@ -207,10 +208,10 @@ local Model = Struct:extend{
 		end
 	end;
 	find = function (self, what)
-		local db = self:db()
+		local db, tableName = self:db(), self:tableName()
 		local values
 		if db:isA(sql.Driver) then
-			local select = self._db:SelectRow():from(self:tableName())
+			local select = db:SelectRow():from(tableName)
 			if type(what) == "table" then
 				for name, f in pairs(self:fields()) do
 					local value = what[name]
@@ -224,11 +225,23 @@ local Model = Struct:extend{
 			end
 			values = self:cacher() and ModelSqlSlot(self:cacher(), self, select)() or select()
 		elseif db:isA(Redis) then
+			local resPk
 			if "table" == type(what) then
-				Exception"not implemented"
+				local pks = db:smembers(tableName, 0, -1)
+				for _, pk in ipairs(pks) do
+					resPk = pk
+					for f, v in pairs(what) do
+						if v ~= db:get(tableName..":"..pk..":"..f) then
+							resPk = nil
+							break
+						end
+					end
+				end
 			else
-				local tableName = self:tableName()
-				keys = db:keys(self:tableName()..":"..what..":*")
+				resPk = what
+			end
+			if resPk then
+				keys = db:keys(tableName..":"..resPk..":*")
 				if not table.empty(keys) then
 					local vals = db:get(keys)
 					values = {}
@@ -317,7 +330,7 @@ local Model = Struct:extend{
 				self.pk = db:incr(tableName..":lastInsertId")
 			end
 			pk = self.pk
-			db:rpush(tableName, pk)
+			db:sadd(tableName, pk)
 			for name, f in pairs(self:fields()) do
 				local value = f:value()
 				if nil == value then
@@ -330,17 +343,17 @@ local Model = Struct:extend{
 					elseif f:isA(references.OneToMany) then
 						local dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
-							db:rpush(dbKey, v.pk)
+							db:sadd(dbKey, v.pk)
 							db:set(f:refModel():tableName()..":"..v.pk..":"..f:relatedName(), pk)
 						end
 					elseif f:isA(references.ManyToOne) then
 						db:set(tableName..":"..pk..":"..name, value.pk)
-						db:rpush(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
 					elseif f:isA(references.ManyToMany) then
-						db:rpush(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
 						local dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
-							db:rpush(dbKey, v)
+							db:sadd(dbKey, v)
 						end
 					else
 						db:set(tableName..":"..pk..":"..name, value)
@@ -407,20 +420,20 @@ local Model = Struct:extend{
 						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
 						local dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
-							db:rpush(dbKey, v)
+							db:sadd(dbKey, v)
 						end
 					elseif f:isA(reference.ManyToOne) then
 						db:set(tableName..":"..pk..":"..name, value.pk)
 						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName()
-						db:lrem(dbKey, 0, pk)
-						db:rpush(dbKey, pk)
+						db:srem(dbKey, 0, pk)
+						db:sadd(dbKey, pk)
 					elseif f:isA(references.ManyToMany) then
 						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName()
-						db:lrem(dbKey, 0, pk)
-						db:rpush(dbKey, pk)
+						db:srem(dbKey, 0, pk)
+						db:sadd(dbKey, pk)
 						dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
-							db:rpush(dbKey, v)
+							db:sadd(dbKey, v)
 						end
 					else
 						db:set(tableName..":"..pk..":"..name, value)
@@ -444,7 +457,7 @@ local Model = Struct:extend{
 			else
 				return self:update()
 			end
-		elseif db:isA(Redis) then
+		elseif db:isA(keyvalue.Driver) then
 			if not pk:value() or not db:get(tableName..":"..pk:value()..":"..pkName) then
 				return self:insert()
 			else
@@ -463,7 +476,7 @@ local Model = Struct:extend{
 		if db:isA(sql.Driver) then
 			return db:DeleteRow():from(tableName):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())()
 		elseif db:isA(Redis) then
-			db:lrem(tableName, 0, pk:value())
+			db:srem(tableName, 0, pk:value())
 			local keys = db:keys(tableName..":"..pk:value()..":*")
 			if not table.empty(keys) then
 				db:del(keys)
@@ -530,7 +543,7 @@ local Model = Struct:extend{
 	createTable = function (self)
 		local db = self:db()
 		if db:isA(sql.Driver) then
-			local c = self:db():CreateTable(self:tableName())
+			local c = db:CreateTable(self:tableName())
 			-- Fields
 			local hasPk = false
 			for name, f in pairs(self:fields()) do
@@ -578,6 +591,7 @@ local Model = Struct:extend{
 		if db:isA(sql.Driver) then
 			return db:DropTable(tableName)()
 		elseif db:isA(Redis) then
+			db:del(tableName)
 			local keys = db:keys(tableName..":*")
 			if not table.empty(keys) then
 				db:del(keys)
@@ -688,7 +702,7 @@ local NestedSet = Tree:extend{
 		child.right = self.left+2
 		local db = self:db()
 		db:beginTransaction()
-		db:Update(self:tableName())
+		db:Update(self:tableName())local serialize = string.serialize
 			:set("?#=?#+2", "left", "left")
 			:where("?#>?d", "left", self.left)()
 		db:Update(self:tableName())
@@ -776,7 +790,7 @@ local F = TreeNode:extend{
 
 local Q = TreeNode:extend{
 	__tag = .....".Q";
-	negated = property;
+	negated = property"boolean";
 	init = function (self, values)
 		if not values then
 			Exception "values expected"
@@ -804,7 +818,6 @@ local QuerySet = Object:extend{
 	orders = property"table";
 	limits = property"table";
 	values = property"table";
-	db = property"table";
 	q = property(Q);
 }
 
@@ -816,9 +829,7 @@ local SqlQuerySet = QuerySet:extend{
 		self:orders{}
 		self:limits{}
 		self:values{}
-		local db = model:db()
-		self:db(db)
-		self:query(db:Select"*":from(model:tableName()))
+		self:query(model:db():Select"*":from(model:tableName()))
 	end;
 	clone = function (self)
 		local obj = Object.clone(self)
@@ -1034,7 +1045,8 @@ local SqlQuerySet = QuerySet:extend{
 		return self:values()
 	end;
 	count = function (self)
-		local s = self:db():SelectCell"COUNT(*)":from(self:model():tableName())
+		local model = self:model()
+		local s = model:db():SelectCell"COUNT(*)":from(model:tableName())
 		self:_applyConditions(s)
 		return tonumber(s())
 	end;
@@ -1044,8 +1056,8 @@ local SqlQuerySet = QuerySet:extend{
 		return tostring(s)
 	end;
 	update = function (self, set)
-		local db = self:db()
 		local model = self:model()
+		local db = model:db()
 		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
 		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
@@ -1061,8 +1073,8 @@ local SqlQuerySet = QuerySet:extend{
 		return u()
 	end;
 	delete = function (self)
-		local db = self:db()
 		local model = self:model()
+		local db = model:db()
 		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
 		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
@@ -1096,8 +1108,6 @@ local KeyValueQuerySet = QuerySet:extend{
 		self:orders{}
 		self:limits{}
 		self:values{}
-		local db = model:db()
-		self:db(db)
 	end;
 	clone = function (self)
 		local obj = Object.clone(self)
@@ -1134,98 +1144,51 @@ local KeyValueQuerySet = QuerySet:extend{
 		obj:limits{from=limitFrom;to=limitTo}
 		return obj
 	end;
-	_processFieldName = function (self, s, parts)
-		local curModel = self._model
-		local result = {}
+	_fieldName = function (self, parts)
+		local curModel = self:model()
+		local db = curModel:db()
+		local result = ""
 		for i, part in ipairs(parts) do
 			if "pk" == part then
 				part = curModel:pkName()
 			end
-			local field = curModel:field(part)
 			if not curModel then
-				Exception "invalid field"
+				Exception"invalid field"
 			end
+			local field = curModel:field(part)
 			if not field then
 				Exception("field "..string.format("%q", part).." not founded")
 			end
 			if field:isA(references.Reference) then
-				result = {field:refModel():tableName()}
-				result.sql = "?#"
-				if i == #parts then
-					table.insert(result, field:refModel():pkName())
-					result.sql = result.sql..".?#"
-				end
-				if field:isA(references.OneToOne) then
-					if field:backLink() then
-						s:join(
-							field:refModel():tableName(),
-							{
-								"?#.?#=?#.?#";
-								curModel:tableName();curModel:pkName();
-								field:refModel():tableName();field:backRefFieldName()
-							}
-						)
+				if field:isA(references.ManyToOne) or field:isA(references.OneToOne) then
+					result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
+				else
+					if db:isA(Redis) then -- Redis has native arrays
+						result = result..' res = db:lrange("'..curModel:tableName()..':"..res..":'..part..'", 0, -1)'
 					else
-						s:join(
-							field:refModel():tableName(),
-							{
-								"?#.?#=?#.?#";
-								curModel:tableName();part;
-								field:refModel():tableName();field:refModel():pkName()
-							}
-						)
+						result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
 					end
-				elseif field:isA(references.OneToMany) then
-					s:join(
-						field:refModel():tableName(),
-						{
-							"?#.?#=?#.?#";
-							curModel:tableName();curModel:pkName();
-							field:refModel():tableName();field:relatedName()
-						}
-					)
-				elseif field:isA(references.ManyToOne) then
-					s:join(
-						field:refModel():tableName(),
-						{"?#.?#=?#.?#";curModel:tableName();part;field:refModel():tableName();field:refModel():pkName()}
-					)
-				elseif field:isA(references.ManyToMany) then
-					s:join(
-						field:tableName(),
-						{
-							"?#.?#=?#.?#";
-							curModel:tableName();curModel:pkName();
-							field:tableName();curModel:tableName()
-						}
-					)
-					s:join(
-						field:refModel():tableName(),
-						{
-							"?#.?#=?#.?#";
-							field:tableName();field:refModel():tableName();
-							field:refModel():tableName();field:refModel():pkName()
-						}
-					)
 				end
 				curModel = field:refModel()
 			else
+				result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
 				curModel = nil
-				result.field = field
-				result.sql = result.sql and (result.sql..".?#") or "?#"
-				table.insert(result, part)
 			end
 		end
 		return result
 	end;
-	_processFilter = function (self, s, filter)
+	-- Creates validation function for given filter
+	_valFuncTextForFilter = function (self, filter)
 		local operators = {
-			eq="=";isnull=" IS NULL";exact="=";lt="<";gt=">";lte="<=";gte=">=";
-			["in"]=" IN (?a)";beginswith=" LIKE ?";endswith=" LIKE ?";contains=" LIKE ?"
+			eq="==";exact="==";lt="<";gt=">";lte="<=";gte=">=";
+			["in"]=true;isnull=true;beginswith=true;endswith=true;
+			contains=true;
 		}
-		local result = {}
+		local result = "\nfunction (self, res) "
 		if "string" == type(filter) then
 			filter = {pk=filter}
 		end
+		local retValue
 		for k, v in pairs(filter) do
 			local parts
 			if string.find(k, "__") then
@@ -1239,58 +1202,44 @@ local KeyValueQuerySet = QuerySet:extend{
 			else
 				op = "eq"
 			end
-			local res = self:_processFieldName(s, parts)
-			local valStr, val
-			if "isnull" == op or "in" == op or "beginswith" == op
-			or "endswith" == op or "contains" == op then
-				valStr = operators[op]
-				if "beginswith" == op then
-					v = v.."%"
-				elseif "endswith" == op then
-					v = "%"..v
-				elseif "contains" == op then
-					v ="%"..v.."%"
-				elseif "isnull" == op then
-					if not v then
-						valStr = " IS NOT NULL"
-					end
-				end
+			local result = self:_fieldName(parts)
+			if "isnull" == op then
+				retValue = v and "nil==res" or "nil~=res"
+			elseif "in" == op then
+				retValue = "table.ifindVal(res, "..serialize(v)..")"
+			elseif "beginswith" == op then
+				retValue = "string.beginsWith(res, "..string.format("%q", v)..")"
+			elseif "endswith" == op then
+				retValue = "string.endsWith(res, "..string.format("%q", v)..")"
+			elseif "contains" == op then
+				retValue = "nil~=string.find(res, "..string.format("%q", v)..")"
 			else
-				valStr = operators[op]..self._model:fieldPlaceholder(res.field or res[#res])
+				retValue = "res"..operators[op]..("table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
 			end
-			result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
+			--[[result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
 			for _, val in ipairs(res) do
 				table.insert(result, val)
 			end
 			if "isnull" ~= op then
 				table.insert(result, "table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
-			end
+			end]]
 		end
-		return result
+		return result.." return "..retValue.." end\n"
 	end;
-	_processQ = function (self, s, q)
-		local result = {}
+	-- Creates validation function for given Q
+	_valFuncTextForQ = function (self, q)
+		local result = "function (self, pk) return"
+		if q:negated() then result = result.." not (" end
 		local op = q:connector()
 		for _, v in ipairs(q:children()) do
-			local res = v.isA and v:isA(Q) and self:_processQ(s, v) or self:_processFilter(s, v)
-			result.sql = (result.sql and (result.sql.." "..op.." ") or "")..res.sql
-			for _, value in ipairs(res) do
-				table.insert(result, value)
-			end
+			result = result.." ("..(v.isA and v:isA(Q) and self:_valFuncTextForQ(v) or self:_valFuncTextForFilter(v))..")(self, res) and"
 		end
-		result.sql = (q:negated() and "(NOT (" or "(")..result.sql..(q:negated() and "))" or ")")
-		return result
+		result = result..(q:negated() and " true)" or " true")
+		return result.." end"
 	end;
-	_applyConditions = function (self, s)
-		local q = self:q()
-		if q then
-			local res = self:_processQ(s, q)
-			local values = {}
-			for _, v in ipairs(res) do
-				table.insert(values, v)
-			end
-			s:where(string.slice(res.sql, 2, -2), unpack(values))
-		end
+	-- Filters records with given conditions
+	_findValues = function (self)
+		local validator = self:q() and self:_valFuncTextForQ(q)
 		local limits = self:limits()
 		if limits.from then
 			s:limit(limits.from, limits.to)
@@ -1300,11 +1249,11 @@ local KeyValueQuerySet = QuerySet:extend{
 		end
 	end;
 	_evaluate = function (self)
+		-- Beware black magic!
 		self:evaluated(true)
-		self:_applyConditions(self._query)
-		local values = {}
-		for _, v in ipairs(self._query() or {}) do
-			table.insert(values, self:model()(v))
+		local values, model = {}, self:model()
+		for _, v in ipairs(self:_findValues() or {}) do
+			table.insert(values, model(v))
 		end
 		self:values(values)
 	end;
@@ -1314,20 +1263,33 @@ local KeyValueQuerySet = QuerySet:extend{
 		end
 		return self._values
 	end;
+	_validateAll = function (self, validator)
+		local model = self:model()
+		local pks = model:db():smembers(model:tableName())
+		local result = {}
+		for _, pk in ipairs(pks) do
+			if validator(self, pk) then
+				table.insert(result, pk)
+			end
+		end
+		return result
+	end;
 	count = function (self)
-		local s = self._model:db():SelectCell "COUNT(*)":from(self._model:tableName())
-		self:_applyConditions(s)
-		return tonumber(s())
+		local model = self:model()
+		require"luv.dev".dprint(self:_valFuncTextForQ(self:q()))
+		return self:q() and #self:_validateAll(assert(loadstring(self:_valFuncTextForQ(self:q())))) or model:db():scard(model:tableName())
 	end;
 	asSql = function (self)
-		local s = self._query:clone()
+		local s = self:query():clone()
 		self:_applyConditions(s)
 		return tostring(s)
 	end;
 	update = function (self, set)
-		local s = self._model:db():Select(self._model:pkName()):from(self._model:tableName())
+		local model = self:model()
+		local db = model:db()
+		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
-		local u = self._model:db():Update(self._model:tableName()):where("?# IN (?a)", self._model:pkName(), table.imap(s(), f ("a["..string.format("%q", self._model:pkName()).."]")))
+		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
 		local val
 		for k, v in pairs(set) do
 			if type(v) == "table" and v.isA and v:isA(Model) then
@@ -1335,21 +1297,23 @@ local KeyValueQuerySet = QuerySet:extend{
 			else
 				val = v
 			end
-			u:set("?#="..self._model:fieldPlaceholder(self._model:field(k)), k, val)
+			u:set("?#="..model:fieldPlaceholder(model:field(k)), k, val)
 		end
 		return u()
 	end;
 	delete = function (self)
-		local s = self._model:db():Select(self._model:pkName()):from(self._model:tableName())
+		local model = self:model()
+		local db = model:db()
+		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
-		local u = self._model:db():Delete():from(self._model:tableName()):where("?# IN (?a)", self._model:pkName(), table.imap(s(), f ("a["..string.format("%q", self._model:pkName()).."]")))
+		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
 		return u()
 	end;
 	__call = function (self, ...)
 		if not self._evaluated then
 			self:_evaluate()
 		end
-		return ipairs(self._values, ...)
+		return ipairs(self:values(), ...)
 	end;
 	__index = function (self, field)
 		local res = self._parent[field]

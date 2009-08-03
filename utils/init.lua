@@ -4,31 +4,38 @@ local getmetatable, setmetatable, require = getmetatable, setmetatable, require
 local Object = require "luv.oop".Object
 
 module(...)
+local property = Object.property
 
 local Version = Object:extend{
 	__tag = .....".Version";
 	_state = "stable";
+	major = property"number";
+	minor = property"number";
+	patch = property"number";
+	state = property"string";
+	rev = property"number";
+	codename = property"string";
 	init = function (self, major, minor, patch, state, rev, codename)
-		self._major = major
-		self._minor = minor or 0
-		self._patch = patch or 0
-		self._state = state or "stable"
-		self._rev = rev
-		self._codename = codename
+		self:major(major)
+		self:minor(minor or 0)
+		self:patch(patch or 0)
+		self:state(state or "stable")
+		if rev then self:rev(rev) end
+		if codename then self:codename(codename) end
 	end;
 	full = function (self)
-		local res = self._major.."."..self._minor
-		if 0 ~= self._patch then
-			res = res.."."..self._patch
+		local res = self:major().."."..self:minor()
+		if 0 ~= self:patch() then
+			res = res.."."..self:patch()
 		end
-		if "stable" ~= self._state then
-			res = res..self._state
+		if "stable" ~= self:state() then
+			res = res..self:state()
 		end
-		if self._rev then
-			res = res.." rev"..self._rev
+		if self:rev() then
+			res = res.." rev"..self:rev()
 		end
-		if self._codename then
-			res = res.." "..self._codename
+		if self:codename() then
+			res = res.." "..self:codename()
 		end
 		return res
 	end;
@@ -60,8 +67,8 @@ end
 
 local TreeNode = Object:extend{
 	__tag = .....".TreeNode";
-	connector = Object.property;
-	children = Object.property;
+	connector = property;
+	children = property;
 	init = function (self, children, connector)
 		self:connector(connector)
 		self:children(children)

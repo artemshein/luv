@@ -255,6 +255,7 @@ local Struct = Object:extend{
 		return rawget(self, "_parent")[field]
 	end;
 	__newindex = function (self, field, value)
+		if "pk" == field then self:pkField():value(value) return self end
 		local res = self:field(field)
 		if res then
 			res:value(value)

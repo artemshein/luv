@@ -31,7 +31,7 @@ local Session = Object:extend{
 		end
 	end;
 	save = function (self)
-		local serializedData = string.serialize(self._data)
+		local serializedData = string.serialize(rawget(self, "_data"))
 		if serializedData ~= rawget(self, "_storedData") then
 			self._storage:write(self._id, serializedData)
 			rawset(self, "_storedData", serializedData)

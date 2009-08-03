@@ -352,7 +352,7 @@ local OneToOne = Reference:extend{
 		else
 			local container = self:container()
 			local db = container:db()
-			if db:isA(sql.Drier) then
+			if db:isA(sql.Driver) then
 				if self:backLink() then
 					if not self._value and not self._loaded then
 						self._loaded = true
