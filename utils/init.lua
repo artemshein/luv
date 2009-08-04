@@ -75,7 +75,7 @@ local TreeNode = Object:extend{
 	end;
 	add = function (self, child, connector)
 		if table.size(self:children()) < 2 then
-			connector = self:connector()
+			 self:connector(connector)
 		end
 		if connector == self:connector() then
 			table.insert(self:children(), child)

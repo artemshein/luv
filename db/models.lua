@@ -1,6 +1,6 @@
 local table = require"luv.table"
 local string = require"luv.string"
-local os, debug, loadstring, assert = os, debug, loadstring, assert
+local os, debug, loadstring, assert, setfenv = os, debug, loadstring, assert, setfenv
 local require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber = require, rawget, rawset, getmetatable, pairs, unpack, tostring, io, type, assert, tonumber
 local math, ipairs, error, select = math, ipairs, error, select
 local Object, Struct, fields, references, Exception = require"luv.oop".Object, require"luv".Struct, require"luv.fields", require"luv.fields.references", require"luv.exceptions".Exception
@@ -348,9 +348,9 @@ local Model = Struct:extend{
 						end
 					elseif f:isA(references.ManyToOne) then
 						db:set(tableName..":"..pk..":"..name, value.pk)
-						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:relatedName(), pk)
 					elseif f:isA(references.ManyToMany) then
-						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:relatedName(), pk)
 						local dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
 							db:sadd(dbKey, v)
@@ -414,22 +414,20 @@ local Model = Struct:extend{
 				local value = f:value()
 				if value then
 					if f:isA(references.OneToOne) then
-						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:set(f:refModel():tableName()..":"..value.pk..":"..f:relatedName(), pk)
 						db:set(tableName..":"..pk..":"..name, value.pk)
 					elseif f:isA(references.OneToMany) then
-						db:set(f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName(), pk)
+						db:set(f:refModel():tableName()..":"..value.pk..":"..f:relatedName(), pk)
 						local dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
 							db:sadd(dbKey, v)
 						end
-					elseif f:isA(reference.ManyToOne) then
+					elseif f:isA(references.ManyToOne) then
 						db:set(tableName..":"..pk..":"..name, value.pk)
-						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName()
-						db:srem(dbKey, 0, pk)
+						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:relatedName()
 						db:sadd(dbKey, pk)
 					elseif f:isA(references.ManyToMany) then
-						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:backRefFieldName()
-						db:srem(dbKey, 0, pk)
+						local dbKey = f:refModel():tableName()..":"..value.pk..":"..f:relatedName()
 						db:sadd(dbKey, pk)
 						dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
@@ -476,7 +474,7 @@ local Model = Struct:extend{
 		if db:isA(sql.Driver) then
 			return db:DeleteRow():from(tableName):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())()
 		elseif db:isA(Redis) then
-			db:srem(tableName, 0, pk:value())
+			db:srem(tableName, pk:value())
 			local keys = db:keys(tableName..":"..pk:value()..":*")
 			if not table.empty(keys) then
 				db:del(keys)
@@ -876,7 +874,7 @@ local SqlQuerySet = QuerySet:extend{
 			end
 			local field = curModel:field(part)
 			if not curModel then
-				Exception "invalid field"
+				Exception"invalid field"
 			end
 			if not field then
 				Exception("field "..string.format("%q", part).." not founded")
@@ -1184,7 +1182,7 @@ local KeyValueQuerySet = QuerySet:extend{
 			["in"]=true;isnull=true;beginswith=true;endswith=true;
 			contains=true;
 		}
-		local result = "\nfunction (self, res) "
+		local result = "function (self, res) local db = self:model():db() "
 		if "string" == type(filter) then
 			filter = {pk=filter}
 		end
@@ -1202,11 +1200,11 @@ local KeyValueQuerySet = QuerySet:extend{
 			else
 				op = "eq"
 			end
-			local result = self:_fieldName(parts)
+			result = result..self:_fieldName(parts)
 			if "isnull" == op then
 				retValue = v and "nil==res" or "nil~=res"
 			elseif "in" == op then
-				retValue = "table.ifindVal(res, "..serialize(v)..")"
+				retValue = "table.ifind("..serialize(v)..", res)"
 			elseif "beginswith" == op then
 				retValue = "string.beginsWith(res, "..string.format("%q", v)..")"
 			elseif "endswith" == op then
@@ -1214,46 +1212,71 @@ local KeyValueQuerySet = QuerySet:extend{
 			elseif "contains" == op then
 				retValue = "nil~=string.find(res, "..string.format("%q", v)..")"
 			else
-				retValue = "res"..operators[op]..("table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
+				retValue = "res"..operators[op]..serialize("table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
 			end
-			--[[result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
-			for _, val in ipairs(res) do
-				table.insert(result, val)
-			end
-			if "isnull" ~= op then
-				table.insert(result, "table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
-			end]]
 		end
-		return result.." return "..retValue.." end\n"
+		return result.." return "..retValue.." end"
 	end;
 	-- Creates validation function for given Q
 	_valFuncTextForQ = function (self, q)
 		local result = "function (self, pk) return"
 		if q:negated() then result = result.." not (" end
-		local op = q:connector()
+		local op = string.lower(q:connector())
+		local first = true
 		for _, v in ipairs(q:children()) do
-			result = result.." ("..(v.isA and v:isA(Q) and self:_valFuncTextForQ(v) or self:_valFuncTextForFilter(v))..")(self, res) and"
+			if first then first = false else result = result.." "..op end
+			result = result.." ("..(v.isA and v:isA(Q) and self:_valFuncTextForQ(v) or self:_valFuncTextForFilter(v))..")(self, pk)"
 		end
-		result = result..(q:negated() and " true)" or " true")
+		if q:negated() then result = result..")" end
 		return result.." end"
 	end;
-	-- Filters records with given conditions
-	_findValues = function (self)
-		local validator = self:q() and self:_valFuncTextForQ(q)
-		local limits = self:limits()
-		if limits.from then
-			s:limit(limits.from, limits.to)
+	_sortFuncTextAndCache = function (self, pks)
+		local model = self:model()
+		local tableName = model:tableName()
+		local cache = {}
+		local result = "function (pk1, pk2) local cache, db = cachedValues, db local val1, val2 if not cache[pk1] then cache[pk1] = {} end if not cache[pk2] then cache[pk2] = {} end"
+		for _, v in ipairs(self._orders) do
+			local f = "-" == string.slice(v, 1, 1) and string.slice(v, 2) or v
+			local values = model:db():get(table.imap(pks, function (pk) return tableName..":"..pk..":"..f end))
+			for _, pk in ipairs(pks) do
+				cache[pk] = cache[pk] or {}
+				cache[pk][f] = {value=values[tableName..":"..pk..":"..f]}
+			end
+			result = result.." if not cache[pk1]["..string.format("%q", f).."] then cache[pk1]["..string.format("%q", f)..'] = {value=db:get("'..model:tableName()..':"..pk1..":'..f..'")} end val1 = cache[pk1]['..string.format("%q", f).."].value"
+			result = result.." if not cache[pk2]["..string.format("%q", f).."] then cache[pk2]["..string.format("%q", f)..'] = {value=db:get("'..model:tableName()..':"..pk2..":'..f..'")} end val2 = cache[pk2]['..string.format("%q", f).."].value"
+			result = result.." if not val1 or not val2 then return false end"
+			if "-" == string.slice(v, 1, 1) then
+				result = result.." if val1 > val2 then return true elseif val2 < val1 then return false end"
+			else
+				result = result.." if val1 < val2 then return true elseif val2 > val1 then return false end"
+			end
 		end
-		if not table.empty(self:orders()) then
-			s:order(unpack(self:orders()))
-		end
+		return (result.." end"), cache
+	end;
+	_sortPks = function (self, pks, sort)
+		table.sort(pks, sort)
 	end;
 	_evaluate = function (self)
-		-- Beware black magic!
+		local model, values = self:model(), {}
 		self:evaluated(true)
-		local values, model = {}, self:model()
-		for _, v in ipairs(self:_findValues() or {}) do
-			table.insert(values, model(v))
+		-- Filter
+		local pks = self:q() and self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))()) or model:db():smembers(model:tableName())
+		-- Sort
+		local sortFunc, cache = self:_sortFuncTextAndCache(pks)
+		sortFunc = assert(loadstring("return "..sortFunc))()
+		setfenv(sortFunc, {cachedValues=cache;db=self:model():db()})
+		self:_sortPks(pks, sortFunc)
+		-- Limit
+		if self:limits().from then
+			local limitedPks = {}
+			for i = self:limits().from+1, math.min(#pks, self:limits().to) do
+				table.insert(limitedPks, pks[i])
+			end
+			pks = limitedPks
+		end
+		-- Retrieve
+		for _, pk in ipairs(pks or {}) do
+			table.insert(values, model:find(pk))
 		end
 		self:values(values)
 	end;
@@ -1276,8 +1299,7 @@ local KeyValueQuerySet = QuerySet:extend{
 	end;
 	count = function (self)
 		local model = self:model()
-		require"luv.dev".dprint(self:_valFuncTextForQ(self:q()))
-		return self:q() and #self:_validateAll(assert(loadstring(self:_valFuncTextForQ(self:q())))) or model:db():scard(model:tableName())
+		return self:q() and #self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))()) or model:db():scard(model:tableName())
 	end;
 	asSql = function (self)
 		local s = self:query():clone()
