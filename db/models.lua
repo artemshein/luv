@@ -1230,20 +1230,15 @@ local KeyValueQuerySet = QuerySet:extend{
 		if q:negated() then result = result..")" end
 		return result.." end"
 	end;
-	_sortFuncTextAndCache = function (self, pks)
+	-- Creates sort function text
+	_sortFuncText = function (self, pks)
 		local model = self:model()
 		local tableName = model:tableName()
-		local cache = {}
 		local result = "function (pk1, pk2) local cache, db = cachedValues, db local val1, val2 if not cache[pk1] then cache[pk1] = {} end if not cache[pk2] then cache[pk2] = {} end"
 		for _, v in ipairs(self._orders) do
 			local f = "-" == string.slice(v, 1, 1) and string.slice(v, 2) or v
-			local values = model:db():get(table.imap(pks, function (pk) return tableName..":"..pk..":"..f end))
-			for _, pk in ipairs(pks) do
-				cache[pk] = cache[pk] or {}
-				cache[pk][f] = {value=values[tableName..":"..pk..":"..f]}
-			end
-			result = result.." if not cache[pk1]["..string.format("%q", f).."] then cache[pk1]["..string.format("%q", f)..'] = {value=db:get("'..model:tableName()..':"..pk1..":'..f..'")} end val1 = cache[pk1]['..string.format("%q", f).."].value"
-			result = result.." if not cache[pk2]["..string.format("%q", f).."] then cache[pk2]["..string.format("%q", f)..'] = {value=db:get("'..model:tableName()..':"..pk2..":'..f..'")} end val2 = cache[pk2]['..string.format("%q", f).."].value"
+			result = result.." if not cache[pk1]["..string.format("%q", f).."] then cache[pk1]["..string.format("%q", f)..'] = {db:get("'..model:tableName()..':"..pk1..":'..f..'")} end val1 = cache[pk1]['..string.format("%q", f).."][1]"
+			result = result.." if not cache[pk2]["..string.format("%q", f).."] then cache[pk2]["..string.format("%q", f)..'] = {db:get("'..model:tableName()..':"..pk2..":'..f..'")} end val2 = cache[pk2]['..string.format("%q", f).."][1]"
 			result = result.." if not val1 or not val2 then return false end"
 			if "-" == string.slice(v, 1, 1) then
 				result = result.." if val1 > val2 then return true elseif val2 < val1 then return false end"
@@ -1251,7 +1246,29 @@ local KeyValueQuerySet = QuerySet:extend{
 				result = result.." if val1 < val2 then return true elseif val2 > val1 then return false end"
 			end
 		end
-		return (result.." end"), cache
+		return result.." end"
+	end;
+	-- Preloads values for sort (speed improvement)
+	_cacheValuesForSorting = function (self, pks)
+		local model = self:model()
+		local tableName = model:tableName()
+		local result = {}
+		local dbKeys = {}
+		for _, v in ipairs(self._orders) do
+			for _, pk in ipairs(pks) do
+				table.insert(dbKeys, tableName..":"..pk..":"..("-" == string.slice(v, 1, 1) and string.slice(v, 2) or v))
+			end
+		end
+		local values = model:db():get(dbKeys)
+		local typeFunc
+		if "number" == type(pks[1]) then typeFunc = tonumber end
+		for k, v in pairs(values) do
+			local t, p, f = string.split(k, ":", ":")
+			if typeFunc then p = typeFunc(p) end
+			result[p] = result[p] or {}
+			result[p][f] = {v}
+		end
+		return result
 	end;
 	_sortPks = function (self, pks, sort)
 		table.sort(pks, sort)
@@ -1262,10 +1279,11 @@ local KeyValueQuerySet = QuerySet:extend{
 		-- Filter
 		local pks = self:q() and self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))()) or model:db():smembers(model:tableName())
 		-- Sort
-		local sortFunc, cache = self:_sortFuncTextAndCache(pks)
-		sortFunc = assert(loadstring("return "..sortFunc))()
-		setfenv(sortFunc, {cachedValues=cache;db=self:model():db()})
-		self:_sortPks(pks, sortFunc)
+		if not table.empty(self._orders) then
+			local sortFunc = assert(loadstring("return "..self:_sortFuncText(pks)))()
+			setfenv(sortFunc, {cachedValues=self:_cacheValuesForSorting(pks);db=self:model():db()})
+			self:_sortPks(pks, sortFunc)
+		end
 		-- Limit
 		if self:limits().from then
 			local limitedPks = {}
