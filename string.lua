@@ -1,6 +1,7 @@
 require "luv.utf8data"
 require "luv.utf8"
 local table = require "luv.table"
+local require = require
 local string, table, unpack, select, debug, error, loadstring, assert = string, table, unpack, select, debug, error, loadstring, assert
 local type, tostring, pairs, io, error = type, tostring, pairs, io, error
 
@@ -147,7 +148,11 @@ string.unserialize = function (self)
 	if not self then
 		return nil
 	end
-	return assert(loadstring("return "..self))()
+	local func = loadstring("return "..self)
+	if not func then
+		error("unserialize fails "..debug.traceback().." "..self)
+	end
+	return func()
 end
 
 return string

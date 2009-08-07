@@ -122,7 +122,7 @@ local Core = Object:extend{
 		local db = require("luv.db."..drivers[string.lower(string.slice(dsn, 1, string.find(dsn, ":")-1))]).Factory(dsn)
 		require"luv.db.models".Model:db(db)
 		db:logger(function (sql, result)
-			--io.write("\n", sql, "\n")
+			io.write("\n", sql, "\n", tostring("table" == type(result) and #result or result))
 			self:debug(sql, "Database")
 		end)
 		self:db(db)

@@ -220,7 +220,7 @@ local Model = Struct:extend{
 					end
 				end
 			else
-				local pk = self:pk()
+				local pk = self:pkField()
 				select:where("?#="..self:fieldPlaceholder(pk), pk:name(), what)
 			end
 			values = self:cacher() and ModelSqlSlot(self:cacher(), self, select)() or select()
@@ -325,11 +325,10 @@ local Model = Struct:extend{
 				end
 			end
 		elseif db:isA(Redis) then
-			local pk
 			if self:pkField():isA(fields.Id) then
 				self.pk = db:incr(tableName..":lastInsertId")
 			end
-			pk = self.pk
+			local pk = self.pk
 			db:sadd(tableName, pk)
 			for name, f in pairs(self:fields()) do
 				local value = f:value()
@@ -350,10 +349,10 @@ local Model = Struct:extend{
 						db:set(tableName..":"..pk..":"..name, value.pk)
 						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:relatedName(), pk)
 					elseif f:isA(references.ManyToMany) then
-						db:sadd(f:refModel():tableName()..":"..value.pk..":"..f:relatedName(), pk)
 						local dbKey = tableName..":"..pk..":"..name
 						for _, v in ipairs(value) do
 							db:sadd(dbKey, v)
+							db:sadd(f:refModel():tableName()..":"..v.pk..":"..f:relatedName(), pk)
 						end
 					else
 						db:set(tableName..":"..pk..":"..name, value)
@@ -1162,7 +1161,7 @@ local KeyValueQuerySet = QuerySet:extend{
 					result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
 				else
 					if db:isA(Redis) then -- Redis has native arrays
-						result = result..' res = db:lrange("'..curModel:tableName()..':"..res..":'..part..'", 0, -1)'
+						result = result..' res = db:smembers("'..curModel:tableName()..':"..res..":'..part..'")'
 					else
 						result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
 					end
@@ -1228,6 +1227,7 @@ local KeyValueQuerySet = QuerySet:extend{
 			result = result.." ("..(v.isA and v:isA(Q) and self:_valFuncTextForQ(v) or self:_valFuncTextForFilter(v))..")(self, pk)"
 		end
 		if q:negated() then result = result..")" end
+		require"luv.dev".dprint(result.." "..debug.traceback())
 		return result.." end"
 	end;
 	-- Creates sort function text
@@ -1319,35 +1319,58 @@ local KeyValueQuerySet = QuerySet:extend{
 		local model = self:model()
 		return self:q() and #self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))()) or model:db():scard(model:tableName())
 	end;
-	asSql = function (self)
-		local s = self:query():clone()
-		self:_applyConditions(s)
-		return tostring(s)
-	end;
 	update = function (self, set)
-		local model = self:model()
-		local db = model:db()
-		local s = db:Select(model:pkName()):from(model:tableName())
-		self:_applyConditions(s)
-		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
-		local val
-		for k, v in pairs(set) do
-			if type(v) == "table" and v.isA and v:isA(Model) then
-				val = v.pk
-			else
-				val = v
-			end
-			u:set("?#="..model:fieldPlaceholder(model:field(k)), k, val)
+		local model, values = self:model(), {}
+		-- Filter
+		local pks = self:q() and self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))()) or model:db():smembers(model:tableName())
+		-- Sort
+		if not table.empty(self._orders) then
+			local sortFunc = assert(loadstring("return "..self:_sortFuncText(pks)))()
+			setfenv(sortFunc, {cachedValues=self:_cacheValuesForSorting(pks);db=self:model():db()})
+			self:_sortPks(pks, sortFunc)
 		end
-		return u()
+		-- Limit
+		if self:limits().from then
+			local limitedPks = {}
+			for i = self:limits().from+1, math.min(#pks, self:limits().to) do
+				table.insert(limitedPks, pks[i])
+			end
+			pks = limitedPks
+		end
+		-- Update
+		--[[TODOfor _, pk in ipairs(pks) then
+			for
+		end]]
 	end;
 	delete = function (self)
-		local model = self:model()
-		local db = model:db()
-		local s = db:Select(model:pkName()):from(model:tableName())
-		self:_applyConditions(s)
-		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
-		return u()
+		local model, values = self:model(), {}
+		-- Filter
+		local pks = self:q() and self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))()) or model:db():smembers(model:tableName())
+		-- Sort
+		if not table.empty(self._orders) then
+			local sortFunc = assert(loadstring("return "..self:_sortFuncText(pks)))()
+			setfenv(sortFunc, {cachedValues=self:_cacheValuesForSorting(pks);db=self:model():db()})
+			self:_sortPks(pks, sortFunc)
+		end
+		-- Limit
+		if self:limits().from then
+			local limitedPks = {}
+			for i = self:limits().from+1, math.min(#pks, self:limits().to) do
+				table.insert(limitedPks, pks[i])
+			end
+			pks = limitedPks
+		end
+		-- Delete
+		local delKeys = {}
+		for _, pk in ipairs(pks) do
+			model:db():srem(model:tableName(), pk)
+			local keys = model:db():keys(model:tableName()..":"..pk..":*")
+			for _, key in ipairs(keys) do
+				table.insert(delKeys, key)
+			end
+		end
+		model:db():del(delKeys)
+		return self
 	end;
 	__call = function (self, ...)
 		if not self._evaluated then

@@ -39,14 +39,18 @@ local TestCase = Object:extend{
 			self:tearDown()
 			stat.executed = stat.executed+1
 		end
-		for key, val in pairs(self) do
-			if string.find(key, "test", 1, true) and type(val) == "function" then
-				stat.total = stat.total+1
-				table.insert(stat.methods, key)
-				io.write(key, ", ")
-				try(runTest, self, self[key]):catch(Exception, errorHandler):throw()
+		local s = self
+		repeat
+			for key, val in pairs(s) do
+				if string.find(key, "test", 1, true) and type(val) == "function" then
+					stat.total = stat.total+1
+					table.insert(stat.methods, key)
+					io.write(key, ", ")
+					try(runTest, self, s[key]):catch(Exception, errorHandler):throw()
+				end
 			end
-		end
+			s = s:parent()
+		until nil == s
 		if stat.total ~= 0 then
 			if stat.failed == 0 then
 				io.write("\n--\nPASS ", stat.total, " tests")

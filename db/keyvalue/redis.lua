@@ -30,6 +30,7 @@ local function status (socket)
 	if "+" ~= string.slice(res, 1, 1) then
 		Driver.Exception(res)
 	end
+	return res
 end
 
 local function numeric (socket)
@@ -84,21 +85,19 @@ local RedisDriver = Driver:extend{
 		if not res then
 			Driver.Exception(error)
 		end
-		status(socket)
+		self._logger("PING", status(socket))
 		return self
 	end;
 	auth = function (self, pass)
 		local socket = self:socket()
 		socket:send("AUTH "..pass.."\r\n")
-		self._logger"AUTH ****"
-		status(socket)
+		self._logger("AUTH ****", status(socket))
 		return self
 	end;
 	select = function (self, schema)
 		local socket = self:socket()
 		socket:send("SELECT "..schema.."\r\n")
-		self._logger("SELECT "..schema)
-		status(socket)
+		self._logger("SELECT "..schema, status(socket))
 		return self
 	end;
 	get = function (self, keyOrKeys)
@@ -113,23 +112,23 @@ local RedisDriver = Driver:extend{
 			socket:send(request.."\r\n")
 			result = get(socket)
 		end
-		self._logger(request)
+		self._logger(request, result)
 		return result
 	end;
 	set = function (self, key, value)
 		local function setOne (socket, key, value)
-			local request
+			local request, result
 			if nil == value then
 				request = "DEL "..key
 				socket:send(request.."\r\n")
-				numeric(socket)
+				result = numeric(socket)
 			else
 				value = serialize(value)
 				request = "SET "..key.." "..string.len(value)
 				socket:send(request.."\r\n"..value.."\r\n")
-				status(socket)
+				result = status(socket)
 			end
-			self._logger(request)
+			self._logger(request, result)
 		end
 		local socket = self:socket()
 		if "table" == type(key) then
@@ -144,8 +143,7 @@ local RedisDriver = Driver:extend{
 			if not table.empty(delKeys) then
 				local request = "DEL "..table.join(key, " ")
 				socket:send(request.."\r\n")
-				self._logger(request)
-				numeric(socket)
+				self._logger(request, numeric(socket))
 			end
 		else
 			setOne(socket, key, value)
@@ -157,21 +155,17 @@ local RedisDriver = Driver:extend{
 		local request
 		if "table" == type(keyOrKeys) then
 			request = "DEL "..table.join(keyOrKeys, " ")
-			socket:send(request.."\r\n")
-			self._logger(request)
-			numeric(socket)
 		else
 			request = "DEL "..keyOrKeys
-			socket:send(request.."\r\n")
-			self._logger(request)
-			numeric(socket)
 		end
+		socket:send(request.."\r\n")
+		self._logger(request, numeric(socket))
 		return self
 	end;
 	close = function (self) self:socket():send"QUIT\r\n" self._logger"QUIT" end;
 	incr = function (self, key, value)
 		local socket = self:socket()
-		local request
+		local request, result
 		if value then
 			request = "INCRBY "..key.." "..tonumber(value)
 			socket:send(request.."\r\n")
@@ -179,12 +173,13 @@ local RedisDriver = Driver:extend{
 			request = "INCR "..key
 			socket:send(request.."\r\n")
 		end
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	decr = function (self, key, value)
 		local socket = self:socket()
-		local request
+		local request, result
 		if value then
 			request = "DECRBY "..key.." "..tonumber(value)
 			socket:send(request.."\r\n")
@@ -192,205 +187,219 @@ local RedisDriver = Driver:extend{
 			request = "DECR "..key
 			socket:send(request.."\r\n")
 		end
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	flush = function (self)
 		local socket = self:socket()
 		socket:send("FLUSHDB\r\n")
-		socket._logger"FLUSHDB"
-		status(socket)
+		self._logger("FLUSHDB", status(socket))
 		return self
 	end;
 	keys = function (self, pattern)
 		local socket = self:socket()
 		local request = "KEYS "..pattern
 		socket:send(request.."\r\n")
-		self._logger(request)
 		local res = get(socket, true)
+		self._logger(request, res)
 		return res ~= "" and string.explode(res, " ") or {}
 	end;
 	exists = function (self, key)
 		local socket = self:socket()
-		local request = "EXISTS "..key
+		local request, result = "EXISTS "..key
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return numeric(socket) == 1
+		result = numeric(socket)
+		self._logger(request, result)
+		return result == 1
 	end;
 	rename = function (self, oldname, newname)
 		local socket = self:socket()
 		local request = "RENAME "..oldname.." "..newname
 		socket:send(request.."\r\n")
-		self._logger(request)
-		status(socket)
+		self._logger(request, status(socket))
 		return true
 	end;
 	-- List processing
 	lpush = function (self, key, value)
 		local socket = self:socket()
-		local request = "LPUSH "..key.." "..string.len(value)
 		value = serialize(value)
+		local request = "LPUSH "..key.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		status(socket)
+		self._logger(request, status(socket))
 		return self
 	end;
 	rpush = function (self, key, value)
 		local socket = self:socket()
-		local request = "RPUSH "..key.." "..string.len(value)
 		value = serialize(value)
+		local request = "RPUSH "..key.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		status(socket)
+		self._logger(request, status(socket))
 		return self
 	end;
 	llen = function (self, key)
 		local socket = self:socket()
-		local request = "LLEN "..key
+		local request, result = "LLEN "..key
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	lrange = function (self, key, from, to)
 		local socket = self:socket()
-		local request = "LRANGE "..key.." "..from.." "..to
+		local request, result = "LRANGE "..key.." "..from.." "..to
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return bulk(socket)
+		result = bulk(socket)
+		self._logger(request, result)
+		return result
 	end;
 	ltrim = function (self, key, from, to)
 		local socket = self:socket()
 		local request = "LTRIM "..key.." "..from.." "..to
 		socket:send(request.."\r\n")
-		self._logger(request)
-		status(socket)
+		self._logger(request, status(socket))
 		return self
 	end;
 	lindex = function (self, key, index)
 		local socket = self:socket()
-		local request = "LINDEX "..key.." "..index
+		local request, result = "LINDEX "..key.." "..index
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return get(socket)
+		result = get(socket)
+		self._logger(request, result)
+		return result
 	end;
 	lset = function (self, key, index, value)
 		local socket = self:socket()
-		local request = "LSET "..key.." "..index.." "..string.len(value)
 		value = serialize(value)
+		local request = "LSET "..key.." "..index.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		status(socket)
+		self._logger(request, status(socket))
 		return self
 	end;
 	lrem = function (self, key, count, value)
 		local socket = self:socket()
-		local request = "LREM "..key.." "..count.." "..string.len(value)
 		value = serialize(value)
+		local request, result = "LREM "..key.." "..count.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	lpop = function (self, key)
 		local socket = self:socket()
-		local request = "LPOP "..key
+		local request, result = "LPOP "..key
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return get(socket)
+		result = get(socket)
+		self._logger(request, result)
+		return result
 	end;
 	rpop = function (self, key)
 		local socket = self:socket()
 		socket:send("RPOP "..key.."\r\n")
-		self._logger(request)
-		return get(socket)
+		result = get(socket)
+		self._logger(request, result)
+		return result
 	end;
 	-- Union processing
 	sadd = function (self, key, value)
 		local socket = self:socket()
-		local request = "SADD "..key.." "..string.len(value)
 		value = serialize(value)
+		local request, result = "SADD "..key.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		return numeric(socket) == 1
+		result = numeric(socket)
+		self._logger(request, result)
+		return result == 1
 	end;
 	srem = function (self, key, value)
 		local socket = self:socket()
-		local request = "SREM "..key.." "..string.len(value)
 		value = serialize(value)
+		local request, result = "SREM "..key.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		return numeric(socket) == 1
+		result = numeric(socket)
+		self._logger(request, result)
+		return result == 1
 	end;
 	smove = function (self, src, dest, value)
 		local socket = self:socket()
-		local request = "SMOVE "..src.." "..dest.." "..string.len(value)
 		value = serialize(value)
+		local request, result = "SMOVE "..src.." "..dest.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		return numeric(socket) == 1
+		result = numeric(socket)
+		self._logger(request, result)
+		return result == 1
 	end;
 	scard = function (self, key)
 		local socket = self:socket()
-		local request = "SCARD "..key
+		local request, result = "SCARD "..key
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	sismember = function (self, key, value)
 		local socket = self:socket()
-		local request = "SISMEMBER "..key.." "..string.len(value)
 		value = serialize(value)
+		local request, result = "SISMEMBER "..key.." "..string.len(value)
 		socket:send(request.."\r\n"..value.."\r\n")
-		self._logger(request)
-		return numeric(socket) == 1
+		result = numeric(socket)
+		self._logger(request, result)
+		return result == 1
 	end;
 	sinter = function (self, keys)
 		local socket = self:socket()
-		local request = "SINTER "..table.join(keys, " ")
+		local request, result = "SINTER "..table.join(keys, " ")
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return bulk(socket)
+		result = bulk(socket)
+		self._logger(request, result)
+		return result
 	end;
 	sinterstore = function (self, dest, keys)
 		local socket = self:socket()
-		local request = "SINTERSTORE "..dest.." "..table.join(keys, " ")
+		local request, result = "SINTERSTORE "..dest.." "..table.join(keys, " ")
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	sunion = function (self, keys)
 		local socket = self:socket()
-		local request = "SUNION "..table.join(keys, " ")
+		local request, result = "SUNION "..table.join(keys, " ")
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return bulk(socket)
+		result = bulk(socket)
+		self._logger(request, result)
+		return result
 	end;
 	sunionstore = function (self, dest, keys)
 		local socket = self:socket()
-		local request = "SUNIONSTORE "..dest.." "..table.join(keys, " ")
+		local request, result = "SUNIONSTORE "..dest.." "..table.join(keys, " ")
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	sdiff = function (self, keys)
 		local socket = self:socket()
-		local request = "SDIFF "..table.join(keys, " ")
+		local request, result = "SDIFF "..table.join(keys, " ")
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return bulk(socket)
+		result = bulk(socket)
+		self._logger(request, result)
+		return result
 	end;
 	sdiffstore = function (self, dest, keys)
 		local socket = self:socket()
-		local request = "SDIFFSTORE "..dest.." "..table.join(keys, " ")
+		local request, result = "SDIFFSTORE "..dest.." "..table.join(keys, " ")
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return numeric(socket)
+		result = numeric(socket)
+		self._logger(request, result)
+		return result
 	end;
 	smembers = function (self, key)
 		local socket = self:socket()
-		local request = "SMEMBERS "..key
+		local request, result = "SMEMBERS "..key
 		socket:send(request.."\r\n")
-		self._logger(request)
-		return bulk(socket)
+		result = bulk(socket)
+		self._logger(request, result)
+		return result
 	end;
 }
 
