@@ -9,7 +9,8 @@ local capitalize = string.capitalize
 
 module(...)
 
-local MODULE = ...
+local MODULE = (...)
+local property = models.Model.property
 
 local GroupRight = models.Model:extend{
 	__tag = .....".GroupRight",
@@ -45,8 +46,9 @@ local UserGroup = models.Model:extend{
 local User = models.Model:extend{
 	__tag = .....".User",
 	Meta = {labels={"user";"users"}};
-	sessId = "LUV_AUTH";
-	secretSalt = "";
+	_sessId = "LUV_AUTH";
+	sessId = property"string";
+	secretSalt = property"string";
 	-- Fields
 	isActive = fields.Boolean{defaultValue=true;label=tr"active user"};
 	login = fields.Login();
@@ -56,8 +58,6 @@ local User = models.Model:extend{
 	group = references.ManyToOne{references=UserGroup;relatedName="users"};
 	__tostring = function (self) return tostring(self.name) end;
 	-- Methods
-	getSecretSalt = function (self) return self.secretSalt end,
-	setSecretSalt = function (self, secretSalt) self.secretSalt = secretSalt return self end,
 	encodePassword = function (self, password, method, salt)
 		if not password then Exception "Empty password is restricted!" end
 		method = method or "sha1"
@@ -65,7 +65,7 @@ local User = models.Model:extend{
 			salt = tostring(crypt.hash(method, math.random(2000000000)))
 			salt = string.slice(salt, math.random(10), math.random(5, string.len(salt)-10))
 		end
-		return method.."$"..salt.."$"..tostring(crypt.hash(method, password..salt..self.secretSalt))
+		return method.."$"..salt.."$"..tostring(crypt.hash(method, password..salt..(self:secretSalt() or "")))
 	end;
 	comparePassword = function (self, password)
 		local method, salt, hash = string.split(self.passwordHash, "$", "$")
@@ -73,17 +73,18 @@ local User = models.Model:extend{
 	end;
 	authUser = function (self, session, loginForm)
 		if self._authUser then return self._authUser end
+		local sessId = self:sessId()
 		if not loginForm or "table" ~= type(loginForm) or not loginForm.isA
 			or not loginForm:isA(require(MODULE).forms.Login) or not loginForm:submitted() or not loginForm:valid() then
-			if not session[self.sessId] then
-				session[self.sessId] = nil
+			if not session[sessId] then
+				session[sessId] = nil
 				session:save()
 				self._authUser = nil
 				return nil
 			end
-			local user = self:find(session[self.sessId].user)
+			local user = self:find(session[sessId].user)
 			if not user then
-				session[self.sessId] = nil
+				session[sessId] = nil
 				session:save()
 			end
 			self._authUser = user
@@ -91,18 +92,18 @@ local User = models.Model:extend{
 		end
 		local user = self:find{login=loginForm.login}
 		if not user or not user:comparePassword(loginForm.password) then
-			session[self.sessId] = nil
+			session[sessId] = nil
 			session:save()
-			loginForm:addError(tr "Invalid authorisation data.")
+			loginForm:addError(tr"Invalid authorisation data.")
 			return nil
 		end
-		session[self.sessId] = {user=user.pk}
+		session[sessId] = {user=user.pk}
 		session:save()
 		self._authUser = user
 		return user
-	end,
+	end;
 	logout = function (self, session)
-		session[self.sessId] = nil
+		session[self:sessId()] = nil
 		session:save()
 	end;
 	-- Rights
@@ -144,9 +145,9 @@ local User = models.Model:extend{
 local Login = forms.Form:extend{
 	__tag = .....".Login",
 	Meta = {fields={"login";"password";"authorise"}};
-	login = User:field "login",
+	login = User:field"login",
 	password = fields.Password{required=true};
-	authorise = fields.Submit{defaultValue=capitalize(tr "log in")}
+	authorise = fields.Submit{defaultValue=capitalize(tr"log in")}
 }
 
 local _modelsAdmins
@@ -219,12 +220,12 @@ end
 
 return {
 	models = {
-		GroupRight = GroupRight,
-		UserGroup = UserGroup,
-		User = User
-	},
+		GroupRight = GroupRight;
+		UserGroup = UserGroup;
+		User = User;
+	};
 	forms = {
-		Login = Login
+		Login = Login;
 	};
 	modelsAdmins = modelsAdmins;
 }

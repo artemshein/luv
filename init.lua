@@ -116,15 +116,16 @@ local Core = Object:extend{
 	profiler = property;
 	debugger = property;
 	i18n = property;
+	cacher = property("table", nil, function (self, cacher)
+		self._cacher = cacher
+		require "luv.db.models".Model:cacher(cacher)
+		return self
+	end);
 	dsn = property(nil, nil, function (self, dsn)
 		local drivers = {mysql="sql";redis="keyvalue"}
 		self._dsn = dsn
 		local db = require("luv.db."..drivers[string.lower(string.slice(dsn, 1, string.find(dsn, ":")-1))]).Factory(dsn)
 		require"luv.db.models".Model:db(db)
-		db:logger(function (sql, result)
-			io.write("\n", sql, "\n", tostring("table" == type(result) and #result or result))
-			self:debug(sql, "Database")
-		end)
 		self:db(db)
 		return self
 	end);
@@ -202,15 +203,6 @@ local Core = Object:extend{
 	warn = function (self, ...) return self._debugger and self._debugger:warn(...) or self end;
 	error = function (self, ...) return self._debugger and self._debugger:error(...) or self end;
 	-- Caching
-	cacher = function (self, ...)
-		if select("#", ...) > 0 then
-			self._cacher = cacher
-			require "luv.db.models".Model:cacher(cacher)
-			return self
-		else
-			return self._cacher
-		end
-	end;
 	createTemplateSlot = function (self, template, params)
 		return TemplateSlot(self, template, params)
 	end;
@@ -344,7 +336,7 @@ local Widget = Object:extend{
 
 local init = function (params)
 	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
-	core:templater(params.templater or require "luv.templaters".Tamplier (params.templatesDirs))
+	core:templater(params.templater or require "luv.templaters".Tamplier(params.templatesDirs))
 	core:session(sessions.Session(core:wsApi(), sessions.SessionFile(params.sessionsDir)))
 	core:dsn(params.dsn)
 	core:debugger(params.debugger)

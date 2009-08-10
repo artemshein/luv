@@ -50,11 +50,30 @@ local ModelSqlSlot = cache.Slot:extend{
 
 local Model = Struct:extend{
 	__tag = .....".Model";
-	modelsList = {};
+	__eq = function (self, second)
+		local pkValue = self.pk
+		if pkValue == nil then
+			return false
+		end
+		return pkValue == second.pk
+	end;
 	__tostring = function (self) return tostring(self.pk) end;
+	modelsList = {};
 	cacher = property;
 	ajaxUrl = property "string";
 	db = property;
+	tableName = property("string", function (self)
+		if (not self._tableName) then
+			self._tableName = string.gsub(self:label(), " ", "_")
+		end
+		return self._tableName
+	end, nil);
+	label = property("string", "self.Meta.label or self.Meta.labels[1]", "self.Meta.label");
+	labelMany = property("string",
+		function (self) return self.Meta.labelMany or self.Meta.labels[2] end,
+		"self.Meta.labelMany"
+	);
+	order = property(nil, "self.Meta.order", "self.Meta.order");
 	createBackLinksFieldsFrom = function (self, model)
 		for _, v in ipairs(model:referenceFields(self)) do
 			if not self:field(v:relatedName() or Exception("relatedName required for "..v:name().." field")) then
@@ -120,13 +139,6 @@ local Model = Struct:extend{
 		new:fields(table.map(self:fields(), f"a:clone()"))
 		return new
 	end;
-	__eq = function (self, second)
-		local pkValue = self.pk
-		if pkValue == nil then
-			return false
-		end
-		return pkValue == second.pk
-	end;
 	pkName = function (self)
 		local pk = self:pkField()
 		if not pk then
@@ -159,30 +171,6 @@ local Model = Struct:extend{
 		end
 		return nil
 	end;
-	label = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.label = (select(1, ...))
-			return self
-		else
-			return self.Meta.label or self.Meta.labels[1]
-		end
-	end;
-	labelMany = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.label = (select(1, ...))
-			return self
-		else
-			return self.Meta.labelMany or self.Meta.labels[2]
-		end
-	end;
-	order = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.order = (select(1, ...))
-			return self
-		else
-			return self.Meta.order
-		end
-	end;
 	-- Find
 	fieldPlaceholder = function (self, field)
 		if not field then
@@ -208,6 +196,9 @@ local Model = Struct:extend{
 		end
 	end;
 	find = function (self, what)
+		local cacher = self:cacher()
+		if cacher then
+		end
 		local db, tableName = self:db(), self:tableName()
 		local values
 		if db:isA(sql.Driver) then
@@ -483,7 +474,7 @@ local Model = Struct:extend{
 		end
 	end;
 	create = function (self, ...)
-		local obj = self(...)
+		local obj = self:parent()(...)
 		if not obj:insert() then
 			return nil
 		end
@@ -493,17 +484,6 @@ local Model = Struct:extend{
 	-- Create and drop
 	htmlId = function (self)
 		return self:tableName()..self.pk
-	end;
-	tableName = function (self, ...)
-		if select("#", ...) > 0 then
-			self._tableName = (select(1, ...))
-			return self
-		else
-			if (not self._tableName) then
-				self._tableName = string.gsub(self:label(), " ", "_")
-			end
-			return self._tableName
-		end
 	end;
 	constraintModels = function (self)
 		local models = {}
@@ -608,9 +588,7 @@ local Model = Struct:extend{
 	end;
 	-- Caching
 	clearCacheTag = function (self)
-		if self:cacher() then
-			ModelTag(self:cacher(), self):clear()
-		end
+		if self:cacher() then ModelTag(self:cacher(), self):clear() end
 		return self
 	end;
 	-- Ajax
@@ -1299,7 +1277,7 @@ local KeyValueQuerySet = QuerySet:extend{
 		self:values(values)
 	end;
 	value = function (self)
-		if not self._evaluated then
+		if not self:evaluated() then
 			self:_evaluate()
 		end
 		return self._values

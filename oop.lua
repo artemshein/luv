@@ -1,4 +1,5 @@
 local table = require "luv.table"
+local loadstring, assert = loadstring, assert
 local tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset = tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset
 local ipairs, debug, require, select = ipairs, debug, require, select
 
@@ -98,9 +99,13 @@ local Property = Object:extend{
 		end
 		if not getter then
 			getter = function (self) return self["_"..name] end
+		elseif "string" == type(getter) then
+			getter = assert(loadstring("return function (self) return "..getter.." end"))()
 		end
 		if not setter then
 			setter = function (self, value) self["_"..name] = value return self end
+		elseif "string" == type(setter) then
+			setter = assert(loadstring("return function (self, value) "..setter.." = value return self end"))()
 		end
 		return function (self, ...)
 			if 0 == select("#", ...) then

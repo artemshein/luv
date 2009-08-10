@@ -27,7 +27,7 @@ local Backend = Object:extend{
 	delete = abstract;
 	clear = abstract;
 	clearTags = abstract;
-	defaultLifetime = property;
+	defaultLifetime = property"number";
 	logger = property;
 }
 
