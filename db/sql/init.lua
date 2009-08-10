@@ -17,7 +17,7 @@ local Factory = Object:extend{
 		login, host = string.split(host, "@")
 		login, pass = string.split(login, ":")
 		host, port = string.split(host, ":")
-		paramsStr = string.split(paramsStr, "&")
+		if paramsStr then paramsStr = string.split(paramsStr, "&") end
 		if paramsStr then
 			for _, v in ipairs(paramsStr) do
 				local key, val = string.split(v, "=")

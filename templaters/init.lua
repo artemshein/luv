@@ -8,6 +8,7 @@ local Exception, try = exceptions.Exception, exceptions.try
 local html = require "luv.utils.html"
 
 module(...)
+
 local abstract = Object.abstractMethod
 local property = Object.property
 
@@ -178,13 +179,13 @@ local Tamplier = Api:extend{
 	getTemplateContents = function (self, template)
 		if "table" ~= type(self._templatesDirs) or table.empty(self._templatesDirs) then
 			local tpl = fs.File(template)
-			if tpl:isExists() then
+			if tpl:exists() then
 				return tpl:openReadAndClose "*a"
 			end
 		end
 		for _, v in ipairs(self._templatesDirs) do
 			local tpl = fs.File(v / template)
-			if tpl:isExists() then
+			if tpl:exists() then
 				return tpl:openReadAndClose "*a"
 			end
 		end

@@ -1,25 +1,26 @@
 local table, pairs, next, type, require, ipairs = table, pairs, next, type, require, ipairs
 local tostring, debug, error = tostring, debug, error
+local checkTypes = require"luv.checktypes".checkTypes
 
 module(...)
 
-table.keys = function (self)
+table.keys = checkTypes("table", function (self)
 	local res = {}
 	for key, _ in pairs(self) do
 		table.insert(res, key)
 	end
 	return res
-end
+end, "table")
 
-table.map = function (self, func)
+table.map = checkTypes("table", "function", function (self, func)
 	local res = {}
 	for key, val in pairs(self) do
 		res[key] = func(val)
 	end
 	return res
-end
+end, "table")
 
-table.imap = function (self, func)
+table.imap = checkTypes("table", "function", function (self, func)
 	local res = {}
 	for _, val in ipairs(self) do
 		local newVal = func(val)
@@ -28,55 +29,52 @@ table.imap = function (self, func)
 		end
 	end
 	return res
-end
+end, "table")
 
-table.ifind = function (self, val)
-	if "table" ~= type(self) then
-		error ("table expected "..debug.traceback())
-	end
+table.ifind = checkTypes("table", function (self, val)
 	for k, v in ipairs(self) do
 		if val == v then
 			return k
 		end
 	end
-end
+end)
 
-table.find = function (self, val)
+table.find = checkTypes("table", function (self, val)
 	for k, v in pairs(self) do
 		if val == v then
 			return k
 		end
 	end
-end
+end)
 
-table.iremoveValue = function (self, val)
+table.iremoveValue = checkTypes("table", function (self, val)
 	local key = table.ifind(self, val)
 	if key then
 		return table.remove(self, key)
 	end
-end
+end)
 
-table.removeValue = function (self, val)
+table.removeValue = checkTypes("table", function (self, val)
 	local key = table.find(self, val)
 	if key then
 		return table.remove(self, key)
 	end
-end
+end)
 
-table.copy = function (self)
+table.copy = checkTypes("table", function (self)
 	local res = {}
 	for k, v in pairs(self) do
 		res[k] = v
 	end
 	return res
-end
+end, "table")
 
-table.deepCopy = function (tbl, seen)
+table.deepCopy = checkTypes("table", function (tbl, seen)
 	local res = {}
 	seen = seen or {}
 	seen[tbl] = res
 	for k, v in pairs(tbl) do
-		if 'table' == type(v) then
+		if "table" == type(v) then
 			if seen[v] then
 				res[k] = seen[v]
 			else
@@ -88,36 +86,36 @@ table.deepCopy = function (tbl, seen)
 	end
 	seen[tbl] = nil
 	return res
-end
+end, "table")
 
-table.join = function (tbl, sep)
+table.join = checkTypes("table", function (tbl, sep)
 	local res
 	sep = sep or ""
 	for _, v in pairs(tbl) do
 		res = (res and res..sep or "")..tostring(v)
 	end
 	return res or ""
-end
+end, "string")
 
-table.ijoin = function (self, sep)
+table.ijoin = checkTypes("table", function (self, sep)
 	local res
 	sep = sep or ""
 	for _, v in ipairs(self) do
 		res = (res and res..sep or "")..tostring(v)
 	end
 	return res or ""
-end
+end, "string")
 
-table.size = function (tbl)
+table.size = checkTypes("table", function (tbl)
 	local count = 0
 	for _ in pairs(tbl) do
 		count = count + 1
 	end
 	return count
-end
+end, "number")
 
-table.empty = function (self)
+table.empty = checkTypes("table", function (self)
 	return nil == next(self)
-end
+end, "boolean")
 
 return table

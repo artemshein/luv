@@ -474,7 +474,7 @@ local Model = Struct:extend{
 		end
 	end;
 	create = function (self, ...)
-		local obj = self:parent()(...)
+		local obj = self(...)
 		if not obj:insert() then
 			return nil
 		end

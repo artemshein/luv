@@ -13,6 +13,7 @@ module(...)
 
 local MODULE = (...)
 local property = Object.property
+local abstract = Object.abstractMethod
 
 if not _G.tr then
 	_G.tr = function (str) return str end
@@ -22,30 +23,30 @@ tr = _G.tr
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
 	request = property(ws.HttpRequest);
-	uri = property "string";
-	tailUri = property "string";
-	baseUri = property "string";
-	captures = property "table";
+	uri = property"string";
+	tailUri = property"string";
+	baseUri = property"string";
+	captures = property"table";
 	init = function (self, request)
 		self:request(request)
 		self:uri(request:header "REQUEST_URI" or "")
-		local queryPos = string.find(self._uri, "?")
+		local queryPos = string.find(self:uri(), "?")
 		if queryPos then
-			self:uri(string.sub(self._uri, 1, queryPos-1))
+			self:uri(string.sub(self:uri(), 1, queryPos-1))
 		end
-		self:tailUri(self._uri)
+		self:tailUri(self:uri())
 		self:baseUri""
 		self:captures{}
 	end;
 	capture = function (self, pos)
-		return self._captures[pos]
+		return self:captures()[pos]
 	end;
 	execute = function (self, action)
 		if type(action) == "string" then
 			local result = dofile(action)
 			return result and self:dispatch(result) or true
 		elseif type(action) == "function" then
-			return action(self, unpack(self._captures))
+			return action(self, unpack(self:captures()))
 		elseif type(action) == "table" then
 			return self:dispatch(action)
 		else
@@ -61,11 +62,11 @@ local UrlConf = Object:extend{
 			if "string" == type(item[1]) then
 				local res = {string.find(self._tailUri, item[1])}
 				if nil ~= res[1] then
-					local oldTailUri, oldBaseUri, oldCaptures = self._tailUri, self._baseUri, self._captures
-					local tailUriLen = string.len(self._tailUri)
-					self._baseUri = self._baseUri..string.sub(self._uri, 1, -tailUriLen+res[1]-2)
-					self._tailUri = string.sub(self._tailUri, res[2]+1)
-					self.captures = {}
+					local oldTailUri, oldBaseUri, oldCaptures = self:tailUri(), self:baseUri(), self:captures()
+					local tailUriLen = string.len(self:tailUri())
+					self:baseUri(self:baseUri()..string.sub(self:uri(), 1, -tailUriLen+res[1]-2))
+					self:tailUri(string.sub(self:tailUri(), res[2]+1))
+					self:captures{}
 					for i = 3, #res do
 						table.insert(self._captures, res[i])
 					end
@@ -84,9 +85,11 @@ local UrlConf = Object:extend{
 
 local TemplateSlot = Slot:extend{
 	__tag = .....".TemplateSlot";
+	luv = property;
+	template = property;
 	init = function (self, luv, template, params)
-		self._luv = luv
-		self._template = template
+		self:luv(luv)
+		self:template(template)
 		return Slot.init(self, luv:cacher(), tostring(crypt.Md5(template..string.serialize(params))), 60*60)
 	end;
 	displayCached = function (self)
@@ -96,8 +99,8 @@ local TemplateSlot = Slot:extend{
 		return true
 	end;
 	display = function (self)
-		self.luv:info("Template cache date "..os.date(), "Cacher")
-		local res = self._luv:fetch(self._template)
+		self:luv():info("Template cache date "..os.date(), "Cacher")
+		local res = self:luv():fetch(self:template())
 		self:set(res)
 		io.write(res)
 		return self
@@ -139,9 +142,9 @@ local Core = Object:extend{
 		self:cacher(TagEmuWrapper(Memory()))
 	end;
 	-- Database
-	beginTransaction = function (self) return self._db:beginTransaction() end;
-	commit = function (self) return self._db:commit() end;
-	rollback = function (self) return self._db:rollback() end;
+	beginTransaction = function (self) return self:db():beginTransaction() end;
+	commit = function (self) return self:db():commit() end;
+	rollback = function (self) return self:db():rollback() end;
 	-- Web-server
 	requestHeader = function (self, ...) return self:wsApi():requestHeader(...) end;
 	responseHeader = function (self, ...) self:wsApi():responseHeader(...) return self end;
@@ -218,8 +221,15 @@ local Core = Object:extend{
 
 local Struct = Object:extend{
 	__tag = .....".Struct";
-	errors = property "table";
-	msgs = property "table";
+	errors = property"table";
+	msgs = property"table";
+	fields = property("table", nil, function (self, fields)
+		self._fields = {}
+		for name, f in pairs(fields) do
+			self:addField(name, f)
+		end
+		return self
+	end);
 	init = function (self)
 		self:msgs{}
 		self:errors{}
@@ -258,29 +268,18 @@ local Struct = Object:extend{
 	end;
 	-- Fields
 	addField = function (self, name, field)
-		if not self._fields then
-			Exception "fields required"
+		if not self:fields() then
+			Exception"fields required"
 		end
 		if not field:isA(require "luv.fields".Field) then
-			Exception "instance of Field expected"
+			Exception"instance of Field expected"
 		end
 		field:container(self)
 		field:name(name)
-		self._fields[name] = field
+		self:fields()[name] = field
 		return self
 	end;
-	field = function (self, field) return self._fields[field] or nil end;
-	fields = function (self, ...)
-		if select("#", ...) > 0 then
-			self._fields = {}
-			for name, f in pairs((select(1, ...))) do
-				self:addField(name, f)
-			end
-			return self
-		else
-			return self._fields
-		end
-	end;
+	field = function (self, field) return self:fields()[field] end;
 	values = function (self, ...)
 		if select("#", ...) > 0 then
 			local values = (select(1, ...))
@@ -331,12 +330,12 @@ local Struct = Object:extend{
 
 local Widget = Object:extend{
 	__tag = .....".Widget";
-	render = Object.abstractMethod;
+	render = abstract;
 }
 
 local init = function (params)
 	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
-	core:templater(params.templater or require "luv.templaters".Tamplier(params.templatesDirs))
+	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs))
 	core:session(sessions.Session(core:wsApi(), sessions.SessionFile(params.sessionsDir)))
 	core:dsn(params.dsn)
 	core:debugger(params.debugger)

@@ -20,9 +20,9 @@ local Factory = Object:extend{
 		if not host then
 			host = "localhost"
 		end
-		login, pass = string.split(login, ":")
+		if login then login, pass = string.split(login, ":") end
 		host, port = string.split(host, ":")
-		paramsStr = string.split(paramsStr, "&")
+		if paramsStr then paramsStr = string.split(paramsStr, "&") end
 		if paramsStr then
 			for _, v in ipairs(paramsStr) do
 				local key, val = string.split(v, "=")

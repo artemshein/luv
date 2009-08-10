@@ -3,9 +3,15 @@ local debug = debug
 
 module(...)
 
-local function expect (value, valType)
-	if valType and type(value) ~= valType then
-		error("Expected "..valType.." not "..type(value).."! "..debug.traceback())
+local function expect (valType, value)
+	if "table" == type(valType) and valType.isA then
+		if "table" ~= type(value) or not value.isA or not value:isA(valType) then
+			error("not a valid object given "..debug.traceback("", 3))
+		end
+	else
+		if type(value) ~= valType then
+			error("expected "..valType..", "..type(value).." given "..debug.traceback("", 3))
+		end
 	end
 end
 
@@ -14,7 +20,7 @@ local function checkTypes (...)
 	for i = 1, total do
 		local param = args[i]
 		if not resultFlag then
-			if type(param) == "function" then
+			if "function" == type(param) then
 				resultFlag = true
 				func = param
 			else
@@ -28,13 +34,13 @@ local function checkTypes (...)
 		local args = {select(1, ...)}
 		-- Test input
 		for i, param in ipairs(params) do
-			expect(args[i], param)
+			if param then expect(param, args[i]) end
 		end
 		-- Call
 		local realResult = {func(...)}
 		-- Test result
 		for i, res in ipairs(result) do
-			expect(realResult[i], res)
+			if res then expect(res, realResult[i]) end
 		end
 		return unpack(realResult)
 	end

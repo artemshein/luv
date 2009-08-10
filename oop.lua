@@ -2,6 +2,7 @@ local table = require "luv.table"
 local loadstring, assert = loadstring, assert
 local tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset = tostring, getmetatable, setmetatable, error, io, debug, type, pairs, rawget, rawset
 local ipairs, debug, require, select = ipairs, debug, require, select
+local ct = require"luv.checktypes"
 
 module(...)
 
@@ -64,6 +65,8 @@ local Object = {
 	maskedMethod = function () error("masked method "..debug.traceback()) end;
 	singleton = function (self) return self end;
 	property = function () end;
+	expect = ct.expect;
+	checkTypes = ct.checkTypes;
 }
 
 local Property = Object:extend{
@@ -80,22 +83,7 @@ local Property = Object:extend{
 		local propType, getter, setter = self:type(), self:getter(), self:setter()
 		local typeTest
 		if propType then
-			if "string" == type(propType) then
-				typeTest = function (value)
-					local valueType = type(value)
-					if propType ~= valueType then
-						error(propType.." expected "..valueType.." given "..debug.traceback())
-					end
-				end
-			else
-				typeTest = function (value)
-					if not value or not value.isA or not value:isA(propType) then
-						error("invalid type of parameter "..debug.traceback())
-					end
-				end
-			end
-		else
-			typeTest = function () end
+			typeTest = function (value) ct.expect(propType, value) end
 		end
 		if not getter then
 			getter = function (self) return self["_"..name] end
@@ -112,7 +100,7 @@ local Property = Object:extend{
 				return getter(self)
 			else
 				local value = (select(1, ...))
-				typeTest(value)
+				if typeTest then typeTest(value) end
 				return setter(self, value)
 			end
 		end

@@ -4,37 +4,32 @@ local table = require "luv.table"
 local require = require
 local string, table, unpack, select, debug, error, loadstring, assert = string, table, unpack, select, debug, error, loadstring, assert
 local type, tostring, pairs, io, error = type, tostring, pairs, io, error
+local checkTypes = require"luv.checktypes".checkTypes
 
 module(...)
 
 string.slice = string.utf8sub
 
-string.capitalize = function (self)
-	if not self then
-		error("string expected "..debug.traceback())
-	end
+string.capitalize = checkTypes("string", function (self)
 	if string.len(self) == 0 then return self end
 	return string.utf8upper(string.utf8sub(self, 1, 1))..string.utf8sub(self, 2)
-end
+end, "string")
 
-string.beginsWith = function (str, beg)
+string.beginsWith = checkTypes("string", "string", function (str, beg)
 	if 1 ~= string.find(str, beg, 1, true) then
 		return false
 	end
 	return true
-end
+end, "boolean")
 
-string.endsWith = function (str, search)
-	if "string" ~= type(str) or "string" ~= type(search) then
-		error("String expected "..debug.traceback())
-	end
+string.endsWith = checkTypes("string", "string", function (str, search)
 	if string.sub(str, -string.len(search)) ~= search then
 		return false
 	end
 	return true
-end
+end, "boolean")
 
-string.split = function (str, ...)
+string.split = checkTypes("string", function (str, ...)
 	local res, tail, values = {}, str, {select(1, ...)}
 	for i = 1, select("#", ...) do
 		if not tail then break end
@@ -46,9 +41,9 @@ string.split = function (str, ...)
 	end
 	table.insert(res, tail)
 	return unpack(res)
-end
+end)
 
-string.findLast = function (self, substr)
+string.findLast = checkTypes("string", function (self, substr)
 	local i, lastBegPos, lastEndPos = 1
 	local begPos, endPos = string.find(self, substr, i, true)
 	while begPos do
@@ -58,12 +53,9 @@ string.findLast = function (self, substr)
 		begPos, endPos = string.find(self, substr, i, true)
 	end
 	return lastBegPos, lastEndPos
-end
+end)
 
-string.explode = function (self, ex)
-	if "string" ~= type(self) then
-		error("string expected "..debug.traceback())
-	end
+string.explode = checkTypes("string", "string", function (self, ex)
 	local res, tail, begPos, endPos = {}, self
 	begPos, endPos = string.find(tail, ex, 1, true)
 	while begPos do
@@ -73,11 +65,11 @@ string.explode = function (self, ex)
 	end
 	table.insert(res, tail)
 	return res
-end
+end, "table")
 
 local trimChars = {string.byte" ";string.byte"\t";string.byte"\v";string.byte"\r";string.byte"\n";0}
 
-string.ltrim = function (self)
+string.ltrim = checkTypes("string", function (self)
 	local index = 1
 	for i = 1, string.len(self) do
 		if not table.ifind(trimChars, string.byte(self, i)) then
@@ -86,9 +78,9 @@ string.ltrim = function (self)
 		end
 	end
 	return string.sub(self, index)
-end
+end, "string")
 
-string.rtrim = function (self)
+string.rtrim = checkTypes("string", function (self)
 	local index = 1
 	for i = string.len(self), 1, -1 do
 		if not table.ifind(trimChars, string.byte(self, i)) then
@@ -97,11 +89,11 @@ string.rtrim = function (self)
 		end
 	end
 	return string.sub(self, 1, index)
-end
+end, "string")
 
-string.trim = function (self)
+string.trim = checkTypes("string", function (self)
 	return string.ltrim(string.rtrim(self))
-end
+end, "string")
 
 --[[
 local urlEncodeChars = {36=true;38;43;44;47;58;59;61;63;64}
@@ -144,7 +136,7 @@ string.serialize = function (self, seen)
 	return ""
 end
 
-string.unserialize = function (self)
+string.unserialize = checkTypes("string", function (self)
 	if not self then
 		return nil
 	end
@@ -153,6 +145,6 @@ string.unserialize = function (self)
 		error("unserialize fails "..debug.traceback().." "..self)
 	end
 	return func()
-end
+end)
 
 return string

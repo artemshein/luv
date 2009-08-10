@@ -6,11 +6,12 @@ local json = require "luv.utils.json"
 local Object = require"luv.oop".Object
 
 module(...)
+
 local property = Object.property
 
 local Validator = Object:extend{
 	__tag = .....".Validator";
-	errors = property;
+	errors = property"table";
 	errorMsg = function (self) return tr(self._errorMsg) end;
 	js = Object.property;
 	init = function (self) self:errors{} end;

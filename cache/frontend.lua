@@ -13,6 +13,7 @@ local property = Object.property
 local Tag = Object:extend{
 	__tag = .....".Tag";
 	id = property "string";
+	backend = property"table";
 	init = function (self, backend, id)
 		self:id(id)
 		self:backend(backend)
