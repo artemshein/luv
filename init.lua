@@ -2,7 +2,7 @@ local table = require "luv.table"
 local string = require "luv.string"
 local dev = require "luv.dev"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
-local error, debug, _G = error, debug, _G
+local error, debug = error, debug
 local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 local crypt, backend = require "luv.crypt", require "luv.cache.backend"
@@ -15,10 +15,9 @@ local MODULE = (...)
 local property = Object.property
 local abstract = Object.abstractMethod
 
-if not _G.tr then
-	_G.tr = function (str) return str end
+if not tr then
+	tr = function (str) return str end
 end
-tr = _G.tr
 
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
@@ -193,7 +192,7 @@ local Core = Object:extend{
 	flush = function (self)
 		self:endProfiling"Luv"
 		for section, info in pairs(self:profiler():stat()) do
-			self:info(section.." was executed "..tostring(info.count).." times and takes "..tostring(info.total).." secs", "Profiler")
+			self:debug(section.." has been executed "..tostring(info.count).." times and took about "..tostring(info.total).." seconds.", "Profiling of "..self:urlConf():uri())
 		end
 		self:assign{debugger=self:debugger() or ""}
 	end;
@@ -209,11 +208,8 @@ local Core = Object:extend{
 	createTemplateSlot = function (self, template, params)
 		return TemplateSlot(self, template, params)
 	end;
-	--[[createModelSlot = function (self, model)
-		return require "luv.db.models".ModelSlot(self:getCacher(), model)
-	end;]]
 	createModelTag = function (self, model)
-		return require "luv.db.models".ModelTag(self:cacher(), model)
+		return require"luv.db.models".ModelTag(self:cacher(), model)
 	end;
 	-- I18n
 	tr = function (self, str) return self._i18n:tr(str) or str end;

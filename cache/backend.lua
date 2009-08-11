@@ -13,6 +13,7 @@ local crypt = require "luv.crypt"
 local mime = require "mime"
 
 module(...)
+
 local abstract = Object.abstractMethod
 local property = Object.property
 
@@ -22,34 +23,36 @@ local property = Object.property
 local Backend = Object:extend{
 	__tag = .....".Backend";
 	_logger = function () end;
+	logger = property;
+	defaultLifetime = property"number";
 	get = abstract;
 	set = abstract;
 	delete = abstract;
 	clear = abstract;
 	clearTags = abstract;
-	defaultLifetime = property"number";
-	logger = property;
 }
 
 local Memory = Backend:extend{
 	__tag = .....".Memory";
 	_defaultLifetime = 0;
+	storage = property"table";
 	init = function (self)
-		self._storage = {}
+		self:storage{}
 	end;
 	get = function (self, id)
-		local data = self._storage[id]
+		local data = self:storage()[id]
 		if not data then self._logger("not found "..id) return nil end
-		self._logger("get "..id)
-		return unserialize(data)
+		local result = unserialize(data)
+		self._logger("get "..id, type(result))
+		return result
 	end;
 	set = function (self, id, data, tags)
 		if tags then Exception"Tags unsupported!" end
-		self._logger("set "..id)
-		self._storage[id] = serialize(data)
+		self._logger("set "..id, "ok")
+		self:storage()[id] = serialize(data)
 	end;
-	delete = function (self, id) self._logger("delete "..id) self._storage[id] = nil end;
-	clear = function (self) self._logger("clear") self._storage = {} end;
+	delete = function (self, id) self._logger("delete "..id, "ok") self:storage()[id] = nil end;
+	clear = function (self) self._logger("clear", "ok") self:storage{} end;
 	clearTags = function (self, tags)
 		table.imap(tags, function (tag) self:delete(tag) end)
 	end;

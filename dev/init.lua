@@ -62,7 +62,7 @@ local function dprint (...) io.write(dump(...)) end
 
 local Profiler = Object:extend{
 	__tag = .....".Profiler";
-	stat = Object.property;
+	stat = Object.property"table";
 	init = function (self) self:stat{} end;
 	beginSection = function (self, section)
 		self._stat[section] = self._stat[section] or {}

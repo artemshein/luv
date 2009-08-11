@@ -62,6 +62,7 @@ local Sql = TestCase:extend{
 	_validDsn = "mysql://test:test@localhost/test";
 	setUp = function (self)
 		Model:db(sql.Factory(self._validDsn))
+		--Model:db():logger(function (sql) io.write(sql, "\n") end)
 		self.A = Model:extend{
 			title = fields.Text{unique=true};
 			Meta = {label="a";labelMany="as"};
@@ -268,11 +269,11 @@ local KeyValue = TestCase:extend{
 	__tag = .....".KeyValue";
 	_validDsn = "redis://localhost/8";
 	setUp = function (self)
-		Model:db(keyvalue.Factory(self._validDsn))
 		self.A = Model:extend{
 			title = fields.Text{unique=true};
 			Meta = {label="a";labelMany="as"};
 		}
+		self.A:db(keyvalue.Factory(self._validDsn))
 		self.A:dropTables()
 		self.A:createTables()
 	end;
@@ -303,26 +304,7 @@ local KeyValue = TestCase:extend{
 		a = self.A:find{title="abc"}
 		self.assertEquals(a.title, "abc")
 	end;
-	testInsertSimple = function (self)
-		local a = self.A()
-		a.title = "testTitle"
-		self.assertTrue(a:insert())
-		local b = self.A:db():SelectRow():from(self.A:tableName())()
-		self.assertEquals(b.title, "testTitle")
-		a = self.A()
-		a.title = "testTitle"
-		self.assertFalse(a:insert())
-	end;
-	testUpdateSimple = function (self)
-		local id = self.A:db():InsertRow():into(self.A:tableName()):set("?#=?", "title", "abc")()
-		local a = self.A()
-		a.id = id
-		a.title = "cde"
-		a:update()
-		local b = self.A:db():SelectRow():from(self.A:tableName()):where("?#=?n", "id", id)()
-		self.assertTrue(b.title, "cde")
-	end;
-	testT01 = function (self)
+	--[[testT01 = function (self)
 		local Student, Group = T01Student, T01Group
 		Student:dropTables()
 		Group:dropTables()
@@ -390,8 +372,8 @@ local KeyValue = TestCase:extend{
 
 		Student:dropTables()
 		Group:dropTables()
-	end;
-	testT02 = function (self)
+	end;]]
+	--[[testT02 = function (self)
 		local Article, Category = T02Article, T02Category
 		Article:dropTables()
 		Category:dropTables()
@@ -429,7 +411,7 @@ local KeyValue = TestCase:extend{
 
 		Article:dropTables()
 		Category:dropTables()
-	end;
+	end;]]
 	testT03 = function (self)
 		local Man, Student = T03Man, T03Student
 		Student:dropTables()

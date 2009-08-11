@@ -10,6 +10,7 @@ local TreeNode = require "luv.utils".TreeNode
 local f = require "luv.function".f
 local json = require "luv.utils.json"
 local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
+local checkTypes = require"luv.checktypes".checkTypes
 
 module(...)
 
@@ -18,6 +19,7 @@ local serialize = string.serialize
 local abstract = Object.abstractMethod
 local property = Object.property
 
+-- Tag of Model
 local ModelTag = cache.Tag:extend{
 	__tag = .....".ModelTag";
 	init = function (self, backend, model)
@@ -25,26 +27,12 @@ local ModelTag = cache.Tag:extend{
 	end;
 }
 
-local ModelSlot = cache.Slot:extend{
-	__tag = .....".ModelSlot";
-	init = function (self, backend, model, id)
-		cache.Slot.init(self, backend, model:tableName().."_"..id)
+-- Slot of Model record by condition
+local ModelCondSlot = cache.Slot:extend{
+	__tag = .....".ModelCondSlot";
+	init = function (self, backend, model, condition)
+		cache.Slot.init(self, backend, model:tableName().."_"..string.slice(tostring(crypt.Md5(serialize(condition))), 1, 8))
 		self:addTag(ModelTag(backend, model))
-	end;
-}
-
-local ModelSqlSlot = cache.Slot:extend{
-	__tag = .....".ModelSqlSlot";
-	init = function (self, backend, model, sql)
-		if not backend or not model or not sql then
-			Exception"3 parameters expected"
-		end
-		self.sql = sql
-		cache.Slot.init(self, backend, tostring(crypt.Md5(tostring(sql))))
-		self:addTag(ModelTag(backend, model))
-	end;
-	__call = function (self)
-		return self:thru(self.sql)()
 	end;
 }
 
@@ -195,33 +183,30 @@ local Model = Struct:extend{
 			Exception"Unsupported field type!"
 		end
 	end;
-	find = function (self, what)
-		local cacher = self:cacher()
-		if cacher then
-		end
+	-- Find and load one record that meets condition
+	_loadOneByCond = function (self, condition)
 		local db, tableName = self:db(), self:tableName()
-		local values
 		if db:isA(sql.Driver) then
 			local select = db:SelectRow():from(tableName)
-			if type(what) == "table" then
-				for name, f in pairs(self:fields()) do
-					local value = what[name]
-					if value then
+			if "table" == type(condition)  then
+				for name, value in pairs(condition) do
+					local f = self:field(name)
+					if f then
 						select:where("?#="..self:fieldPlaceholder(f), name, value)
 					end
 				end
 			else
 				local pk = self:pkField()
-				select:where("?#="..self:fieldPlaceholder(pk), pk:name(), what)
+				select:where("?#="..self:fieldPlaceholder(pk), pk:name(), condition)
 			end
-			values = self:cacher() and ModelSqlSlot(self:cacher(), self, select)() or select()
+			return select()
 		elseif db:isA(Redis) then
 			local resPk
-			if "table" == type(what) then
+			if "table" == type(condition) then
 				local pks = db:smembers(tableName, 0, -1)
 				for _, pk in ipairs(pks) do
 					resPk = pk
-					for f, v in pairs(what) do
+					for f, v in pairs(condition) do
 						if v ~= db:get(tableName..":"..pk..":"..f) then
 							resPk = nil
 							break
@@ -229,21 +214,29 @@ local Model = Struct:extend{
 					end
 				end
 			else
-				resPk = what
+				resPk = condition
 			end
 			if resPk then
-				keys = db:keys(tableName..":"..resPk..":*")
+				local keys = db:keys(tableName..":"..resPk..":*")
 				if not table.empty(keys) then
 					local vals = db:get(keys)
-					values = {}
+					local values = {}
 					for k, v in pairs(vals) do
 						values[string.slice(k, string.findLast(k, ":")+1)] = v
 					end
+					return values
 				end
 			end
 		else
 			Exception"unsupported driver"
 		end
+	end;
+	find = function (self, condition)
+		local cacher, cacheSlot, values = self:cacher()
+		if cacher then
+			cacheSlot = ModelCondSlot(cacher, self, condition)
+		end
+		values = cacheSlot and cacheSlot:thru(self):_loadOneByCond(condition) or self:_loadOneByCond(condition)
 		if not values then
 			return nil
 		end
@@ -320,6 +313,10 @@ local Model = Struct:extend{
 				self.pk = db:incr(tableName..":lastInsertId")
 			end
 			local pk = self.pk
+			-- For references as primary keys
+			while "table" == type(pk) do
+				pk = pk.pk
+			end
 			db:sadd(tableName, pk)
 			for name, f in pairs(self:fields()) do
 				local value = f:value()
@@ -458,14 +455,18 @@ local Model = Struct:extend{
 	delete = function (self)
 		local db = self:db()
 		local tableName = self:tableName()
-		local pk = self:pkField()
-		local pkName = pk:name()
+		local pkF = self:pkField()
+		local pkName = pkF:name()
+		local pk = pkF:value()
+		while "table" == type(pk) do
+			pk = pk.pk
+		end
 		self:clearCacheTag()
 		if db:isA(sql.Driver) then
-			return db:DeleteRow():from(tableName):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())()
+			return db:DeleteRow():from(tableName):where("?#="..self:fieldPlaceholder(pkF), pkName, pk)()
 		elseif db:isA(Redis) then
-			db:srem(tableName, pk:value())
-			local keys = db:keys(tableName..":"..pk:value()..":*")
+			db:srem(tableName, pk)
+			local keys = db:keys(tableName..":"..pk..":*")
 			if not table.empty(keys) then
 				db:del(keys)
 			end
@@ -1205,7 +1206,6 @@ local KeyValueQuerySet = QuerySet:extend{
 			result = result.." ("..(v.isA and v:isA(Q) and self:_valFuncTextForQ(v) or self:_valFuncTextForFilter(v))..")(self, pk)"
 		end
 		if q:negated() then result = result..")" end
-		require"luv.dev".dprint(result.." "..debug.traceback())
 		return result.." end"
 	end;
 	-- Creates sort function text
@@ -1464,7 +1464,7 @@ local function createModels (models)
 end
 
 return {
-	Model=Model;ModelSlot=ModelSlot;ModelTag=ModelTag;Tree=Tree;
+	Model=Model;ModelCondSlot=ModelCondSlot;ModelTag=ModelTag;Tree=Tree;
 	NestedSet=NestedSet;QuerySet=QuerySet;SqlQuerySet=SqlQuerySet;
 	KeyValueQuerySet=KeyValueQuerySet;Paginator=Paginator;F=F;Q=Q;
 	tablesListForModels=tablesListForModels;
