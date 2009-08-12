@@ -23,13 +23,13 @@ local Session = Object:extend{
 		rawset(self, "_wsApi", wsApi)
 		rawset(self, "_storage", storage)
 		local id = wsApi:cookie(self._cookieName)
-		if not id or #id ~= 12 then
-			id = string.slice(tostring(crypt.Md5(math.random(2000000000))), 1, 12)
+		if not id or string.utf8len(id) ~= 12 then
+			id = tostring(crypt.Md5(math.random(2000000000))):slice(1, 12)
 			wsApi:cookie(self._cookieName, id)
 		end
 		rawset(self, "_id", id)
 		local data = storage:read(id)
-		rawset(self, "_data", string.unserialize(data) or {})
+		rawset(self, "_data", data and data:unserialize() or {})
 		rawset(self, "_storedData", data)
 	end;
 	data = property(nil, function (self) return rawget(self, "_data") end, function (self, data)
@@ -59,21 +59,21 @@ local SessionFile = Object:extend{
 		return self
 	end);
 	read = function (self, name)
-		local f = File(self:dir() / string.slice(name, 1, 2) / string.slice(name, 3))
+		local f = File(self:dir() / name:slice(1, 2) / name:slice(3))
 		if not f:exists() then
 			return nil
 		end
 		return f:openReadAndClose"*a"
 	end;
 	write = function (self, name, value)
-		local d = Dir(self:dir() / string.slice(name, 1, 2))
+		local d = Dir(self:dir() / name:slice(1, 2))
 		d:create()
-		local f = File(d / string.slice(name, 3))
+		local f = File(d / name:slice(3))
 		f:openWriteAndClose(value)
 		return true
 	end;
 	delete = function (self, name)
-		File(self:dir() / string.slice(name, 1, 2) / string.slice(name, 3)):delete()
+		File(self:dir() / name:slice(1, 2) / name:slice(3)):delete()
 	end;
 }
 

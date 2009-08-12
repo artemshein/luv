@@ -11,8 +11,8 @@ local Factory = Object:extend{
 	__tag = .....".Factory";
 	new = function (self, dsn)
 		local login, pass, port, params = nil, nil, nil, {}
-		local driver, host, database, paramsStr = string.split(dsn, "://", "/", "?")
-		login, host = string.split(host, "@")
+		local driver, host, database, paramsStr = dsn:split("://", "/", "?")
+		login, host = host:split"@"
 		if not host then
 			host = login
 			login = nil
@@ -20,12 +20,12 @@ local Factory = Object:extend{
 		if not host then
 			host = "localhost"
 		end
-		if login then login, pass = string.split(login, ":") end
-		host, port = string.split(host, ":")
-		if paramsStr then paramsStr = string.split(paramsStr, "&") end
+		if login then login, pass = login:split":" end
+		host, port = host:split":"
+		if paramsStr then paramsStr = paramsStr:split"&" end
 		if paramsStr then
 			for _, v in ipairs(paramsStr) do
-				local key, val = string.split(v, "=")
+				local key, val = v:split"="
 				params[key] = val
 			end
 		end

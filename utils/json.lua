@@ -9,7 +9,7 @@ local function serialize (self, seen)
 	if "boolean" == type(self) then
 		return self and "true" or "false"
 	elseif "string" == type(self) then
-		return string.format("%q", self)
+		return ("%q"):format(self)
 	elseif "number" == type(self) then
 		return tostring(self)
 	elseif "table" == type(self) then
@@ -25,7 +25,7 @@ local function serialize (self, seen)
 				end
 				if ("table" == vType and not table.find(seen, v)) or "table" ~= vType then
 					if "string" == type(k) then
-						res = res..string.format("%q", k)..":"..serialize(v, seen)
+						res = res..("%q"):format(k)..":"..serialize(v, seen)
 					else
 						res = res..k..":"..serialize(v, seen)
 					end

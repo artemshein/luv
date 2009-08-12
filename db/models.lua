@@ -31,7 +31,7 @@ local ModelTag = cache.Tag:extend{
 local ModelCondSlot = cache.Slot:extend{
 	__tag = .....".ModelCondSlot";
 	init = function (self, backend, model, condition)
-		cache.Slot.init(self, backend, model:tableName().."_"..string.slice(tostring(crypt.Md5(serialize(condition))), 1, 8))
+		cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5(serialize(condition))):slice(1, 8))
 		self:addTag(ModelTag(backend, model))
 	end;
 }
@@ -52,7 +52,7 @@ local Model = Struct:extend{
 	db = property;
 	tableName = property("string", function (self)
 		if (not self._tableName) then
-			self._tableName = string.gsub(self:label(), " ", "_")
+			self._tableName = self:label():gsub(" ", "_")
 		end
 		return self._tableName
 	end, nil);
@@ -222,7 +222,7 @@ local Model = Struct:extend{
 					local vals = db:get(keys)
 					local values = {}
 					for k, v in pairs(vals) do
-						values[string.slice(k, string.findLast(k, ":")+1)] = v
+						values[k:slice(k:findLast":"+1)] = v
 					end
 					return values
 				end
@@ -678,7 +678,7 @@ local NestedSet = Tree:extend{
 		child.right = self.left+2
 		local db = self:db()
 		db:beginTransaction()
-		db:Update(self:tableName())local serialize = string.serialize
+		db:Update(self:tableName())
 			:set("?#=?#+2", "left", "left")
 			:where("?#>?d", "left", self.left)()
 		db:Update(self:tableName())
@@ -855,7 +855,7 @@ local SqlQuerySet = QuerySet:extend{
 				Exception"invalid field"
 			end
 			if not field then
-				Exception("field "..string.format("%q", part).." not founded")
+				Exception("field "..("%q"):format(part).." not founded")
 			end
 			if field:isA(references.Reference) then
 				result = {field:refModel():tableName()}
@@ -937,12 +937,12 @@ local SqlQuerySet = QuerySet:extend{
 		end
 		for k, v in pairs(filter) do
 			local parts
-			if string.find(k, "__") then
-				parts = string.explode(k, "__")
+			if k:find"__" then
+				parts = k:explode"__"
 			else
 				parts = {k}
 			end
-			local op = parts[table.maxn(parts)]
+			local op = parts[#parts]
 			if operators[op] then
 				table.remove(parts)
 			else
@@ -997,7 +997,7 @@ local SqlQuerySet = QuerySet:extend{
 			for _, v in ipairs(res) do
 				table.insert(values, v)
 			end 
-			s:where(string.slice(res.sql, 2, -2), unpack(values))
+			s:where(res.sql:slice(2, -2), unpack(values))
 		end
 		if self._limits.from then
 			s:limit(self._limits.from, self._limits.to)
@@ -1036,7 +1036,7 @@ local SqlQuerySet = QuerySet:extend{
 		local db = model:db()
 		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
-		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
+		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..("%q"):format(model:pkName()).."]")))
 		local val
 		for k, v in pairs(set) do
 			if type(v) == "table" and v.isA and v:isA(Model) then
@@ -1053,7 +1053,7 @@ local SqlQuerySet = QuerySet:extend{
 		local db = model:db()
 		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
-		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..string.format("%q", model:pkName()).."]")))
+		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..("%q"):format(model:pkName()).."]")))
 		return u()
 	end;
 	__call = function (self, ...)
@@ -1133,7 +1133,7 @@ local KeyValueQuerySet = QuerySet:extend{
 			end
 			local field = curModel:field(part)
 			if not field then
-				Exception("field "..string.format("%q", part).." not founded")
+				Exception("field "..("%q"):format(part).." not founded")
 			end
 			if field:isA(references.Reference) then
 				if field:isA(references.ManyToOne) or field:isA(references.OneToOne) then
@@ -1167,12 +1167,12 @@ local KeyValueQuerySet = QuerySet:extend{
 		local retValue
 		for k, v in pairs(filter) do
 			local parts
-			if string.find(k, "__") then
-				parts = string.explode(k, "__")
+			if k:find"__" then
+				parts = k:explode"__"
 			else
 				parts = {k}
 			end
-			local op = parts[table.maxn(parts)]
+			local op = parts[#parts]
 			if operators[op] then
 				table.remove(parts)
 			else
@@ -1184,11 +1184,11 @@ local KeyValueQuerySet = QuerySet:extend{
 			elseif "in" == op then
 				retValue = "table.ifind("..serialize(v)..", res)"
 			elseif "beginswith" == op then
-				retValue = "string.beginsWith(res, "..string.format("%q", v)..")"
+				retValue = "res:beginsWith"..("%q"):format(v)
 			elseif "endswith" == op then
-				retValue = "string.endsWith(res, "..string.format("%q", v)..")"
+				retValue = "res:endsWith"..("%q"):format(v)
 			elseif "contains" == op then
-				retValue = "nil~=string.find(res, "..string.format("%q", v)..")"
+				retValue = "nil ~= res:find"..("%q"):format(v)
 			else
 				retValue = "res"..operators[op]..serialize("table" == type(v) and v.isA and v:isA(Model) and v.pk or v)
 			end
@@ -1199,7 +1199,7 @@ local KeyValueQuerySet = QuerySet:extend{
 	_valFuncTextForQ = function (self, q)
 		local result = "function (self, pk) return"
 		if q:negated() then result = result.." not (" end
-		local op = string.lower(q:connector())
+		local op = q:connector():lower()
 		local first = true
 		for _, v in ipairs(q:children()) do
 			if first then first = false else result = result.." "..op end
@@ -1214,11 +1214,11 @@ local KeyValueQuerySet = QuerySet:extend{
 		local tableName = model:tableName()
 		local result = "function (pk1, pk2) local cache, db = cachedValues, db local val1, val2 if not cache[pk1] then cache[pk1] = {} end if not cache[pk2] then cache[pk2] = {} end"
 		for _, v in ipairs(self._orders) do
-			local f = "-" == string.slice(v, 1, 1) and string.slice(v, 2) or v
-			result = result.." if not cache[pk1]["..string.format("%q", f).."] then cache[pk1]["..string.format("%q", f)..'] = {db:get("'..model:tableName()..':"..pk1..":'..f..'")} end val1 = cache[pk1]['..string.format("%q", f).."][1]"
-			result = result.." if not cache[pk2]["..string.format("%q", f).."] then cache[pk2]["..string.format("%q", f)..'] = {db:get("'..model:tableName()..':"..pk2..":'..f..'")} end val2 = cache[pk2]['..string.format("%q", f).."][1]"
+			local f = "-" == string.slice(v, 1, 1) and v:slice(2) or v
+			result = result.." if not cache[pk1]["..("%q"):format(f).."] then cache[pk1]["..("%q"):format(f)..'] = {db:get("'..model:tableName()..':"..pk1..":'..f..'")} end val1 = cache[pk1]['..("%q"):format(f).."][1]"
+			result = result.." if not cache[pk2]["..("%q"):format(f).."] then cache[pk2]["..("%q"):format(f)..'] = {db:get("'..model:tableName()..':"..pk2..":'..f..'")} end val2 = cache[pk2]['..("%q"):format(f).."][1]"
 			result = result.." if not val1 or not val2 then return false end"
-			if "-" == string.slice(v, 1, 1) then
+			if "-" == v:slice(1, 1) then
 				result = result.." if val1 > val2 then return true elseif val2 < val1 then return false end"
 			else
 				result = result.." if val1 < val2 then return true elseif val2 > val1 then return false end"
@@ -1234,14 +1234,14 @@ local KeyValueQuerySet = QuerySet:extend{
 		local dbKeys = {}
 		for _, v in ipairs(self._orders) do
 			for _, pk in ipairs(pks) do
-				table.insert(dbKeys, tableName..":"..pk..":"..("-" == string.slice(v, 1, 1) and string.slice(v, 2) or v))
+				table.insert(dbKeys, tableName..":"..pk..":"..("-" == v:slice(1, 1) and v:slice(2) or v))
 			end
 		end
 		local values = model:db():get(dbKeys)
 		local typeFunc
 		if "number" == type(pks[1]) then typeFunc = tonumber end
 		for k, v in pairs(values) do
-			local t, p, f = string.split(k, ":", ":")
+			local t, p, f = k:split(":", ":")
 			if typeFunc then p = typeFunc(p) end
 			result[p] = result[p] or {}
 			result[p][f] = {v}

@@ -107,13 +107,13 @@ local Regexp = Validator:extend{
 		if value == nil or value == "" then
 			return true
 		end
-		if not string.find(tostring(value), self:regexp()) then
+		if not tostring(value):find(self:regexp()) then
 			self:addError(self:errorMsg())
 			return false
 		end
 		return true
 	end;
-	js = function (self) return "validRegexp("..string.format("%q", self:regexp())..")" end;
+	js = function (self) return "validRegexp("..("%q"):format(self:regexp())..")" end;
 }
 
 local Value = Validator:extend{

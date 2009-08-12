@@ -12,13 +12,13 @@ module(...)
 local Form = Widget:extend{
 	__tag = .....".FormWidget";
 	_fieldId = function (self, f, form)
-		return f:id() or (form:id()..string.capitalize(f:name()))
+		return f:id() or (form:id()..f:name():capitalize())
 	end;
 	_renderId = function (self, form)
-		return form:id() and (" id="..string.format("%q", form:id())) or ""
+		return form:id() and (" id="..("%q"):format(form:id())) or ""
 	end;
 	_renderAction = function (self, form)
-		return " action="..string.format("%q", form:action() or "")
+		return " action="..("%q"):format(form:action() or "")
 	end;
 	renderFormHeader = function (self, form)
 		local fileUploadFlag
@@ -41,9 +41,9 @@ local Form = Widget:extend{
 		end
 		local id = self:_fieldId(field, form)
 		if not id then
-			return string.capitalize(field:label())..":"
+			return tr(field:label()):capitalize()..":"
 		end
-		return "<label for="..string.format("%q", html.escape(id))..">"..string.capitalize(tr(field:label())).."</label>:"
+		return "<label for="..("%q"):format(html.escape(id))..">"..tr(field:label()):capitalize().."</label>:"
 	end;
 	renderLabelCheckbox = function (self, form, field)
 		if not field:label() then
@@ -53,7 +53,7 @@ local Form = Widget:extend{
 		if not id then
 			return field:label()
 		end
-		return "<label for="..string.format("%q", html.escape(id))..">"..tr(field:label()).."</label>"
+		return "<label for="..("%q"):format(html.escape(id))..">"..tr(field:label()).."</label>"
 	end;
 	renderField = function (self, form, field)
 		local html, js = field:asHtml(form)
@@ -91,7 +91,7 @@ local Form = Widget:extend{
 		for name, f in pairs(form:fields()) do
 			for _, v in pairs(f:validators()) do
 				local id = self:_fieldId(f, form)
-				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:js().."){$('#"..id.."').showError("..string.format("%q", string.format(v:errorMsg(), f:label()))..");return false;}"
+				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:js().."){$('#"..id.."').showError("..("%q"):format(v:errorMsg():format(f:label()))..");return false;}"
 			end
 		end
 		validationFunc = validationFunc.."return true;}"

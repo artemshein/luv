@@ -20,81 +20,81 @@ local HttpRequest = Object:extend{
 	init = function (self, backend)
 		self:backend(backend)
 	end;
-	method = function (self) return self:header "REQUEST_METHOD" end;
-	headers = function (self) return self._backend:requestHeaders() end;
-	header = function (self, header) return self._backend:requestHeader(header) end;
+	method = function (self) return self:header"REQUEST_METHOD" end;
+	headers = function (self) return self:backend():requestHeaders() end;
+	header = function (self, header) return self:backend():requestHeader(header) end;
 	get = function (self, ...)
 		if select("#", ...) > 0 then
-			self._backend:get(...)
+			self:backend():get(...)
 			return self
 		else
-			return self._backend:get()
+			return self:backend():get()
 		end
 	end;
-	getData = function (self) return self._backend:getData() end;
+	getData = function (self) return self:backend():getData() end;
 	post = function (self, ...)
 		if select("#", ...) > 0 then
-			self._backend:post(...)
+			self:backend():post(...)
 			return self
 		else
-			return self._backend:post(...)
+			return self:backend():post(...)
 		end
 	end;
-	postData = function (self) return self._backend:postData() end;
-	cookie = function (self, name) return self._backend:cookie(name) end;
-	cookies = function (self) return self._backend:cookies() end;
+	postData = function (self) return self:backend():postData() end;
+	cookie = function (self, name) return self:backend():cookie(name) end;
+	cookies = function (self) return self:backend():cookies() end;
 }
 
 local HttpResponse = Object:extend{
 	__tag = .....".HttpResponse";
-	backend = property;
+	backend = property"table";
+	content = property"string";
 	init = function (self, backend, content)
 		self:backend(backend)
 		self:content(content)
 	end;
 	header = function (self, header, ...)
 		if select("#", ...) > 0 then
-			self._backend:responseHeader(header, ...)
+			self:backend():responseHeader(header, ...)
 			return self
 		else
-			return self._backend:responseHeader(header)
+			return self:backend():responseHeader(header)
 		end
 	end;
 	code = function (self, code) self:backend():responseCode(code) return self end;
-	setContentType = function (self, contentType) self:setHeader("Content-Type", contentType) return self end;
-	setContent = function (self, content) self._content = content return self end;
-	appendContent = function (self, content) self._content = self._content..content return self end;
+	contentType = function (self, contentType) self:header("Content-Type", contentType) return self end;
+	appendContent = function (self, content) self:content(self:content()..content) return self end;
 }
 
 local Api = Object:extend{
 	__tag = .....".Api";
 	parseMultipartFormData = function (self, boundary, stream)
-		postData = string.explode(stream, boundary)
+		postData = stream:explode(boundary)
 		for i = 2, #postData-1 do
-			local headersStr, data = string.split(postData[i], "\r\n\r\n")
+			local headersStr, data = postData[i]:split"\r\n\r\n"
 			local headers = {}
-			for _, header in ipairs(string.explode(headersStr, "\r\n")) do
-				local name, value = string.split(header, ':')
-				headers[string.lower(name)] = value
+			for _, header in ipairs(headersStr:explode"\r\n") do
+				local name, value = header:split":"
+				headers[name:lower()] = value
 			end
 			-- Process headers
-			local contentDispValues = string.explode(headers["content-disposition"], ";")
-			if "form-data" ~= string.trim(contentDispValues[1]) then
-				Exception "invalid Content-Disposition value"
+			local contentDispValues = headers["content-disposition"]:explode";"
+			if "form-data" ~= contentDispValues[1]:trim() then
+				Exception"invalid Content-Disposition value"
 			end
 			local key, isFile
 			for i = 2, #contentDispValues do
-				local n, v = string.split(contentDispValues[i], "=")
-				n = string.lower(string.trim(n))
-				v = string.trim(v)
+				local n, v = contentDispValues[i]:split"="
+				n = n:trim():lower()
+				v = v:trim()
 				if "name" == n then
-					key = string.slice(v, 2, -2)
+					key = v:slice(2, -2)
 				elseif "filename" == n then
 					isFile = true
 				end
 			end
 			-- Process value
-			data = string.slice(data, 1, -3)
+			data = data:slice(1, -3)
 			if isFile then
 				if "" ~= data then
 					self:postData()[key] = {filename=key}
@@ -115,13 +115,13 @@ local Api = Object:extend{
 local urlDecodeArr = {["+"] = " "}
 
 local urlDecode = function (url)
-	return string.gsub(string.gsub(url, "%%(..)", function (s)
-		local zero, A = string.byte("0"), string.byte("A")
-		local i, j = string.byte(s, 1, 2)
+	return url:gsub("%%(..)", function (s)
+		local zero, A = ("0"):byte(), ("A"):byte()
+		local i, j = s:byte(1, 2)
 		if i >= A then i = i - A + 10 else i = i - zero end
 		if j >= A then j = j - A + 10 else j = j - zero end
 		return string.char(i*16+j)
-	end), "([+])", function (ch)
+	end):gsub("([+])", function (ch)
 		return urlDecodeArr[ch]
 	end)
 end
@@ -168,14 +168,14 @@ local Cgi = Api:extend{
 	responseHeader = function (self, header, ...)
 		if select("#", ...) > 0 then
 			if self._headersAlreadySent then
-				Exception "can't change response headers, headers already sent"
+				Exception"can't change response headers, headers already sent"
 			end
 			self._responseHeaders[header] = (select(1, ...))
 			return self
 		else
-			local lowerHeader = string.lower(header)
+			local lowerHeader = header:lower()
 			for k, v in pairs(self._responseHeaders) do
-				if string.lower(k) == lowerHeader then
+				if k:lower() == lowerHeader then
 					return v
 				end
 			end
@@ -204,11 +204,11 @@ local Cgi = Api:extend{
 	end;
 	getData = function (self) return self._get end;
 	parseGetData = function (self)
-		local _, data = string.split(self:requestHeader "REQUEST_URI", "?")
+		local _, data = (self:requestHeader"REQUEST_URI" or ""):split"?"
 		if data then
-			data = string.explode(data, "&")
+			data = data:explode"&"
 			for _, v in ipairs(data) do
-				local key, val = string.split(v, "=")
+				local key, val = v:split"="
 				val = urlDecode(val)
 				self._get[key] = urlDecode(val)
 			end
@@ -225,16 +225,16 @@ local Cgi = Api:extend{
 	end;
 	postData = function (self) return self._post end;
 	parsePostData = function (self)
-		if "POST" ~= self:requestHeader "REQUEST_METHOD" then
+		if "POST" ~= self:requestHeader"REQUEST_METHOD" then
 			return
 		end
-		local contentType = self:requestHeader "CONTENT_TYPE"
-		if string.beginsWith(contentType, "application/x-www-form-urlencoded") then
-			local data = io.read(tonumber(self:requestHeader "CONTENT_LENGTH"))
+		local contentType = self:requestHeader"CONTENT_TYPE"
+		if contentType:beginsWith"application/x-www-form-urlencoded" then
+			local data = io.read(tonumber(self:requestHeader"CONTENT_LENGTH"))
 			if data then
-				data = string.explode(data, "&")
+				data = data:explode"&"
 				for _, v in ipairs(data) do
-					local key, val = string.split(v, "=")
+					local key, val = v:split"="
 					val = urlDecode(val)
 					if not self._post[key] then
 						self._post[key] = val
@@ -247,38 +247,38 @@ local Cgi = Api:extend{
 					end
 				end
 			end
-		elseif string.beginsWith(contentType, "multipart/form-data") then
-			local _, boundaryStr = string.split(contentType, ";")
-			local _, boundary = string.split(boundaryStr, "=")
+		elseif contentType:beginsWith"multipart/form-data" then
+			local _, boundaryStr = contentType:split";"
+			local _, boundary = boundaryStr:split"="
 			self:parseMultipartFormData("--"..boundary, io.read "*a")
 		else
-			Exception ("not implemented for content-type: "..contentType)
+			Exception("not implemented for content-type: "..contentType)
 		end
 	end;
 	-- Cookies
 	parseCookies = function (self)
-		local cookieString = self:requestHeader "HTTP_COOKIE"
+		local cookieString = self:requestHeader"HTTP_COOKIE"
 		if not cookieString then
 			return nil
 		end
 		local cookies
-		if string.find(cookieString, "&", 1, true) then
-			cookies = string.explode(cookieString, "&")
-		elseif string.find(cookieString, ";", 1, true) then
-			cookies = string.explode(cookieString, ";")
+		if cookieString:find("&", 1, true) then
+			cookies = cookieString:explode"&"
+		elseif cookieString:find(";", 1, true) then
+			cookies = cookieString:explode";"
 		else
 			cookies = {cookieString}
 		end
 		for _, v in ipairs(cookies) do
-			local name, value = string.split(v, "=")
-			self._cookies[string.trim(name)] = string.trim(value)
+			local name, value = v:split"="
+			self._cookies[name:trim()] = value:trim()
 		end
 	end;
 	cookie = function (self, name, ...)
 		if select("#", ...) > 0 then
 			local value, expires, domain, path = ...
 			if not name then
-				Exception "name required"
+				Exception"name required"
 			end
 			local cookie = name.."="
 			self._cookies[name] = value
@@ -302,7 +302,7 @@ local Cgi = Api:extend{
 	sendHeaders = function (self)
 		io.write = self._write
 		if not self._responseCode then self._responseCode = 200 end
-		if not self:responseHeader "Location" then
+		if not self:responseHeader"Location" then
 			io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\n")
 		end
 		if not self:responseHeader("Content-type") then
@@ -322,24 +322,24 @@ local Scgi = Object:extend{
 		local ch = client:receive(1)
 		local request = ""
 		while ch ~= ":" do
-			if not ch then Exception"Invalid SCGI request!" end
+			if not ch then Exception"invalid SCGI request" end
 			request = request..ch
 			ch = client:receive(1)
 		end
 		local len = tonumber(request)
-		if not len then Exception"Invalid SCGI request!" end
+		if not len then Exception"invalid SCGI request" end
 		request = request..ch..client:receive(len+1)
 		io.write = function (...)
 			if not self._headersAlreadySent then self:sendHeaders() end
-			local params = select(1, ...)
+			local params = {select(1, ...)}
 			for i = 1, select("#", ...) do
 				client:send(tostring(params[i]))
 			end
 		end
-		local keysAndValues = string.explode(string.slice(request, string.find(request, ":", 1, true)+1, -3), "\0")
+		local keysAndValues = request:slice(request:find(":", 1, true)+1, -3):explode"\0"
 		local i
 		self._requestHeaders = {}
-		for i = 1, table.maxn(keysAndValues)/2 do
+		for i = 1, #keysAndValues/2 do
 			self._requestHeaders[keysAndValues[i*2-1]] = keysAndValues[i*2]
 		end
 		self._request = request
@@ -355,9 +355,9 @@ local Scgi = Object:extend{
 			self._responseHeaders[header] = (select(1, ...))
 			return self
 		else
-			local lowerHeader = string.lower(header)
+			local lowerHeader = header:lower()
 			for k, v in pairs(self._responseHeaders) do
-				if string.lower(k) == lowerHeader then
+				if k:lower() == lowerHeader then
 					return v
 				end
 			end
@@ -390,17 +390,17 @@ local SocketAppServer = Object:extend{
 		self._wsApi = wsApi
 		self._host, self._port = host, port
 		if not self._host then
-			Exception "invalid host"
+			Exception"invalid host"
 		end
 		if not self._port then
-			Exception "invalid port number"
+			Exception"invalid port number"
 		end
 		self._server = Socket.tcp()
 		if not self._server:bind(self._host, self._port) then
 			Exception("can't bind "..self._host..":"..self._port.." to server")
 		end
 		if not self._server:listen(10) then
-			Exception "can't listen"
+			Exception"can't listen"
 		end
 	end,
 	run = function (self, application)
@@ -408,7 +408,7 @@ local SocketAppServer = Object:extend{
 		while true do
 			client = self._server:accept()
 			if not client then
-				Exception "can't accept connection"
+				Exception"can't accept connection"
 			end
 			local co = coroutine.create(setfenv(function ()
 				local wsApi = self._wsApi(client)

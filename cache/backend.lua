@@ -236,13 +236,13 @@ local Memcached = Backend:extend{
 		for i = 1, keysCount do
 			local answer = self.socket:receive "*l" -- Optimize me? "*a"
 			if "END" == answer then break end
-			if not string.beginsWith(answer, "VALUE") then
+			if not answer:beginsWith"VALUE" then
 				Exception("Not a valid answer "..answer)
 			end
-			local _, key, options, size = string.split(answer, " ")
+			local _, key, options, size = answer:split" "
 			answer = self.socket:receive(tonumber(size))
 			if not answer then
-				Exception "Receive failed"
+				Exception"receive failed"
 			end
 			result[keys[i]] = unserialize(mime.unb64(answer))
 			if i == keysCount then
@@ -258,11 +258,11 @@ local Memcached = Backend:extend{
 	set = function (self, id, data, tags, specificLifetime)
 		-- TODO compression flag
 		if "table" == type(tags) and not table.empty(tags) then
-			Exception "Tags unsupported. Use TagEmuWrapper instead."
+			Exception"Tags unsupported. Use TagEmuWrapper instead."
 		end
 		local serialized = (mime.b64(serialize(data)))
-		if not self.socket:send("set "..id.." 0 "..tostring(specificLifetime or self._defaultLifetime).." "..tostring(string.len(serialized)).."\r\n"..serialized.."\r\n") then
-			Exception "Send failed"
+		if not self.socket:send("set "..id.." 0 "..tostring(specificLifetime or self._defaultLifetime).." "..tostring(#serialized).."\r\n"..serialized.."\r\n") then
+			Exception"send failed"
 		end
 		local res = self.socket:receive"*l"
 		return res == "STORED\r\n"

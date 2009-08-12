@@ -28,10 +28,10 @@ local UrlConf = Object:extend{
 	captures = property"table";
 	init = function (self, request)
 		self:request(request)
-		self:uri(request:header "REQUEST_URI" or "")
-		local queryPos = string.find(self:uri(), "?")
+		self:uri(request:header"REQUEST_URI" or "")
+		local queryPos = self:uri():find"?"
 		if queryPos then
-			self:uri(string.sub(self:uri(), 1, queryPos-1))
+			self:uri(self:uri():sub(1, queryPos-1))
 		end
 		self:tailUri(self:uri())
 		self:baseUri""
@@ -59,12 +59,12 @@ local UrlConf = Object:extend{
 		end
 		for _, item in pairs(urls) do
 			if "string" == type(item[1]) then
-				local res = {string.find(self._tailUri, item[1])}
+				local res = {self._tailUri:find(item[1])}
 				if nil ~= res[1] then
 					local oldTailUri, oldBaseUri, oldCaptures = self:tailUri(), self:baseUri(), self:captures()
-					local tailUriLen = string.len(self:tailUri())
-					self:baseUri(self:baseUri()..string.sub(self:uri(), 1, -tailUriLen+res[1]-2))
-					self:tailUri(string.sub(self:tailUri(), res[2]+1))
+					local tailUriLen = string.utf8len(self:tailUri())
+					self:baseUri(self:baseUri()..self:uri():slice(1, -tailUriLen+res[1]-2))
+					self:tailUri(self:tailUri():sub(res[2]+1))
 					self:captures{}
 					for i = 3, #res do
 						table.insert(self._captures, res[i])
@@ -126,7 +126,7 @@ local Core = Object:extend{
 	dsn = property(nil, nil, function (self, dsn)
 		local drivers = {mysql="sql";redis="keyvalue"}
 		self._dsn = dsn
-		local db = require("luv.db."..drivers[string.lower(string.slice(dsn, 1, string.find(dsn, ":")-1))]).Factory(dsn)
+		local db = require("luv.db."..drivers[dsn:slice(1, dsn:find":"-1):lower()]).Factory(dsn)
 		require"luv.db.models".Model:db(db)
 		self:db(db)
 		return self
@@ -242,7 +242,7 @@ local Struct = Object:extend{
 		if res then
 			res = res[field]
 			if res then
-				local references = require "luv.fields.references"
+				local references = require"luv.fields.references"
 				if res:isA(references.ManyToMany) or res:isA(references.OneToMany)then
 					return res
 				else
@@ -287,7 +287,7 @@ local Struct = Object:extend{
 			local res = {}
 			for name, f in pairs(self:fields()) do
 				local value = f:value()
-				if "table" == type(value) and value.isA and value:isA(require "luv.fields.references".OneToMany) then
+				if "table" == type(value) and value.isA and value:isA(require"luv.fields.references".OneToMany) then
 					res[name] = value:all():value()
 				else
 					res[name] = f:value()
@@ -303,7 +303,7 @@ local Struct = Object:extend{
 			if not f:valid() then
 				for _, e in ipairs(f:errors()) do
 					local label = f:label()
-					self:addError(string.gsub(e, "%%s", label and string.capitalize(tr(label)) or string.capitalize(tr(name))))
+					self:addError(e:gsub("%%s", label and tr(label):capitalize() or tr(name):capitalize()))
 				end
 			end
 		end
@@ -350,8 +350,8 @@ end
 
 (function () -- Init random seed
 	local seed, i, str = os.time(), nil, tostring(tostring(MODULE))
-	for i = 1, string.len(str) do
-		seed = seed + string.byte(str, i)
+	for i = 1, #str do
+		seed = seed + str:byte(i)
 	end
 	math.randomseed(seed)
 end)() -- Excecute it imediately

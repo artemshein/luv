@@ -27,7 +27,7 @@ local Field = Object:extend{
 	end);
 	id = property("string", function (self)
 		if not self._id then
-			self:id(self:container():htmlId()..string.capitalize(self:name()))
+			self:id(self:container():htmlId()..self:name():capitalize())
 		end
 		return self._id
 	end);
@@ -460,20 +460,20 @@ local Date = Field:extend{
 		if select("#", ...) > 0 then
 			local value = select(1, ...)
 			if "string" == type(value) then
-				if string.match(value, "^%d%d%d%d[^%d]%d%d[^%d]%d%d") then
+				if value:match"^%d%d%d%d[^%d]%d%d[^%d]%d%d" then
 					self._value = os.time{
-						year=tonumber(string.slice(value, 1, 4));
-						month=tonumber(string.slice(value, 6, 7));
-						day=tonumber(string.slice(value, 9, 10));
+						year=tonumber(value:slice(1, 4));
+						month=tonumber(value:slice(6, 7));
+						day=tonumber(value:slice(9, 10));
 						hour=0;
 						min=0;
 						sec=0;
 					}
-				elseif string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d%d%d") then
+				elseif value:match"^%d%d[^%d]%d%d[^%d]%d%d%d%d" then
 					self._value = os.time{
-						year=tonumber(string.slice(value, 7, 10));
-						month=tonumber(string.slice(value, 4, 5));
-						day=tonumber(string.slice(value, 1, 2));
+						year=tonumber(value:slice(7, 10));
+						month=tonumber(value:slice(4, 5));
+						day=tonumber(value:slice(1, 2));
 						hour=0;
 						min=0;
 						sec=0;
@@ -528,12 +528,12 @@ local Datetime = Field:extend{
 			if "string" == type(value) then
 				try(function()
 					self._value = os.time{
-						year=tonumber(string.slice(value, 1, 4));
-						month=tonumber(string.slice(value, 6, 7));
-						day=tonumber(string.slice(value, 9, 10));
-						hour=tonumber(string.slice(value, 12, 13));
-						min=tonumber(string.slice(value, 15, 16));
-						sec=tonumber(string.slice(value, 18, 19));
+						year=tonumber(value:slice(1, 4));
+						month=tonumber(value:slice(6, 7));
+						day=tonumber(value:slice(9, 10));
+						hour=tonumber(value:slice(12, 13));
+						min=tonumber(value:slice(15, 16));
+						sec=tonumber(value:slice(18, 19));
 					}
 				end):catch(function() -- Invalid date format
 					self._value = nil
@@ -583,11 +583,11 @@ local Time = Field:extend{
 		if select("#", ...) > 0 then
 			local value = (select(1, ...))
 			if "string" == type(value) then
-				if string.match(value, "^%d%d[^%d]%d%d[^%d]%d%d$") then
+				if value:match"^%d%d[^%d]%d%d[^%d]%d%d$" then
 					self._value = value
-				elseif string.match(value, "^%d%d[^%d]%d%d$") then
-					self._value = string.slice(value, 1, 2)..":"..string.slice(value, 4, 5)..":00"
-				elseif string.match(value, "^%d%d$") then
+				elseif value:match"^%d%d[^%d]%d%d$" then
+					self._value = value:slice(1, 2)..":"..value:slice(4, 5)..":00"
+				elseif value:match"^%d%d$" then
 					self._value = value..":00:00"
 				else
 					self._value = nil

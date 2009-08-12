@@ -63,12 +63,12 @@ local User = models.Model:extend{
 		method = method or "sha1"
 		if not salt then
 			salt = tostring(crypt.hash(method, math.random(2000000000)))
-			salt = string.slice(salt, math.random(10), math.random(5, string.len(salt)-10))
+			salt = salt:slice(math.random(10), math.random(5, string.utf8len(salt)-10))
 		end
 		return method.."$"..salt.."$"..tostring(crypt.hash(method, password..salt..(self:secretSalt() or "")))
 	end;
 	comparePassword = function (self, password)
-		local method, salt, hash = string.split(self.passwordHash, "$", "$")
+		local method, salt, hash = self.passwordHash:split("$", "$")
 		return self:encodePassword(password, method, salt) == self.passwordHash
 	end;
 	authUser = function (self, session, loginForm)

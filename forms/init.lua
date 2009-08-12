@@ -14,7 +14,7 @@ local Form = Struct:extend{
 	__tag = .....".Form",
 	extend = function (self, new)
 		local new = Struct.extend(self, new)
-		new:fields(table.map(self:fields() or {}, f "a:clone()"))
+		new:fields(table.map(self:fields() or {}, f"a:clone()"))
 		-- Add self fields
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isA and v:isA(fields.Field) then
@@ -27,13 +27,13 @@ local Form = Struct:extend{
 	init = function (self, values)
 		Struct.init(self, values)
 		if not self:fields() then
-			Exception "abstract Form can't be created"
+			Exception"abstract Form can't be created"
 		end
 		self.Meta = self.Meta or {}
 		if not self.Meta.widget then
 			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
 		end
-		self:fields(table.map(self:fields(), f "a:clone()"))
+		self:fields(table.map(self:fields(), f"a:clone()"))
 		if values then
 			if "table" == type(values) and values.isA and values:isA(Model) then
 				self:values(values:values())
@@ -222,7 +222,7 @@ local ModelForm = Form:extend{
 	pkName = function (self) return self:model():pkName() end;
 	initModel = function (self, model)
 		if not model or not model:isA(self:model()) then
-			Exception "instance of Meta.model expected"
+			Exception"instance of Meta.model expected"
 		end
 		for name, f in pairs(model:fields()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, name))
@@ -236,7 +236,7 @@ local ModelForm = Form:extend{
 			Exception"instance of Model expected"
 		end
 		if not model or not model:isA(self:model()) then
-			Exception "instance of Meta.model expected"
+			Exception"instance of Meta.model expected"
 		end
 		for name, f in pairs(model:fields()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, name))

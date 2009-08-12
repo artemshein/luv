@@ -43,7 +43,7 @@ local Version = Object:extend{
 }
 
 local sendEmail = function (from, to, subject, body, server)
-	local smtp, mime = require "socket.smtp", require "mime"
+	local smtp, mime = require"socket.smtp", require"mime"
 	return smtp.send{
 		from = from;
 		rcpt = to;

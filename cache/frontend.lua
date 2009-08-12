@@ -1,9 +1,9 @@
 local ipairs, io, require, type = ipairs, io, require, type
 local rawget, getmetatable, rawset = rawget, getmetatable, rawset
 local select = select
-local table = require "luv.table"
-local Object = require "luv.oop".Object
-local Exception = require "luv.exceptions".Exception
+local table = require"luv.table"
+local Object = require"luv.oop".Object
+local Exception = require"luv.exceptions".Exception
 
 module(...)
 

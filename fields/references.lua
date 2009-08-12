@@ -74,7 +74,7 @@ local ManyToMany = Reference:extend{
 	end;
 	tableName = function (self)
 		if not self._tableName then
-			local t1, t2 = string.replace(self:container():labelMany(), " ", "_"), string.replace(self:refModel():labelMany(), " ", "_")
+			local t1, t2 = self:container():labelMany():replace(" ", "_"), self:refModel():labelMany():replace(" ", "_")
 			if t1 < t2 then
 				self._tableName = t1.."2"..t2
 			else
@@ -240,7 +240,7 @@ local ManyToOne = Reference:extend{
 			return Reference.relatedName(self, ...)
 		else
 			if not self._relatedName then
-				self._relatedName = string.replace(self:container():labelMany(), ' ', '_')
+				self._relatedName = self:container():labelMany():replace(" ", "_")
 			end
 			return Reference.relatedName(self)
 		end
@@ -328,7 +328,7 @@ local OneToMany = Reference:extend{
 			return Reference.relatedName(self, ...)
 		else
 			if not self._relatedName then
-				self._relatedName = string.replace(self:container():label(), ' ', '_')
+				self._relatedName = self:container():label():replace(" ", "_")
 			end
 			return Reference.relatedName(self)
 		end

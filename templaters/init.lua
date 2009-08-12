@@ -89,7 +89,7 @@ local Tamplier = Api:extend{
 			cycle = function (index, params)
 				if not self._cycleCounters[index] then self._cycleCounters[index] = 1 end
 				self._cycleCounters[index] = self._cycleCounters[index] + 1
-				return params[self._cycleCounters[index] % table.maxn(params) + 1]
+				return params[self._cycleCounters[index] % #params + 1]
 			end;
 		}
 	end;
@@ -116,26 +116,26 @@ local Tamplier = Api:extend{
 		local res = {main=""}
 		local offsetPos = 1
 		while true do
-			local begPos = string.find(str, "{", offsetPos, true)
+			local begPos = str:find("{", offsetPos, true)
 			if not begPos then
 				res[currentSection] = res[currentSection].."..[===["..str.."]===]"
 				break
 			end
-			local operand = string.sub(str, begPos+1, begPos+1)
+			local operand = str:sub(begPos+1, begPos+1)
 			if "{" == operand then -- text output
-				local endBegPos = string.find(str, "}}", begPos+1, true)
-				res[currentSection] = res[currentSection].."..[===["..string.sub(str, 1, begPos-1).."]===]..tostring(escape("..string.sub(str, begPos+2, endBegPos-1).."))"
-				str = string.sub(str, endBegPos+2)
+				local endBegPos = str:find("}}", begPos+1, true)
+				res[currentSection] = res[currentSection].."..[===["..str:sub(1, begPos-1).."]===]..tostring(escape("..str:sub(begPos+2, endBegPos-1).."))"
+				str = str:sub(endBegPos+2)
 				offsetPos = 1
 			elseif "%" == operand then -- code execution
-				local endBegPos = string.find(str, "%}", begPos+1, true)
-				res[currentSection] = res[currentSection].."..[===["..string.sub(str, 1, begPos-1).."]===]; "..string.sub(str, begPos+2, endBegPos-1).." s = s"
-				str = string.sub(str, endBegPos+2)
+				local endBegPos = str:find("%}", begPos+1, true)
+				res[currentSection] = res[currentSection].."..[===["..str:sub(1, begPos-1).."]===]; "..str:sub(begPos+2, endBegPos-1).." s = s"
+				str = str:sub(endBegPos+2)
 				offsetPos = 1
 			elseif "[" == operand then -- immediate code execution
-				local endBegPos = string.find(str, "]}", begPos+1, true)
-				res[currentSection] = res[currentSection].."..[===["..string.sub(str, 1, begPos-1).."]===]"
-				local func, err = loadstring(string.sub(str, begPos+2, endBegPos-1))
+				local endBegPos = str:find("]}", begPos+1, true)
+				res[currentSection] = res[currentSection].."..[===["..str:sub(1, begPos-1).."]===]"
+				local func, err = loadstring(str:sub(begPos+2, endBegPos-1))
 				if not func then
 					Exception(err)
 				end
@@ -155,11 +155,11 @@ local Tamplier = Api:extend{
 						self._internal.sections[currentSection] = createFunction(res[currentSection])
 						local oldSection = currentSection
 						currentSection = table.remove(sectionsStack)
-						res[currentSection] = res[currentSection].."..tostring(escape(section "..string.format("%q", oldSection).."))"
+						res[currentSection] = res[currentSection].."..tostring(escape(section "..("%q"):format(oldSection).."))"
 					end;
 				})
 				try(function () func() end):throw()
-				str = string.sub(str, endBegPos+2)
+				str = str:sub(endBegPos+2)
 				offsetPos = 1
 			else
 				offsetPos = begPos+1
@@ -180,13 +180,13 @@ local Tamplier = Api:extend{
 		if "table" ~= type(self._templatesDirs) or table.empty(self._templatesDirs) then
 			local tpl = fs.File(template)
 			if tpl:exists() then
-				return tpl:openReadAndClose "*a"
+				return tpl:openReadAndClose"*a"
 			end
 		end
 		for _, v in ipairs(self._templatesDirs) do
 			local tpl = fs.File(v / template)
 			if tpl:exists() then
-				return tpl:openReadAndClose "*a"
+				return tpl:openReadAndClose"*a"
 			end
 		end
 		Exception("Template "..template.." not found!")

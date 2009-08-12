@@ -11,37 +11,37 @@ module(...)
 local Field = Widget:extend{
 	__tag = .....".Field";
 	_fieldId = function (self, f, form)
-		return f:id() or (form:id()..string.capitalize(f:name()))
+		return f:id() or (form:id()..f:name():capitalize())
 	end;
 	_renderType = function (self)
-		return " type="..string.format("%q", self:type())
+		return " type="..("%q"):format(self:type())
 	end;
 	_renderOnClick = function (self, f)
 		if f:onClick() then
-			return " onclick="..string.format("%q", f:onClick())
+			return " onclick="..("%q"):format(f:onClick())
 		end
 		return ""
 	end;
 	_renderOnChange = function (self, f)
 		if f:onChange() then
-			return " onchange="..string.format("%q", f:onChange())
+			return " onchange="..("%q"):format(f:onChange())
 		end
 		return ""
 	end;
 	_renderClasses = function (self, f)
 		if f:classes() and not table.empty(f:classes()) then
-			return " class="..string.format("%q", table.join(f:classes(), " "))
+			return " class="..("%q"):format(table.join(f:classes(), " "))
 		end
 		return ""
 	end;
 	_renderName = function (self, f)
-		return " name="..string.format("%q", html.escape(f:name()))
+		return " name="..("%q"):format(html.escape(f:name()))
 	end;
 	_renderId = function (self, f, form)
-		return " id="..string.format("%q", html.escape(self:_fieldId(f, form)))
+		return " id="..("%q"):format(html.escape(self:_fieldId(f, form)))
 	end;
 	_renderValue = function (self, f)
-		return " value="..string.format("%q", html.escape(tostring(f:value() or f:defaultValue() or "")))
+		return " value="..("%q"):format(html.escape(tostring(f:value() or f:defaultValue() or "")))
 	end;
 	_renderHint = function (self, f)
 		return (f:hint() and (" "..f:hint()) or "")
@@ -130,7 +130,7 @@ local TextInput = Input:extend{
 	__tag = .....".TextInput";
 	_type = "text";
 	render = function (self, field, form, tail)
-		return Input.render(self, field, form, (tail or "").." maxlength="..string.format("%q", field:maxLength()))
+		return Input.render(self, field, form, (tail or "").." maxlength="..("%q"):format(field:maxLength()))
 	end
 }
 
@@ -169,7 +169,7 @@ local ImageButton = Button:extend{
 	__tag = .....".ImageButton";
 	_type = "image";
 	render = function (self, field, form)
-		local tail = " src="..string.format("%q", field:src())
+		local tail = " src="..("%q"):format(field:src())
 		return Button.render(self, field, form, tail)
 	end
 }
@@ -178,8 +178,8 @@ local Select = Field:extend{
 	__tag = .....".Select";
 	init = function () end;
 	render = function (self, field, form)
-		local models = require "luv.db.models"
-		local fields = require "luv.fields"
+		local models = require"luv.db.models"
+		local fields = require"luv.fields"
 		local classes = field:classes()
 		local values, fieldValue = "", field:value()
 		if not field:required() then values = "<option></option>" end
@@ -205,7 +205,7 @@ local Select = Field:extend{
 			else
 				selected = fieldValue == value
 			end
-			values = values.."<option value="..string.format("%q", key)..(selected and ' selected="selected"' or "")..">"..html.escape(tostring(value)).."</option>"
+			values = values.."<option value="..("%q"):format(key)..(selected and ' selected="selected"' or "")..">"..html.escape(tostring(value)).."</option>"
 		end
 		return "<select"
 		..self:_renderId(field, form)
@@ -221,7 +221,7 @@ local Select = Field:extend{
 local MultipleSelect = Select:extend{
 	__tag = .....".MiltipleSelect";
 	render = function (self, field, form)
-		local fields = require "luv.fields"
+		local fields = require"luv.fields"
 		local classes = field:classes()
 		local values, fieldValue = "", field:value()
 		local choices = field:choices()
@@ -236,7 +236,7 @@ local MultipleSelect = Select:extend{
 					break
 				end
 			end
-			values = values.."<option value="..string.format("%q", tostring(v.pk))..(founded and ' selected="selected"' or "")..">"..tostring(v).."</option>"
+			values = values.."<option value="..("%q"):format(tostring(v.pk))..(founded and ' selected="selected"' or "")..">"..tostring(v).."</option>"
 		end
 		return '<select multiple="multiple"'
 		..self:_renderId(field, form)
@@ -265,13 +265,13 @@ local NestedSetSelect = Select:extend{
 		local id = fieldId(form, field)
 		local value = field:value()
 		return
-		"<div id="..string.format("%q", id.."Back").."></div>"
+		"<div id="..("%q"):format(id.."Back").."></div>"
 		..Select.render(self, field, form)
 		..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'
 		.."var nestedSetData = nestedSetData || {};\nnestedSetData['"..id.."'] = {minLevel: "..minLevel..", data: "
 		..json.serialize(data)
-		.."};\nluv.nestedSetSelect("..string.format("%q", id)..(value and "" ~= value and (", luv.nestedSetGetParentFor("..string.format("%q", id)..", "..string.format("%q", value)..")") or "")..");"
-		..(value and "" ~= value and ("luv.setFieldValue("..string.format("%q", id)..", "..string.format("%q", value)..");") or "").."\n//]]></script>"
+		.."};\nluv.nestedSetSelect("..("%q"):format(id)..(value and "" ~= value and (", luv.nestedSetGetParentFor("..("%q"):format(id)..", "..("%q"):format(value)..")") or "")..");"
+		..(value and "" ~= value and ("luv.setFieldValue("..("%q"):format(id)..", "..("%q"):format(value)..");") or "").."\n//]]></script>"
 	end;
 }
 
@@ -286,7 +286,7 @@ local DateInput = TextInput:extend{
 		if value then
 			value = os.date(self:format(), value)
 		end
-		return " value="..string.format("%q", html.escape(value or ""))
+		return " value="..("%q"):format(html.escape(value or ""))
 	end;
 	render = function (self, field, form, tail)
 		local html =
@@ -319,7 +319,7 @@ local Datetime = TextInput:extend{
 		if value then
 			value = os.date(self:format(), value)
 		end
-		return " value="..string.format("%q", html.escape(value or ""))
+		return " value="..("%q"):format(html.escape(value or ""))
 	end;
 	render = function (self, field, form, tail)
 		tail = tail or ""

@@ -9,10 +9,10 @@ module(...)
 
 local function get (socket, rawFlag)
 	local res = socket:receive()
-	if string.slice(res, 1, 1) ~= "$" then
+	if res:slice(1, 1) ~= "$" then
 		Driver.Exception(res)
 	end
-	local len = tonumber(string.slice(res, 2))
+	local len = tonumber(res:slice(2))
 	if -1 == len then
 		res = nil
 	else
@@ -27,7 +27,7 @@ end
 
 local function status (socket)
 	local res = socket:receive()
-	if "+" ~= string.slice(res, 1, 1) then
+	if "+" ~= res:slice(1, 1) then
 		Driver.Exception(res)
 	end
 	return res
@@ -35,18 +35,18 @@ end
 
 local function numeric (socket)
 	local res = socket:receive()
-	if ":" ~= string.slice(res, 1, 1) then
+	if ":" ~= res:slice(1, 1) then
 		Driver.Exception(res)
 	end
-	return tonumber(string.slice(res, 2))
+	return tonumber(res:slice(2))
 end
 
 local function bulk (socket, keys)
 	local res = socket:receive()
-	if "*" ~= string.slice(res, 1, 1) then
+	if "*" ~= res:slice(1, 1) then
 		Driver.Exception(res)
 	end
-	local count = tonumber(string.slice(res, 2))
+	local count = tonumber(res:slice(2))
 	local result = {}
 	if keys then
 		for i = 1, count do
@@ -124,7 +124,7 @@ local RedisDriver = Driver:extend{
 				result = numeric(socket)
 			else
 				value = serialize(value)
-				request = "SET "..key.." "..string.len(value)
+				request = "SET "..key.." "..#value
 				socket:send(request.."\r\n"..value.."\r\n")
 				result = status(socket)
 			end
@@ -203,7 +203,7 @@ local RedisDriver = Driver:extend{
 		socket:send(request.."\r\n")
 		local res = get(socket, true)
 		self._logger(request, res)
-		return res ~= "" and string.explode(res, " ") or {}
+		return res ~= "" and res:explode" " or {}
 	end;
 	exists = function (self, key)
 		local socket = self:socket()
@@ -224,7 +224,7 @@ local RedisDriver = Driver:extend{
 	lpush = function (self, key, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request = "LPUSH "..key.." "..string.len(value)
+		local request = "LPUSH "..key.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		self._logger(request, status(socket))
 		return self
@@ -232,7 +232,7 @@ local RedisDriver = Driver:extend{
 	rpush = function (self, key, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request = "RPUSH "..key.." "..string.len(value)
+		local request = "RPUSH "..key.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		self._logger(request, status(socket))
 		return self
@@ -271,7 +271,7 @@ local RedisDriver = Driver:extend{
 	lset = function (self, key, index, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request = "LSET "..key.." "..index.." "..string.len(value)
+		local request = "LSET "..key.." "..index.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		self._logger(request, status(socket))
 		return self
@@ -279,7 +279,7 @@ local RedisDriver = Driver:extend{
 	lrem = function (self, key, count, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request, result = "LREM "..key.." "..count.." "..string.len(value)
+		local request, result = "LREM "..key.." "..count.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		result = numeric(socket)
 		self._logger(request, result)
@@ -304,7 +304,7 @@ local RedisDriver = Driver:extend{
 	sadd = function (self, key, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request, result = "SADD "..key.." "..string.len(value)
+		local request, result = "SADD "..key.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		result = numeric(socket)
 		self._logger(request, result)
@@ -313,7 +313,7 @@ local RedisDriver = Driver:extend{
 	srem = function (self, key, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request, result = "SREM "..key.." "..string.len(value)
+		local request, result = "SREM "..key.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		result = numeric(socket)
 		self._logger(request, result)
@@ -322,7 +322,7 @@ local RedisDriver = Driver:extend{
 	smove = function (self, src, dest, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request, result = "SMOVE "..src.." "..dest.." "..string.len(value)
+		local request, result = "SMOVE "..src.." "..dest.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		result = numeric(socket)
 		self._logger(request, result)
@@ -339,7 +339,7 @@ local RedisDriver = Driver:extend{
 	sismember = function (self, key, value)
 		local socket = self:socket()
 		value = serialize(value)
-		local request, result = "SISMEMBER "..key.." "..string.len(value)
+		local request, result = "SISMEMBER "..key.." "..#value
 		socket:send(request.."\r\n"..value.."\r\n")
 		result = numeric(socket)
 		self._logger(request, result)

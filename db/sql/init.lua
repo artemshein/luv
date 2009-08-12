@@ -13,14 +13,14 @@ local Factory = Object:extend{
 	__tag = .....".Factory";
 	new = function (self, dsn)
 		local login, pass, port, params = nil, nil, nil, {}
-		local driver, host, database, paramsStr = string.split(dsn, "://", "/", "?")
-		login, host = string.split(host, "@")
-		login, pass = string.split(login, ":")
-		host, port = string.split(host, ":")
-		if paramsStr then paramsStr = string.split(paramsStr, "&") end
+		local driver, host, database, paramsStr = dsn:split("://", "/", "?")
+		login, host = host:split"@"
+		login, pass = login:split":"
+		host, port = host:split":"
+		if paramsStr then paramsStr = paramsStr:split"&" end
 		if paramsStr then
 			for _, v in ipairs(paramsStr) do
-				local key, val = string.split(v, "=")
+				local key, val = v:split"="
 				params[key] = val
 			end
 		end
@@ -375,18 +375,18 @@ local Driver = Object:extend{
 	processPlaceholder = Object.abstractMethod;
 	processPlaceholders = function (self, sql, ...)
 		local begPos, endPos, res, match, i, lastEnd = 0, 0, {}, nil, 1, 0
-		begPos, endPos = string.find(sql, "?[%#davnq]?", lastEnd+1)
+		begPos, endPos = sql:find("?[%#davnq]?", lastEnd+1)
 		while begPos do
 			local val = select(i, ...)
 			if begPos then
-				table.insert(res, string.slice(sql, lastEnd+1, begPos-1))
-				table.insert(res, self:processPlaceholder(string.slice(sql, begPos, endPos), val))
+				table.insert(res, sql:slice(lastEnd+1, begPos-1))
+				table.insert(res, self:processPlaceholder(sql:slice(begPos, endPos), val))
 				lastEnd = endPos
 			end
-			begPos, endPos = string.find(sql, "?[%#davnq]?", lastEnd+1)
+			begPos, endPos = sql:find("?[%#davnq]?", lastEnd+1)
 			i = i+1
 		end
-		table.insert(res, string.slice(sql, lastEnd+1))
+		table.insert(res, sql:slice(lastEnd+1))
 		return table.join(res)
 	end;
 	fetchAll = function (self, ...)
@@ -394,14 +394,14 @@ local Driver = Object:extend{
 		local cur, error = self._connection:execute(rawSql)
 		if not cur then
 			self._error = error
-			self._logger(rawSql.." return error: "..error)
+			self._logger(rawSql, "error: "..error)
 			return nil
 		end
 		local res, row = {}, {}
 		while cur:fetch(row, "a") do
 			table.insert(res, table.copy(row))
 		end
-		self._logger(rawSql.." return "..#res.." rows")
+		self._logger(rawSql, res)
 		return res
 	end;
 	fetchRow = function (self, ...)
@@ -409,11 +409,11 @@ local Driver = Object:extend{
 		local cur, error = self._connection:execute(rawSql)
 		if not cur then
 			self._error = error
-			self._logger(rawSql.." return error: "..error)
+			self._logger(rawSql, "error: "..error)
 			return nil
 		end
 		local res = cur:fetch({}, "a")
-		self._logger(rawSql.." return row")
+		self._logger(rawSql, res)
 		return res
 	end;
 	fetchCell = function (self, ...)
@@ -421,35 +421,35 @@ local Driver = Object:extend{
 		local cur, error = self._connection:execute(rawSql)
 		if not cur then
 			self._error = error
-			self._logger(rawSql.." return error: "..error)
+			self._logger(rawSql, "error: "..error)
 			return nil
 		end
 		local res = cur:fetch({}, "a")
 		if not res then
-			self._logger(rawSql.." return nil")
+			self._logger(rawSql)
 			return nil
 		end
 		local _, v = next(res)
-		self._logger(rawSql.." return "..v)
+		self._logger(rawSql, v)
 		return v
 	end;
-	beginTransaction = function (self) self:query "BEGIN;" return self end;
-	commit = function (self) self:query "COMMIT;" return self end;
-	rollback = function (self) self:query "ROLLBACK;" return self end;
+	beginTransaction = function (self) self:query"BEGIN;" return self end;
+	commit = function (self) self:query"COMMIT;" return self end;
+	rollback = function (self) self:query"ROLLBACK;" return self end;
 	query = function (self, ...)
 		local rawSql = self:processPlaceholders(...)
 		local cur, error = self._connection:execute(rawSql)
 		if not cur then
 			self._error = error
-			self._logger(rawSql.." return error: "..error)
+			self._logger(rawSql, "error: "..error)
 			return nil
 		end
 		if type(cur) == "userdata" then
 			local res = cur:fetch({}, "a")
-			self._logger(rawSql.." return "..#res.." rows")
+			self._logger(rawSql, res)
 			return res
 		end
-		self._logger(rawSql.." return "..cur)
+		self._logger(rawSql, cur)
 		return cur
 	end;
 	lastInsertId = Object.abstractMethod;

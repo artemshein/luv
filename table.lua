@@ -1,5 +1,5 @@
 local table, pairs, next, type, require, ipairs = table, pairs, next, type, require, ipairs
-local tostring, debug, error = tostring, debug, error
+local tostring, debug, error, setmetatable = tostring, debug, error, setmetatable
 local checkTypes = require"luv.checktypes".checkTypes
 
 module(...)
