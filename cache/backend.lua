@@ -1,16 +1,16 @@
-local table = require "luv.table"
-local string = require "luv.string"
+local table = require"luv.table"
+local string = require"luv.string"
 local tostring, io, pairs, ipairs, os, tonumber = tostring, io, pairs, ipairs, os, tonumber
 local type, math, unpack = type, math, unpack
-local Object = require "luv.oop".Object
-local socket = require "socket"
+local Object = require"luv.oop".Object
+local socket = require"socket"
 local select = select
-local json = require "luv.utils.json"
+local json = require"luv.utils.json"
 local serialize, unserialize = string.serialize, string.unserialize
-local exceptions = require "luv.exceptions"
+local exceptions = require"luv.exceptions"
 local Exception, try = exceptions.Exception, exceptions.try
-local crypt = require "luv.crypt"
-local mime = require "mime"
+local crypt = require"luv.crypt"
+local mime = require"mime"
 
 module(...)
 
@@ -234,7 +234,7 @@ local Memcached = Backend:extend{
 		end
 		local result = {}
 		for i = 1, keysCount do
-			local answer = self.socket:receive "*l" -- Optimize me? "*a"
+			local answer = self.socket:receive"*l" -- Optimize me? "*a"
 			if "END" == answer then break end
 			if not answer:beginsWith"VALUE" then
 				Exception("Not a valid answer "..answer)
@@ -276,11 +276,11 @@ local Memcached = Backend:extend{
 		return (res == "DELETED\r\n" or res == "NOT_FOUND\r\n")
 	end;
 	clear = function (self)
-		if not self.socket:send "flush_all\r\n" then
+		if not self.socket:send"flush_all\r\n" then
 			Exception"Send failed"
 		end
 		self._logger("clear")
-		return self.socket:receive "*l" == "OK\r\n"
+		return self.socket:receive"*l" == "OK\r\n"
 	end;
 	clearTags = function () Exception"Tags unsupported. Use TagEmuWrapper instead." end;
 }

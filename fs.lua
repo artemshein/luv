@@ -1,8 +1,8 @@
-local string = require "luv.string"
-local table = require "luv.table"
+local string = require"luv.string"
+local table = require"luv.table"
 local io, os, tostring, require = io, os, tostring, require
-local Object, Exception = require "luv.oop".Object, require "luv.exceptions".Exception
-local posix = require "posix"
+local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
+local posix = require"posix"
 
 module(...)
 
@@ -19,17 +19,14 @@ local Path = Object:extend{
 	__div = function (self, path2)
 		local path = self:path()
 		path2 = tostring(path2)
-		if string.endsWith(path, "/")
-		or string.endsWith(path, "\\") then
-			if string.beginsWith(path2, "/")
-			or string.beginsWith(path2, "\\") then
-				return self:parent()(path..string.slice(path2, 2))
+		if path:endsWith"/" or path:endsWith"\\" then
+			if path2:beginsWith"/" or path2:beginsWith"\\" then
+				return self:parent()(path..path2:slice(2))
 			else
 				return self:parent()(path..path2)
 			end
 		else
-			if string.beginsWith(path2, "/")
-			or string.beginsWith(path2, "\\") then
+			if path2:beginsWith"/" or path2:beginsWith"\\" then
 				return self:parent()(path..path2)
 			else
 				return self:parent()(path..DIR_SEP..path2)
@@ -53,13 +50,13 @@ local File = Object:extend{
 	end;
 	name = function (self)
 		local name = tostring(self:path())
-		local begPos, endPos = string.findLast(name, "/")
+		local begPos, endPos = name:findLast"/"
 		if begPos then
-			name = string.slice(name, endPos+1)
+			name = name:slice(endPos+1)
 		end
-		begPos, endPos = string.findLast(name, "\\")
+		begPos, endPos = name:findLast"\\"
 		if begPos then
-			name = string.slice(name, endPos+1)
+			name = name:slice(endPos+1)
 		end
 		return name
 	end;

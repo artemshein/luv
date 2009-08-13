@@ -1,101 +1,80 @@
-local string = require "luv.string"
-local tr = tr
+local string = require"luv.string"
 local io, ipairs, tostring, pairs, table, tonumber = io, ipairs, tostring, pairs, table, tonumber
 local unpack, type, rawget, select = unpack, type, rawget, select
 local os, require = os, require
-local Object, auth, models, html = require "luv.oop".Object, require "luv.contrib.auth", require "luv.db.models", require "luv.utils.html"
-local getObjectOr404 = require "luv".getObjectOr404
-local fields = require "luv.fields"
-local forms = require "luv.forms"
-local json = require "luv.utils.json"
-local references = require "luv.fields.references"
-local ws = require "luv.webservers"
+local Object, auth, models, html = require"luv.oop".Object, require"luv.contrib.auth", require"luv.db.models", require"luv.utils.html"
+local getObjectOr404 = require"luv".getObjectOr404
+local fields = require"luv.fields"
+local forms = require"luv.forms"
+local json = require"luv.utils.json"
+local references = require"luv.fields.references"
+local ws = require"luv.webservers"
 
 module(...)
 
+local property = Object.property
+
 local ModelAdmin = Object:extend{
 	__tag = .....".ModelAdmin";
-	model = Object.property;
-	smallIcon = Object.property;
-	bigIcon = Object.property;
-	category = Object.property;
-	path = function (self, ...)
-		if select("#", ...) > 0 then
-			self._path = (select(1, ...))
-			return self
-		else
-			if not self._path then
-				self:path(string.replace(string.lower(self:model():labelMany()), " ", "_"))
+	model = property;
+	smallIcon = property;
+	bigIcon = property;
+	category = property;
+	path = property("string", function (self)
+		if not self._path then
+			self:path(self:model():labelMany():lower():replace(" ", "_"))
+		end
+		return self._path
+	end);
+	fields = property;
+	displayList = property(nil, function (self)
+		if not self._displayList then
+			local res, field = {}
+			for name, _ in pairs(self:model():fields()) do
+				table.insert(res, name)
 			end
-			return self._path
+			self:displayList(res)
 		end
-	end;
-	fields = function (self, ...)
-		if select("#", ...) > 0 then
-			self._fields = (select(1, ...))
-			return self
-		else
-			return self._fields
+		return self._displayList
+	end);
+	form = property(nil, function (self)
+		if not self._form then
+			self:form(forms.ModelForm:extend{Meta={id="form";model=self:model();fields=self:fields()}})
 		end
-	end;
-	displayList = function (self, ...)
-		if select("#", ...) > 0 then
-			self._displayList = (select(1, ...))
-			return self
-		else
-			if not self._displayList then
-				local res, field = {}
-				for name, _ in pairs(self:model():fields()) do
-					table.insert(res, name)
-				end
-				self:displayList(res)
-			end
-			return self._displayList
-		end
-	end;
-	form = function (self, ...)
-		if select("#", ...) > 0 then
-			self._form = (select(1, ...))
-			return self
-		else
-			if not self._form then
-				self:form(forms.ModelForm:extend{Meta={id="form";model=self:model();fields=self:fields()}})
-			end
-			return self._form
-		end
-	end;
+		return self._form
+	end);
 	tree = function (self) return self:model():isA(models.Tree) end;
 }
 
 local ActionLog = models.Model:extend{
 	__tag = .....".ActionLog";
-	Meta = {labels={"action log";"action logs"}};
-	datetime = fields.Datetime{autoNow=true;label="date and time";required=true};
+	__tostring = function (self) return tostring(self.message) end;
+	Meta = {labels={("action log"):tr();("action logs"):tr()}};
+	datetime = fields.Datetime{autoNow=true;label=("date and time"):tr();required=true};
 	user = references.ManyToOne{references=auth.models.User;required=true;relatedName="actionLogs"};
 	type = fields.Text{required=true};
 	message = fields.Text{maxLength=false;required=true};
-	__tostring = function (self) return tostring(self.message) end;
 	logCreate = function (self, baseUri, user, admin, record)
-		self:create{user=user;type=(tr "creating");message="Created "..record:label().." "..[[<a href="]]..baseUri.."/"..admin:path().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
+		self:create{user=user;type=("creating"):tr();message="Created "..record:label().." "..[[<a href="]]..baseUri.."/"..admin:path().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
 	end;
 	logSave = function (self, baseUri, user, admin, record)
-		self:create{user=user;type=(tr "changing");message="Edited "..record:label().." "..[[<a href="]]..baseUri.."/"..admin:path().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
+		self:create{user=user;type=("changing"):tr();message="Edited "..record:label().." "..[[<a href="]]..baseUri.."/"..admin:path().."/"..tostring(record.pk)..[[">]]..tostring(record).."</a> by "..tostring(user).."."}
 	end;
 	logDelete = function (self, baseUri, user, admin, record)
-		self:create{user=user;type=(tr "deleting");message="Deleted "..record:label().." "..tostring(record).." by "..tostring(user).."."}
+		self:create{user=user;type=("deleting"):tr();message="Deleted "..record:label().." "..tostring(record).." by "..tostring(user).."."}
 	end;
 }
 
 local UserMsgsStack = Object:extend{
 	__tag = .....".UserMsgsStack";
-	msgs = Object.property;
+	msgs = property"table";
 	init = function (self) self:msgs{} end;
 	okMsg = function (self, msg)
-		table.insert(self._msgs, {msg=msg;status="ok"})
+		table.insert(self:msgs(), {msg=msg;status="ok"})
 		return self
 	end;
 	errorMsg = function (self, msg)
-		table.insert(self._msgs, {msg=msg;status="error"})
+		table.insert(self:msgs(), {msg=msg;status="error"})
 		return self
 	end;
 }
@@ -115,7 +94,7 @@ local AdminSite = Object:extend{
 				else
 					admin = model
 				end
-				category = admin:category() or "not categorised"
+				category = admin:category() or ("not categorised"):tr()
 				modelsCategories[category] = modelsCategories[category] or {}
 				table.insert(modelsCategories[category], admin)
 			end
@@ -144,10 +123,10 @@ local AdminSite = Object:extend{
 				local user = auth.models.User:authUser(luv:session(), form)
 				if user and user.isActive then luv:setResponseHeader("Location", urlConf:baseUri()):sendHeaders() end
 				luv:assign{
-					capitalize=string.capitalize;title="authorisation";
+					capitalize=string.capitalize;title=("authorisation"):tr();
 					ipairs=ipairs;tostring=tostring;form=form;user=user;
 				}
-				luv:display "admin/login.html"
+				luv:display"admin/login.html"
 			end};
 			{"^/logout$"; function (urlConf)
 				auth.models.User:logout(luv:session())
@@ -159,13 +138,13 @@ local AdminSite = Object:extend{
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				if not user:canCreate(model) then ws.Http403() end
-				local form = admin:form():addField("create", fields.Submit(string.capitalize(tr "create")))(luv:postData()):action(urlConf:uri())
+				local form = admin:form():addField("create", fields.Submit(("create"):tr():capitalize()))(luv:postData()):action(urlConf:uri())
 				local msgsStack = UserMsgsStack()
-				if form:submitted("create") and form:valid() then
+				if form:submitted"create" and form:valid() then
 					if model:isA(models.Tree) then
 						if model:findRoot() then
-							msgsStack:errorMsg(string.capitalize(model:label()).." was not created!")
-							form:addError "Root record already exist."
+							msgsStack:errorMsg(model:label():capitalize().." was not created!")
+							form:addError"Root record already exist."
 						else
 							local record = model()
 							record.left = 1
@@ -173,10 +152,10 @@ local AdminSite = Object:extend{
 							form:initModel(record)
 							if record:save() then
 								ActionLog:logCreate(urlConf:baseUri(), user, admin, record)
-								msgsStack:okMsg(string.capitalize(model:label()).." was created successfully!")
+								msgsStack:okMsg(model:label():capitalize().." was created successfully!")
 								form:values{}
 							else
-								msgsStack:errorMsg(string.capitalize(model:label()).." was not created!")
+								msgsStack:errorMsg(model:label():capitalize().." was not created!")
 								form:addErrors(record:errors())
 							end
 						end
@@ -185,23 +164,23 @@ local AdminSite = Object:extend{
 						form:initModel(record)
 						if record:save() then
 							ActionLog:logCreate(urlConf:baseUri(), user, admin, record)
-							msgsStack:okMsg(string.capitalize(model:label()).." was created successfully!")
+							msgsStack:okMsg(model:label():capitalize().." was created successfully!")
 							form:values{}
 						else
-							msgsStack:errorMsg(string.capitalize(model:label()).." was not created!")
+							msgsStack:errorMsg(model:label():capitalize().." was not created!")
 							form:addErrors(record:errors())
 						end
 					end
 				end
 				luv:assign{
-					ipairs=ipairs;capitalize=string.capitalize;
+					ipairs=ipairs;
 					tostring=tostring;html=html;
 					user=user;model=model;urlConf=urlConf;
 					title=model:getLabel();
 					titleIcon=admin:getBigIcon();
 					form=form;userMsgs=msgsStack:msgs();
 				}
-				luv:display "admin/create.html"
+				luv:display"admin/create.html"
 			end};
 			{"^/([^/]+)/records/delete/?$"; function (urlConf, modelName)
 				local user = user(urlConf)
@@ -209,7 +188,7 @@ local AdminSite = Object:extend{
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				if not user:canDelete(model) then ws.Http403() end
-				local items = luv:getPost "items"
+				local items = luv:getPost"items"
 				if "table" ~= type(items) then
 					items = {items}
 				end
@@ -218,7 +197,7 @@ local AdminSite = Object:extend{
 				for _, record in pairs(records) do
 					ActionLog:logDelete(urlConf:baseUri(), user, admin, record)
 				end
-				io.write ""
+				io.write""
 			end};
 			{"^/([^/]+)/records/?$"; function (urlConf, modelName)
 				local user = getUser(urlConf)
@@ -230,7 +209,7 @@ local AdminSite = Object:extend{
 					modelUri=urlConf:baseUri().."/"..modelName;admin=admin;model=model;
 				}
 				if model:isA(models.Tree) then
-					local node = luv:post "node"
+					local node = luv:post"node"
 					if node then
 						node = getObjectOr404(model, node)
 						luv:assign{parent=node;nodes=node:children()}
@@ -240,9 +219,9 @@ local AdminSite = Object:extend{
 						luv:assign{nodes={node}}
 						luv:assign{isRoot=true}
 					end
-					luv:display "admin/_records-tree.html"
+					luv:display"admin/_records-tree.html"
 				else
-					local page = tonumber(luv:post "page") or 1
+					local page = tonumber(luv:post"page") or 1
 					luv:assign{
 						model=model;page=page;
 						displayFields=admin:displayList();
@@ -250,7 +229,7 @@ local AdminSite = Object:extend{
 						p=models.Paginator(model, 10);
 						title=model:labelMany();
 					}
-					luv:display "admin/_records-table.html"
+					luv:display"admin/_records-table.html"
 				end
 			end};
 			{"^/([^/]+)/(.+)/create/?$"; function (urlConf, modelName, recordId) -- for TreeModel
@@ -261,17 +240,17 @@ local AdminSite = Object:extend{
 				if not user:canCreate(model) then ws.Http403() end
 				if not model:isA(models.Tree) then ws.Http404() end
 				local record = getObjectOr404(model, recordId)
-				local form = admin:form():addField("create", fields.Submit(string.capitalize(tr "create")))(luv:postData()):action(urlConf:uri())
+				local form = admin:form():addField("create", fields.Submit(("create"):tr():capitalize()))(luv:postData()):action(urlConf:uri())
 				local msgsStack = UserMsgsStack()
 				if form:submitted "create" and form:valid() then
 					local child = model()
 					form:initModel(child)
 					if record:addChild(child) then
 						ActionLog:logCreate(urlConf:baseUri(), user, admin, child)
-						msgsStack:okMsg(string.capitalize(model:label()).." was created successfully!")
+						msgsStack:okMsg(model:label():capitalize().." was created successfully!")
 						form:values{}
 					else
-						msgsStack:errorMsg(string.capitalize(model:label()).." was not created!")
+						msgsStack:errorMsg(model:label():capitalize().." was not created!")
 						form:addErrors(record:errors())
 					end
 				end
@@ -283,7 +262,7 @@ local AdminSite = Object:extend{
 					titleIcon=admin:bigIcon();
 					form=form;userMsgs=msgsStack:msgs();
 				}
-				luv:display "admin/create.html"
+				luv:display"admin/create.html"
 			end};
 			{"^/([^/]+)/(.+)/?$"; function (urlConf, modelName, recordId)
 				local user = user(urlConf)
@@ -294,22 +273,22 @@ local AdminSite = Object:extend{
 				local record = getObjectOr404(model, recordId)
 				local form = admin:form()
 				if user:canDelete(model) then
-					form:addField("delete", fields.Submit{defaultValue=string.capitalize(tr "delete");onClick="return confirm('O\\'RLY?')"})
+					form:addField("delete", fields.Submit{defaultValue=("delete"):tr():capitalize();onClick="return confirm('O\\'RLY?')"})
 				end
-				form:addField("save", fields.Submit(string.capitalize(tr "save")))
+				form:addField("save", fields.Submit(("save"):tr():capitalize()))
 				form = form(luv:postData()):action(urlConf:uri())
 				local msgsStack = UserMsgsStack()
-				if form:submitted "save" then
+				if form:submitted"save" then
 					if form:valid() then
 						form:initModel(record)
 						if record:save() then
 							ActionLog:logSave(urlConf:baseUri(), user, admin, record)
-							msgsStack:okMsg(string.capitalize(model:label()).." was saved successfully!")
+							msgsStack:okMsg(model:label():capitalize().." was saved successfully!")
 						else
-							msgsStack:errorMsg(string.capitalize(model:label()).." was not saved!")
+							msgsStack:errorMsg(model:label():capitalize().." was not saved!")
 						end
 					end
-				elseif form:submitted "delete" then
+				elseif form:submitted"delete" then
 					if not user:canDelete(model) then ws.Http403() end
 					record:delete()
 					ActionLog:logDelete(urlConf:baseUri(), user, admin, record)
@@ -325,7 +304,7 @@ local AdminSite = Object:extend{
 					titleIcon=admin:bigIcon();
 					form=form;userMsgs=msgsStack:msgs();
 				}
-				luv:display "admin/edit.html"
+				luv:display"admin/edit.html"
 			end};
 			{"^/([^/]+)/?$"; function (urlConf, modelName)
 				local user = user(urlConf)
@@ -342,7 +321,7 @@ local AdminSite = Object:extend{
 					titleIcon=admin:bigIcon();
 					isTree=model:isA(models.Tree);
 				}
-				luv:display "admin/records.html"
+				luv:display"admin/records.html"
 			end};
 			{"^/?$"; function (urlConf)
 				local user = user(urlConf)
@@ -357,7 +336,7 @@ local AdminSite = Object:extend{
 					title="AdminSite";
 					categories=self.modelsCategories;
 				}
-				luv:display "admin/main.html"
+				luv:display"admin/main.html"
 			end};
 		}
 	end;

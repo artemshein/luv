@@ -1,8 +1,7 @@
-local tr = tr
 local string = require"luv.string"
 local io = io
 local type, tonumber, tostring, table, ipairs = type, tonumber, tostring, table, ipairs
-local json = require "luv.utils.json"
+local json = require"luv.utils.json"
 local Object = require"luv.oop".Object
 
 module(...)
@@ -13,7 +12,7 @@ local Validator = Object:extend{
 	__tag = .....".Validator";
 	errors = property"table";
 	errorMsg = property"string";
-	js = Object.property;
+	js = property;
 	init = function (self) self:errors{} end;
 	valid = function (self) self:errors{} return true end;
 	addError = function (self, error) table.insert(self._errors, error) return self end;
