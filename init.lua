@@ -1,6 +1,6 @@
-local table = require "luv.table"
-local string = require "luv.string"
-local dev = require "luv.dev"
+local table = require"luv.table"
+local string = require"luv.string"
+local dev = require"luv.dev"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
 local error, debug = error, debug
 local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"
@@ -15,8 +15,8 @@ local MODULE = (...)
 local property = Object.property
 local abstract = Object.abstractMethod
 
-if not tr then
-	tr = function (str) return str end
+if not string.tr then
+	string.tr = function (str) return str end
 end
 
 local UrlConf = Object:extend{
@@ -211,8 +211,6 @@ local Core = Object:extend{
 	createModelTag = function (self, model)
 		return require"luv.db.models".ModelTag(self:cacher(), model)
 	end;
-	-- I18n
-	tr = function (self, str) return self._i18n:tr(str) or str end;
 }
 
 local Struct = Object:extend{

@@ -50,7 +50,7 @@ local User = models.Model:extend{
 	sessId = property"string";
 	secretSalt = property"string";
 	-- Fields
-	isActive = fields.Boolean{defaultValue=true;label=tr"active user"};
+	isActive = fields.Boolean{defaultValue=true;label=("active user"):tr()};
 	login = fields.Login();
 	name = fields.Text();
 	email = fields.Email();
@@ -147,7 +147,7 @@ local Login = forms.Form:extend{
 	Meta = {fields={"login";"password";"authorise"}};
 	login = User:field"login",
 	password = fields.Password{required=true};
-	authorise = fields.Submit{defaultValue=capitalize(tr"log in")}
+	authorise = fields.Submit{defaultValue=("log in"):tr():capitalize()}
 }
 
 local _modelsAdmins

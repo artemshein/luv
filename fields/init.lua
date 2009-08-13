@@ -1,14 +1,13 @@
-local error, tr, select = error, tr, select
+local error, select = error, select
 local require, tostring = require, tostring
 local pairs, tonumber, ipairs, os, type, io = pairs, tonumber, ipairs, os, type, io
-local table = require "luv.table"
+local table = require"luv.table"
 local require = require
 local Object, validators, Widget, widgets, string = require"luv.oop".Object, require"luv.validators", require"luv".Widget, require"luv.fields.widgets", require "luv.string"
-local fs, Struct = require "luv.fs", require "luv".Struct
-local exceptions = require "luv.exceptions"
+local fs, Struct = require"luv.fs", require"luv".Struct
+local exceptions = require"luv.exceptions"
 local Exception, try = exceptions.Exception, exceptions.try
-local f = require "luv.function".f
-local capitalize = string.capitalize
+local f = require"luv.function".f
 
 module(...)
 
@@ -21,7 +20,7 @@ local Field = Object:extend{
 		self._required = value
 		if self._required then
 			self:validator("filled", validators.Filled())
-			self:addClass "required"
+			self:addClass"required"
 		end
 		return self
 	end);
@@ -33,7 +32,7 @@ local Field = Object:extend{
 	end);
 	label = property("string", function (self)
 		if not self._label then
-			self:label(capitalize(tr(self:name())))
+			self:label(self:name():tr():capitalize())
 		end
 		return self._label
 	end);
@@ -55,7 +54,7 @@ local Field = Object:extend{
 	ajaxWidget = property(Widget);
 	init = function (self, params)
 		if self._parent._parent == Object then
-			Exception "can't instantiate abstract class"
+			Exception"can't instantiate abstract class"
 		end
 		self:validators{}
 		self:errors{}
@@ -63,7 +62,7 @@ local Field = Object:extend{
 	end,
 	clone = function (self)
 		local new = Object.clone(self)
-		new:validators(table.map(self:validators(), f "a:clone()"))
+		new:validators(table.map(self:validators(), f"a:clone()"))
 		return new
 	end,
 	params = function (self, params)

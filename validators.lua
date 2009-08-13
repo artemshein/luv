@@ -12,7 +12,7 @@ local property = Object.property
 local Validator = Object:extend{
 	__tag = .....".Validator";
 	errors = property"table";
-	errorMsg = function (self) return tr(self._errorMsg) end;
+	errorMsg = property"string";
 	js = Object.property;
 	init = function (self) self:errors{} end;
 	valid = function (self) self:errors{} return true end;
@@ -27,7 +27,7 @@ local Validator = Object:extend{
 
 local Filled = Validator:extend{
 	__tag = .....".Filled";
-	_errorMsg = 'Field "%s" must be filled.';
+	_errorMsg = ('Field "%s" must be filled.'):tr();
 	_js = "validFilled()";
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -45,7 +45,7 @@ local Filled = Validator:extend{
 
 local Int = Validator:extend{
 	__tag = .....".Int";
-	_errorMsg = 'Field "%s" must be valid number.';
+	_errorMsg = ('Field "%s" must be valid number.'):tr();
 	_js = "validInt()";
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -66,9 +66,9 @@ local Int = Validator:extend{
 
 local Length = Validator:extend{
 	__tag = .....".Length";
-	_errorMsg = 'Field "%s" has incorrect length.';
-	minLength = property "number";
-	maxLength = property "number";
+	_errorMsg = ('Field "%s" has incorrect length.'):tr();
+	minLength = property"number";
+	maxLength = property"number";
 	init = function (self, minLength, maxLength)
 		Validator.init(self)
 		self:minLength(minLength)
@@ -96,8 +96,8 @@ local Length = Validator:extend{
 
 local Regexp = Validator:extend{
 	__tag = .....".Regexp";
-	_errorMsg = 'Field "%s" has not valid value.';
-	regexp = property "string";
+	_errorMsg = ('Field "%s" has not valid value.'):tr();
+	regexp = property"string";
 	init = function (self, regexp)
 		Validator.init(self)
 		self:regexp(regexp)
@@ -118,7 +118,7 @@ local Regexp = Validator:extend{
 
 local Value = Validator:extend{
 	__tag = .....".Value";
-	_errorMsg = 'Field "%s" has invalid value.';
+	_errorMsg = ('Field "%s" has invalid value.'):tr();
 	value = property;
 	init = function (self, value)
 		Validator.init(self)
