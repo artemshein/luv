@@ -3,7 +3,7 @@ local io, ipairs, tostring, pairs, table, tonumber = io, ipairs, tostring, pairs
 local unpack, type, rawget, select = unpack, type, rawget, select
 local os, require = os, require
 local Object, auth, models, html = require"luv.oop".Object, require"luv.contrib.auth", require"luv.db.models", require"luv.utils.html"
-local getObjectOr404 = require"luv".getObjectOr404
+local objectOr404 = require"luv".objectOr404
 local fields = require"luv.fields"
 local forms = require"luv.forms"
 local json = require"luv.utils.json"
@@ -16,18 +16,18 @@ local property = Object.property
 
 local ModelAdmin = Object:extend{
 	__tag = .....".ModelAdmin";
-	model = property;
+	model = property(models.Model);
 	smallIcon = property;
 	bigIcon = property;
-	category = property;
+	category = property"string";
 	path = property("string", function (self)
 		if not self._path then
 			self:path(self:model():labelMany():lower():replace(" ", "_"))
 		end
 		return self._path
 	end);
-	fields = property;
-	displayList = property(nil, function (self)
+	fields = property"table";
+	displayList = property("table", function (self)
 		if not self._displayList then
 			local res, field = {}
 			for name, _ in pairs(self:model():fields()) do
@@ -81,13 +81,14 @@ local UserMsgsStack = Object:extend{
 
 local AdminSite = Object:extend{
 	__tag = .....".AdminSite";
+	luv = property;
+	modelsCategories = property"table";
 	init = function (self, luv, ...)
-		self.luv = luv
-		local modelsList = {}
+		self:luv(luv)
+		local modelsList = {...}
 		local modelsCategories = {}
 		for i = 1, select("#", ...) do
-			modelsList = select(i, ...)
-			for _, model in ipairs(modelsList) do
+			for _, model in ipairs(modelsList[i]) do
 				local category, admin
 				if "table" == type(model) and model.isA and model:isA(models.Model) then
 					admin = ModelAdmin:extend{model=model}
@@ -99,10 +100,10 @@ local AdminSite = Object:extend{
 				table.insert(modelsCategories[category], admin)
 			end
 		end
-		self.modelsCategories = modelsCategories
+		self:modelsCategories(modelsCategories)
 	end;
 	findAdmin = function (self, path)
-		for category, admins in pairs(self.modelsCategories) do
+		for category, admins in pairs(self:modelsCategories()) do
 			for _, admin in ipairs(admins) do
 				if admin:path() == path then return admin end
 			end
@@ -110,21 +111,26 @@ local AdminSite = Object:extend{
 		return false
 	end;
 	urls = function (self)
-		local luv = self.luv
+		local luv = self:luv()
 		luv:debug(luv:postData())
-		local function user (urlConf)
-			local user = auth.models.User:authUser(luv:getSession())
-			if not user or not user.isActive then luv:setResponseHeader("Location", urlConf:baseUri().."/login"):sendHeaders() end
+		local function authUser (urlConf)
+			local user = auth.models.User:authUser(luv:session())
+			if not user or not user.isActive then luv:responseHeader("Location", urlConf:baseUri().."/login"):sendHeaders() end
 			return user
+		end
+		local function requireAuth (func)
+			return function (urlConf, ...)
+				return func(urlConf, authUser(urlConf), ...)
+			end
 		end
 		return {
 			{"^/login$"; function (urlConf)
 				local form = auth.forms.Login(luv:postData())
 				local user = auth.models.User:authUser(luv:session(), form)
-				if user and user.isActive then luv:setResponseHeader("Location", urlConf:baseUri()):sendHeaders() end
+				if user and user.isActive then luv:responseHeader("Location", urlConf:baseUri()):sendHeaders() end
 				luv:assign{
-					capitalize=string.capitalize;title=("authorisation"):tr();
-					ipairs=ipairs;tostring=tostring;form=form;user=user;
+					title=("authorisation"):tr();ipairs=ipairs;
+					tostring=tostring;form=form;user=user;
 				}
 				luv:display"admin/login.html"
 			end};
@@ -132,8 +138,7 @@ local AdminSite = Object:extend{
 				auth.models.User:logout(luv:session())
 				luv:responseHeader("Location", "/"):sendHeaders()
 			end};
-			{"^/([^/]+)/create/?$"; function (urlConf, modelName)
-				local user = user(urlConf)
+			{"^/([^/]+)/create/?$"; requireAuth(function (urlConf, user, modelName)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
@@ -173,17 +178,15 @@ local AdminSite = Object:extend{
 					end
 				end
 				luv:assign{
-					ipairs=ipairs;
-					tostring=tostring;html=html;
+					ipairs=ipairs;tostring=tostring;html=html;
 					user=user;model=model;urlConf=urlConf;
-					title=model:getLabel();
-					titleIcon=admin:getBigIcon();
+					title=model:label();
+					titleIcon=admin:bigIcon();
 					form=form;userMsgs=msgsStack:msgs();
 				}
 				luv:display"admin/create.html"
-			end};
-			{"^/([^/]+)/records/delete/?$"; function (urlConf, modelName)
-				local user = user(urlConf)
+			end)};
+			{"^/([^/]+)/records/delete/?$"; requireAuth(function (urlConf, user, modelName)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
@@ -198,20 +201,19 @@ local AdminSite = Object:extend{
 					ActionLog:logDelete(urlConf:baseUri(), user, admin, record)
 				end
 				io.write""
-			end};
-			{"^/([^/]+)/records/?$"; function (urlConf, modelName)
-				local user = getUser(urlConf)
+			end)};
+			{"^/([^/]+)/records/?$"; requireAuth(function (urlConf, user, modelName)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				luv:assign{
-					type=type;pairs=pairs;ipairs=ipairs;tostring=tostring;capitalize=string.capitalize;html=html;urlConf=urlConf;user=user;
+					type=type;pairs=pairs;ipairs=ipairs;tostring=tostring;html=html;urlConf=urlConf;user=user;
 					modelUri=urlConf:baseUri().."/"..modelName;admin=admin;model=model;
 				}
 				if model:isA(models.Tree) then
 					local node = luv:post"node"
 					if node then
-						node = getObjectOr404(model, node)
+						node = objectOr404(model, node)
 						luv:assign{parent=node;nodes=node:children()}
 					else
 						node = model:findRoot()
@@ -226,20 +228,19 @@ local AdminSite = Object:extend{
 						model=model;page=page;
 						displayFields=admin:displayList();
 						fields=fields;date=os.date;
-						p=models.Paginator(model, 10);
-						title=model:labelMany();
+						p=models.Paginator(model:parent(), 10);
+						title=model:labelMany():tr():capitalize();
 					}
 					luv:display"admin/_records-table.html"
 				end
-			end};
-			{"^/([^/]+)/(.+)/create/?$"; function (urlConf, modelName, recordId) -- for TreeModel
-				local user = user(urlConf)
+			end)};
+			{"^/([^/]+)/(.+)/create/?$"; requireAuth(function (urlConf, user, modelName, recordId) -- for TreeModel
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				if not user:canCreate(model) then ws.Http403() end
 				if not model:isA(models.Tree) then ws.Http404() end
-				local record = getObjectOr404(model, recordId)
+				local record = objectOr404(model, recordId)
 				local form = admin:form():addField("create", fields.Submit(("create"):tr():capitalize()))(luv:postData()):action(urlConf:uri())
 				local msgsStack = UserMsgsStack()
 				if form:submitted "create" and form:valid() then
@@ -255,22 +256,19 @@ local AdminSite = Object:extend{
 					end
 				end
 				luv:assign{
-					ipairs=ipairs;capitalize=string.capitalize;
-					tostring=tostring;html=html;
-					user=user;model=model;urlConf=urlConf;
-					title=model:label();
+					ipairs=ipairs;tostring=tostring;html=html;user=user;
+					model=model;urlConf=urlConf;title=model:label();
 					titleIcon=admin:bigIcon();
 					form=form;userMsgs=msgsStack:msgs();
 				}
 				luv:display"admin/create.html"
-			end};
-			{"^/([^/]+)/(.+)/?$"; function (urlConf, modelName, recordId)
-				local user = user(urlConf)
+			end)};
+			{"^/([^/]+)/(.+)/?$"; requireAuth(function (urlConf, user, modelName, recordId)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				if not user:canEdit(model) then ws.Http403() end
-				local record = getObjectOr404(model, recordId)
+				local record = objectOr404(model, recordId)
 				local form = admin:form()
 				if user:canDelete(model) then
 					form:addField("delete", fields.Submit{defaultValue=("delete"):tr():capitalize();onClick="return confirm('O\\'RLY?')"})
@@ -297,47 +295,35 @@ local AdminSite = Object:extend{
 					form:initForm(record)
 				end
 				luv:assign{
-					ipairs=ipairs;capitalize=string.capitalize;
-					tostring=tostring;html=html;
+					ipairs=ipairs;tostring=tostring;html=html;
 					user=user;record=record;urlConf=urlConf;
-					title=model:label();
-					titleIcon=admin:bigIcon();
+					title=model:label();titleIcon=admin:bigIcon();
 					form=form;userMsgs=msgsStack:msgs();
 				}
 				luv:display"admin/edit.html"
-			end};
-			{"^/([^/]+)/?$"; function (urlConf, modelName)
-				local user = user(urlConf)
+			end)};
+			{"^/([^/]+)/?$"; requireAuth(function (urlConf, user, modelName)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				luv:assign{
-					capitalize=string.capitalize;
-					tostring=tostring;
-					user=user;
-					model=model;
-					urlConf=urlConf;
-					title=model:labelMany();
+					tostring=tostring;user=user;model=model;
+					urlConf=urlConf;title=model:labelMany():tr():capitalize();
 					titleIcon=admin:bigIcon();
 					isTree=model:isA(models.Tree);
 				}
 				luv:display"admin/records.html"
-			end};
-			{"^/?$"; function (urlConf)
-				local user = user(urlConf)
+			end)};
+			{"^/?$"; requireAuth(function (urlConf, user)
 				luv:assign{
 					actionLogs=ActionLog:all(0, 10):order"-datetime":value();
-					isEmpty=table.isEmpty;
-					pairs=pairs;ipairs=ipairs;
-					tostring=tostring;
-					urlConf=urlConf;
-					user=user;
-					capitalize=string.capitalize;lower=string.lower;replace=string.replace;
-					title="AdminSite";
-					categories=self.modelsCategories;
+					empty=table.empty;pairs=pairs;ipairs=ipairs;
+					tostring=tostring;urlConf=urlConf;user=user;
+					title=("AdminSite"):tr();
+					categories=self:modelsCategories();
 				}
 				luv:display"admin/main.html"
-			end};
+			end)};
 		}
 	end;
 }

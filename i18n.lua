@@ -1,4 +1,4 @@
-local dofile, tostring, assert, type = dofile, tostring, assert, type
+local dofile, tostring, assert, type, os = dofile, tostring, assert, type, os
 local require, ipairs = require, ipairs
 local string = require"luv.string"
 local Object = require"luv.oop".Object
@@ -14,9 +14,14 @@ local I18n = Object:extend{
 	dir = property(fs.Dir);
 	msgs = property"table";
 	_tryToLoadLang = function (self, lang)
+		local country
+		if lang:find"-" then
+			lang, country = lang:split"-"
+		end
 		local f = fs.File(self:dir() / (lang..".lua"))
 		if f:exists() then
 			self:lang(lang)
+			os.setlocale(lang.."_"..(country and country:upper() or lang:upper())..".utf8")
 			self:msgs(assert(dofile(tostring(f:path()))))
 			string.tr = function (str) return self:msgs()[str] or str end
 			return true

@@ -1374,25 +1374,26 @@ local KeyValueQuerySet = QuerySet:extend{
 local Paginator = Object:extend{
 	__tag = .....".Paginator";
 	model = property(Model);
-	onPage = property "number";
+	onPage = property"number";
+	query = property;
 	init = function (self, model, onPage)
 		self:model(model)
 		self:onPage(onPage)
-		self._query = model:all()
+		self:query(model:all())
 	end;
 	total = function (self)
 		if not self._total then
-			self._total = self._query:count()
+			self._total = self:query():count()
 		end
 		return self._total
 	end;
 	page = function (self, page)
-		return self._query:limit((page-1)*self._onPage, page*self._onPage)
+		return self:query():limit((page-1)*self._onPage, page*self._onPage)
 	end;
 	pagesTotal = function (self) return math.ceil(self:total()/self:onPage()) end;
-	order = function (self, ...) self._query = self._query:order(...) return self end;
-	filter = function (self, ...) self._query = self._query:filter(...) return self end;
-	exclude = function (self, ...) self._query = self._query:exclude(...) return self end;
+	order = function (self, ...) self:query(self:query():order(...)) return self end;
+	filter = function (self, ...) self:query(self:query():filter(...)) return self end;
+	exclude = function (self, ...) self:query(self:query():exclude(...)) return self end;
 }
 
 -- Tables

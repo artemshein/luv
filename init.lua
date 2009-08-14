@@ -338,7 +338,7 @@ local init = function (params)
 	return core
 end
 
-local getObjectOr404 = function (model, conditions)
+local objectOr404 = function (model, conditions)
 	local obj = model:find(conditions)
 	if not obj then
 		ws.Http404()
@@ -356,6 +356,6 @@ end)() -- Excecute it imediately
 
 return {
 	oop=oop;exceptions=exceptions;util=util;Core=Core;UrlConf=UrlConf;
-	Struct=Struct;Widget=Widget;init=init;getObjectOr404=getObjectOr404;
+	Struct=Struct;Widget=Widget;init=init;objectOr404=objectOr404;
 }
 	

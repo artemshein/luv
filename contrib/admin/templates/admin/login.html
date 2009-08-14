@@ -2,11 +2,11 @@
 
 {[ section "content" ]}
 <div class="span-24 last" style="border:#CCC solid 0;border-bottom-width:1px">
-	<h1>{{ capitalize(tr(title)) }}</h1>
+	<h1>{{ title }}</h1>
 </div>
 
 <div class="span-24 last">
-	{% for _, error in ipairs(form:getErrors()) do %}
+	{% for _, error in ipairs(form:errors()) do %}
 		{{ error }}
 	{% end %}
 	{{ safe(form) }}

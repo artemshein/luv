@@ -1,27 +1,27 @@
-{% if p:getTotal() then %}
-	{% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
+{% if p:total() then %}
+	{% local modelUrl = urlConf:baseUri().."/"..urlConf:capture(1) %}
 	{% local pageNav = include("admin/_pagenav.html", {func="setPage"}) %}
 	{{ pageNav }}
 	<form id="items">
 	<table><thead>
 		<th></th>
 	{% for _, field in ipairs(displayFields) do %}
-		{% local f = model:getField(field) %}
-		<th>{{ capitalize(tr(f and f:getLabel() or admin[field][1])) }}</th>
+		{% local f = model:field(field) %}
+		<th>{{ (f and f:label() or admin[field][1]):tr():capitalize() }}</th>
 	{% end %}
 	</thead>
-	{% for _, record in ipairs(p:getPage(page):getValue()) do %}
+	{% for _, record in ipairs(p:page(page):value()) do %}
 		<tr class="record">
 			<td width="10"><input type="checkbox" name="items" value="{{ record.pk }}" /></td>
 		{% for _, field in ipairs(displayFields) do %}
 			<td class="activeLink" onclick="selectRecord('{{ record.pk }}')">
-				{% local f = record:getField(field) %}
+				{% local f = record:field(field) %}
 				{% if f then %}
-					{% if f:isKindOf(fields.Datetime) then %}
-						{{ record:getField(field) }}
+					{% if f:isA(fields.Datetime) then %}
+						{{ record:field(field) }}
 					{% else %}
-						{% local choices = f:getChoices() %}
-						{% if 'function' == type(choices) then choices = choices() end %}
+						{% local choices = f:choices() %}
+						{% if "function" == type(choices) then choices = choices() end %}
 						{% local value = record[field] %}
 						{% if choices then %}
 							{{ value and choices[value] or "" }}

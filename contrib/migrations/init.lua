@@ -1,17 +1,20 @@
 local type, ipairs, tostring, tonumber = type, ipairs, tostring, tonumber
 local require, loadstring, assert = require, loadstring, assert
-local string = require "luv.string"
-local Object = require "luv.oop".Object
-local fs = require "luv.fs"
-local models = require "luv.db.models"
-local fields = require "luv.fields"
-local Exception = require "luv.exceptions".Exception
+local string = require"luv.string"
+local Object = require"luv.oop".Object
+local fs = require"luv.fs"
+local models = require"luv.db.models"
+local fields = require"luv.fields"
+local Exception = require"luv.exceptions".Exception
 
 module(...)
 
+local abstract = Object.abstractMethod
+local property = Object.property
+
 local MigrationLog = models.Model:extend{
 	__tag = .....".MigrationLog";
-	Meta = {labels={"migration log";"migration logs"}};
+	Meta = {labels={("migration log"):tr();("migration logs"):tr()}};
 	from = fields.Int{required=true};
 	to = fields.Int{required=true};
 	datetime = fields.Datetime{autonow=true};
@@ -19,62 +22,61 @@ local MigrationLog = models.Model:extend{
 
 local Migration = Object:extend{
 	__tag = .....".Migration";
-	getDb = function (self) return self._db end;
-	setDb = function (self) self._db = db return self end;
-	up = Object.abstractMethod;
-	down = Object.abstractMethod;
+	db = property;
+	up = abstract;
+	down = abstract;
 }
 
 local MigrationManager = Object:extend{
 	__tag = .....".MigrationManager";
-	init = function (self, db, scriptsDir)
-		self._db = db
-		self._scriptsDir = scriptsDir
-		if not self._scriptsDir.isKindOf or not self._scriptsDir:isKindOf(fs.Dir) then
-			self._scriptsDir = fs.Dir(self._scriptsDir)
+	db = property;
+	scriptsDir = property;
+	migrations = property"table"
+	lastMigration = property"number";
+	currentMigration = property("number", function (self)
+		if not self._currentMigration then
+			-- FIXME: key-value DB support
+			self._currentMigration = self:db():SelectCell"to":from(MigrationLog:tableName()):order"-datetime"() or 0
 		end
-		self._lastMigration = 0
-		self._migrations = {}
-		for i, file in ipairs(self._scriptsDir:getFiles()) do
-			local name = file:getName()
-			if string.endsWith(name, ".lua") then
-				local begPos, _, capture = string.find(name, "^([0-9]+)")
+		return self._currentMigration
+	end);
+	init = function (self, db, scriptsDir)
+		self:db(db)
+		self:scriptsDir("table" == type(scriptsDir) and scriptsDir or fs.Dir(scriptsDir))
+		self:lastMigration(0)
+		self:migrations{}
+		for i, file in ipairs(self:scriptsDir():files()) do
+			local name = file:name()
+			if name:endsWith".lua" then
+				local begPos, _, capture = name:find"^([0-9]+)"
 				if begPos then
 					local num = tonumber(capture)
-					self._migrations[num] = file
-					if self._lastMigration < num then
-						self._lastMigration = num
+					self:migrations()[num] = file
+					if self:lastMigration() < num then
+						self:lastMigration(num)
 					end
 				end
 			end
 		end
 	end;
-	getCurrentMigration = function (self)
-		if not self._currentMigration then
-			self._currentMigration = self._db:SelectCell "to":from(MigrationLog:getTableName()):order "-datetime"() or 0
-		end
-		return self._currentMigration
-	end;
-	getLastMigration = function (self)
-		return self._lastMigration
-	end;
 	_log = function (self, from, to)
-		self._db:InsertRow():into(MigrationLog:getTableName()):set("?# = ?d", "from", from):set("?# = ?d", "to", to)()
+		-- FIXME: key-value DB support
+		self:db():InsertRow():into(MigrationLog:tableName()):set("?# = ?d", "from", from):set("?# = ?d", "to", to)()
 	end;
 	_loadMigration = function (self, num)
-		if self._migrations[num] then
-			return assert(loadstring(self._migrations[num]:openReadAndClose "*a"))()(self._db)
+		if self:migrations()[num] then
+			return assert(loadstring(self:migrations()[num]:openReadAndClose"*a"))()(self:db())
 		end
 	end;
 	_apply = function (self, from, to)
 		local iter = 1
 		if from == to then
-			Exception "migrations from and to should be different"
+			Exception"migrations from and to should be different"
 		elseif from > to then
 			iter = -1
 		end
 		for i = from+iter, to, iter do
-			if not self._migrations[i] then
+			if not self:migrations()[i] then
 				Exception("migration "..i.." not founded")
 			end
 		end
@@ -104,53 +106,53 @@ local MigrationManager = Object:extend{
 				end
 			end
 		end
-		self._currentMigration = to
+		self:currentMigration(to)
 		self:_log(from, to)
 		return true
 	end;
 	up = function (self)
-		if self:getCurrentMigration() >= self:getLastMigration() then
+		if self:currentMigration() >= self:lastMigration() then
 			Exception "last migration already reached up"
 		end
-		return self:_apply(self:getCurrentMigration(), self:getCurrentMigration()+1)
+		return self:_apply(self:currentMigration(), self:currentMigration()+1)
 	end;
 	down = function (self)
-		if self:getCurrentMigration() <= 0 then
+		if self:currentMigration() <= 0 then
 			Exception "migration 0 already reached down"
 		end
-		return self:_apply(self:getCurrentMigration(), self:getCurrentMigration()-1)
+		return self:_apply(self:currentMigration(), self:currentMigration()-1)
 	end;
 	upTo = function (self, to)
-		if self:getCurrentMigration() >= self:getLastMigration() then
-			Exception "last migration already reached up"
-		elseif self:getCurrentMigration() >= to then
+		if self:currentMigration() >= self:lastMigration() then
+			Exception"last migration already reached up"
+		elseif self:currentMigration() >= to then
 			Exception("migration "..to.." already reached up")
-		elseif to > self:getLastMigration() then
+		elseif to > self:lastMigration() then
 			Exception("migration "..to.." can't be reached up")
 		end
-		return self:_apply(self:getCurrentMigration(), to)
+		return self:_apply(self:currentMigration(), to)
 	end;
 	downTo = function (self, to)
-		if self:getCurrentMigration() <= 0 then
+		if self:currentMigration() <= 0 then
 			Exception "migration 0 already reached down"
-		elseif self:getCurrentMigration() <= to then
+		elseif self:currentMigration() <= to then
 			Exception("migration "..to.." already reached down")
 		elseif to <= 0 then
 			Exception("migration "..to.." can't be reached down")
 		end
-		return self:_apply(self:getCurrentMigration(), to)
+		return self:_apply(self:currentMigration(), to)
 	end;
 	allUp = function (self)
-		if self:getCurrentMigration() >= self:getLastMigration() then
+		if self:currentMigration() >= self:lastMigration() then
 			Exception "last migration already reached up"
 		end
-		return self:_apply(self:getCurrentMigration(), self:getLastMigration())
+		return self:_apply(self:currentMigration(), self:lastMigration())
 	end;
 	allDown = function (self)
-		if self:getCurrentMigration() <= 0 then
-			Exception "migration 0 already reached down"
+		if self:currentMigration() <= 0 then
+			Exception"migration 0 already reached down"
 		end
-		return self:_apply(self:getCurrentMigration(), 0)
+		return self:_apply(self:currentMigration(), 0)
 	end;
 }
 

@@ -3,7 +3,7 @@
 {[ section "content" ]}
 {{ include "admin/_info.html" }}
 
-{% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
+{% local modelUrl = urlConf:baseUri().."/"..urlConf:capture(1) %}
 
 <div class="span-24 last">
 	<div class="span-18">
@@ -13,24 +13,24 @@
 				<a href="{{ modelUrl }}/add">
 					<img src="/images/admin/page_add.png" width="16" height="16" alt="Add" />
 				</a>
-				<a href="{{ modelUrl }}/create">{{ capitalize(tr "create") }}</a>
+				<a href="{{ modelUrl }}/create">{{ ("create"):tr():capitalize() }}</a>
 			</div>
 			{% end %}
-			<a href="{{ urlConf:getBaseUri() }}">&larr; {{ capitalize(tr "back to main") }}</a>
+			<a href="{{ urlConf:baseUri() }}">&larr; {{ ("back to main"):tr():capitalize() }}</a>
 		</div>
 		<div id="records">
 		</div>
 	</div>
 	<div class="span-6 last">
 		<div id="recordsActions">
-			<h2>{{ capitalize(tr "actions") }}</h2>
+			<h2>{{ ("actions"):tr():capitalize() }}</h2>
 			{% if not isTree then %}
 			<ul>
-				<li><a href="javascript:void(0)" onclick="luv.checkMultipleCheckboxesByName('items')">{{ capitalize(tr "select all") }}</a></li>
-				<li><a href="javascript:void(0)" onclick="luv.clearMultipleCheckboxesByName('items')">{{ capitalize(tr "deselect all") }}</a></li>
+				<li><a href="javascript:void(0)" onclick="luv.checkMultipleCheckboxesByName('items')">{{ ("select all"):tr():capitalize() }}</a></li>
+				<li><a href="javascript:void(0)" onclick="luv.clearMultipleCheckboxesByName('items')">{{ ("deselect all"):tr():capitalize() }}</a></li>
 				<li><div class="button" onclick="deleteSelected();">
 					<img src="/images/admin/remove.png" width="16" height="16" alt="" />
-					<a href="javascript:void(0)">{{ capitalize(tr "delete selected") }}</a>
+					<a href="javascript:void(0)">{{ ("delete selected"):tr():capitalize() }}</a>
 				</div></li>
 			</ul>
 			{% else %}

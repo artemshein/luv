@@ -2,11 +2,11 @@
 
 {[ section "content" ]}
 {{ include "admin/_info.html" }}
-{% local modelUrl = urlConf:getBaseUri().."/"..urlConf:getCapture(1) %}
+{% local modelUrl = urlConf:baseUri().."/"..urlConf:capture(1) %}
 <div class="span-24 last">
-	<div id="chainMenu"><a href="{{ urlConf:getBaseUri() }}">&larr; {{ capitalize(tr "back to main") }}</a> | <a href="{{ modelUrl }}">{{ capitalize(tr(model:getLabelMany())) }}</a></div>
+	<div id="chainMenu"><a href="{{ urlConf:getBaseUri() }}">&larr; {{ ("back to main"):tr():capitalize() }}</a> | <a href="{{ modelUrl }}">{{ model:labelMany():capitalize() }}</a></div>
 	{{ include "admin/_user-msgs.html" }}
-	<h2>{{ capitalize(tr "create") }}</h2>
+	<h2>{{ ("create"):tr():capitalize() }}</h2>
 	<script type="text/javascript" language="JavaScript">//<![CDATA[
 		function formCallback (errors)
 		{
@@ -14,12 +14,12 @@
 			else
 			{
 				hideErrors();
-				alert('{{ tr "New record was successfully added." }}');
-				Luv.clearForm('form');
+				alert({{ ("%q"):format(("New record was successfully added."):tr()) }});
+				Luv.clearForm("form");
 			}
 		}
 	//]]></script>
-	{{ include("admin/_errors.html", {errors=form:getErrors()}) }}
+	{{ include("admin/_errors.html", {errors=form:errors()}) }}
 	{{ safe(form) }}
 </div>
 {[ endSection() ]}

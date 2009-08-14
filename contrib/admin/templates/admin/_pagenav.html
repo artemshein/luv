@@ -1,11 +1,11 @@
-{% local pages = p:getPagesTotal() %}
+{% local pages = p:pagesTotal() %}
 {% if pages > 1 then %}
-	{% local count, onPage = p:getTotal(), p:getOnPage() %}
+	{% local count, onPage = p:total(), p:onPage() %}
 	<div class="pages">
 		{% if count > onPage then %}
 			{% local start = page*onPage-onPage %}
 		{% end %}
-	Pages:
+	{{ ("pages"):tr():capitalize() }}:
 	{% for i = 1, pages do %}
 		{% if page == i then %}
 			<span>{{ i }}</span>
