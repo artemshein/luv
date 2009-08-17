@@ -1,10 +1,9 @@
-local string = require "luv.string"
-local table = require "luv.table"
-local tostring, io, type = tostring, io, type
-local os, tr = os, tr
+local string = require"luv.string"
+local table = require"luv.table"
+local tostring, io, type, os = tostring, io, type, os
 local pairs, ipairs, require = pairs, ipairs, require
-local Widget, html = require "luv".Widget, require "luv.utils.html"
-local json = require "luv.utils.json"
+local Widget, html = require"luv".Widget, require"luv.utils.html"
+local json = require"luv.utils.json"
 
 module(...)
 

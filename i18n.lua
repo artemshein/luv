@@ -1,5 +1,5 @@
 local dofile, tostring, assert, type, os = dofile, tostring, assert, type, os
-local require, ipairs = require, ipairs
+local require, ipairs, error, debug, io = require, ipairs, error, debug, io
 local string = require"luv.string"
 local Object = require"luv.oop".Object
 local fs = require"luv.fs"

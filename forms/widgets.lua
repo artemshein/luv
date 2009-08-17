@@ -43,7 +43,7 @@ local Form = Widget:extend{
 		if not id then
 			return field:label()..":"
 		end
-		return "<label for="..("%q"):format(html.escape(id))..">"..field:label().."</label>:"
+		return "<label for="..("%q"):format(html.escape(id))..">"..field:label():tr():capitalize().."</label>:"
 	end;
 	renderLabelCheckbox = function (self, form, field)
 		if not field:label() then
@@ -53,7 +53,7 @@ local Form = Widget:extend{
 		if not id then
 			return field:label()
 		end
-		return "<label for="..("%q"):format(html.escape(id))..">"..field:label().."</label>"
+		return "<label for="..("%q"):format(html.escape(id))..">"..field:label():tr().."</label>"
 	end;
 	renderField = function (self, form, field)
 		local html, js = field:asHtml(form)

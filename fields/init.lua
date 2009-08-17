@@ -32,7 +32,7 @@ local Field = Object:extend{
 	end);
 	label = property("string", function (self)
 		if not self._label then
-			self:label(self:name():tr():capitalize())
+			self:label(self:name())
 		end
 		return self._label
 	end);
@@ -53,7 +53,7 @@ local Field = Object:extend{
 	hint = property;
 	ajaxWidget = property(Widget);
 	init = function (self, params)
-		if self._parent._parent == Object then
+		if self:parent():parent() == Object then
 			Exception"can't instantiate abstract class"
 		end
 		self:validators{}
@@ -62,7 +62,7 @@ local Field = Object:extend{
 	end,
 	clone = function (self)
 		local new = Object.clone(self)
-		new:validators(table.map(self:validators(), f"a:clone()"))
+		new:validators(table.map(self:validators(), function (val) return val:clone() end))
 		return new
 	end,
 	params = function (self, params)
@@ -126,7 +126,7 @@ local Field = Object:extend{
 	-- Representation
 	asHtml = function (self, form)
 		if not self:widget() then
-			Exception "widget required"
+			Exception"widget required"
 		end
 		return self:widget():render(self, form or self:container())
 	end;
@@ -149,7 +149,7 @@ local MultipleValues = Field:extend{
 	__tag = .....".MultipleValues";
 	init = function (self, params)
 		if not params then
-			Exception "choices required"
+			Exception"choices required"
 		end
 		if not params.choices then
 			params = {choices=params}
@@ -261,7 +261,7 @@ local File = Text:extend{
 			return false
 		end
 		local tmpFile = fs.File(self.value)
-		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose "*a"):close()
+		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose"*a"):close()
 		tmpFile:delete()
 		self._value = path
 		return true
@@ -274,13 +274,13 @@ local Image = File:extend{
 		if not self._value then
 			return false
 		end
-		local ext = require "luv.images".detectFormat(self._value)
+		local ext = require"luv.images".detectFormat(self._value)
 		if not ext then
 			return false
 		end
-		path = tostring(path)..'.'..ext
+		path = tostring(path).."."..ext
 		local tmpFile = fs.File(self._value)
-		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose "*a")
+		fs.File(path):openWriteAndClose(tmpFile:openReadAndClose"*a")
 		tmpFile:delete()
 		self._value = path
 		return true
@@ -516,7 +516,7 @@ local Datetime = Field:extend{
 				return self._defaultValue
 			end
 			if self:autoNow() then
-				return os.time()--os.date("%Y-%m-%d %H:%M:%S")
+				return os.time()
 			end
 			return nil
 		end
@@ -634,7 +634,7 @@ local ModelMultipleSelect = MultipleValues:extend{
 	__tag = .....".ModelMultipleSelect";
 	init = function (self, params)
 		if not params then
-			Exception "choices required"
+			Exception"choices required"
 		end
 		if not params.choices then
 			params = {choices=params}
@@ -648,7 +648,7 @@ local NestedSetSelect = Field:extend{
 	__tag = .....".NestedSetSelect";
 	init = function (self, params)
 		if not params then
-			Exception"Values required!"
+			Exception"values required"
 		end
 		if not params.choices then
 			params = {choices=params}

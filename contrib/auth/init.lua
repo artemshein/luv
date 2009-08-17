@@ -50,7 +50,7 @@ local User = models.Model:extend{
 	sessId = property"string";
 	secretSalt = property"string";
 	-- Fields
-	isActive = fields.Boolean{defaultValue=true;label=("active user"):tr()};
+	isActive = fields.Boolean{defaultValue=true;label="active user"};
 	login = fields.Login();
 	name = fields.Text();
 	email = fields.Email();
@@ -59,7 +59,7 @@ local User = models.Model:extend{
 	__tostring = function (self) return tostring(self.name) end;
 	-- Methods
 	encodePassword = function (self, password, method, salt)
-		if not password then Exception "Empty password is restricted!" end
+		if not password then Exception"empty password is restricted" end
 		method = method or "sha1"
 		if not salt then
 			salt = tostring(crypt.hash(method, math.random(2000000000)))
@@ -145,15 +145,15 @@ local User = models.Model:extend{
 local Login = forms.Form:extend{
 	__tag = .....".Login",
 	Meta = {fields={"login";"password";"authorise"}};
-	login = User:field"login",
+	login = User:field"login":clone();
 	password = fields.Password{required=true};
-	authorise = fields.Submit{defaultValue=("log in"):tr():capitalize()}
+	authorise = fields.Submit(("log in"):tr():capitalize());
 }
 
 local _modelsAdmins
 local modelsAdmins = function ()
 	if not _modelsAdmins then
-		local ModelAdmin = require "luv.contrib.admin".ModelAdmin
+		local ModelAdmin = require"luv.contrib.admin".ModelAdmin
 		_modelsAdmins = {
 			ModelAdmin:extend{
 				__tag = MODULE..".GroupRightAdmin";
@@ -182,9 +182,9 @@ local modelsAdmins = function ()
 				_displayList = {"login";"name";"group"};
 				_form = forms.ModelForm:extend{
 					Meta = {model = User;fields={"id";"login";"password";"password2";"name";"group";"isActive"}};
-					id = User:field "id":clone();
-					login = User:field "login":clone();
-					name = User:field "name":clone();
+					id = User:field"id":clone();
+					login = User:field"login":clone();
+					name = User:field"name":clone();
 					password = fields.Text{minLength=6;maxLength=32;widget=widgets.PasswordInput};
 					password2 = fields.Text{minLength=6;maxLength=32;label="repeat password";widget=widgets.PasswordInput};
 					group = fields.ModelSelect(UserGroup:all():value());
