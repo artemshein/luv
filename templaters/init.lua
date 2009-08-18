@@ -47,6 +47,8 @@ local SafeHtml = Object:extend{
 	__tostring = function (self) return tostring(self:html()) end;
 }
 
+string.safe = function (self) return SafeHtml(self) end
+
 local Tamplier = Api:extend{
 	__tag = .....".Tamplier",
 	init = function (self, ...)
@@ -78,7 +80,7 @@ local Tamplier = Api:extend{
 				end
 				local includedFiles = self._internal.includedFiles
 				if not includedFiles[file] then
-					includedFiles[file] = self:getTemplateContents(file)
+					includedFiles[file] = self:templateContents(file)
 				end
 				local res = self:compileString(includedFiles[file])()
 				if values then
@@ -142,7 +144,7 @@ local Tamplier = Api:extend{
 				setfenv(func,
 				{
 					extends = function (tpl)
-						res.main = self:compileString(self:getTemplateContents(tpl))
+						res.main = self:compileString(self:templateContents(tpl))
 						currentSection = "null"
 						res[currentSection] = ""
 					end;
@@ -176,7 +178,7 @@ local Tamplier = Api:extend{
 	displayString = function (self, str)
 		io.write(self:fetchString(str))
 	end;
-	getTemplateContents = function (self, template)
+	templateContents = function (self, template)
 		if "table" ~= type(self._templatesDirs) or table.empty(self._templatesDirs) then
 			local tpl = fs.File(template)
 			if tpl:exists() then
@@ -189,10 +191,10 @@ local Tamplier = Api:extend{
 				return tpl:openReadAndClose"*a"
 			end
 		end
-		Exception("Template "..template.." not found!")
+		Exception("template "..template.." not found")
 	end;
 	fetch = function (self, template)
-		return self:compileString(self:getTemplateContents(template))()
+		return self:compileString(self:templateContents(template))()
 	end;
 	display = function (self, template)
 		io.write(self:fetch(template))
