@@ -8,6 +8,7 @@ local fs, Struct = require"luv.fs", require"luv".Struct
 local exceptions = require"luv.exceptions"
 local Exception, try = exceptions.Exception, exceptions.try
 local f = require"luv.function".f
+local json = require"luv.utils.json"
 
 module(...)
 
@@ -139,9 +140,19 @@ local Field = Object:extend{
 			return self:container():ajaxUrl()
 		end
 	end;
-	asAjax = function (self, url)
+	asAjax = function (self, callback)
 		local html, js = (self:ajaxWidget() or self:widget()):render(self, self:container())
-		return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:id().."').ajaxField('"..self:ajaxUrl().."', '"..self:container().pk.."', '"..self:name().."');\n//]]></script>"
+		return html
+		..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n%(js)s$(%(id)s).ajaxField(%(ajaxUrl)s, %(pk)s, %(name)s, %(callback)s);\n//]]></script>'
+		% {
+			js=js or "";
+			id=("%q"):format("#"..self:id());
+			ajaxUrl=("%q"):format(self:ajaxUrl());
+			pk=json.serialize(self:container().pk);
+			name=("%q"):format(self:name());
+			callback=callback or "null";
+		}
+		--return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:id().."').ajaxField("..("%q"):format(self:ajaxUrl())..", '"..self:container().pk.."', '"..self:name().."');\n//]]></script>"
 	end;
 }
 

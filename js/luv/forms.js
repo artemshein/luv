@@ -21,7 +21,7 @@
 		else
 			return this.val();
 	};
-	jQuery.fn.ajaxField = function (url, id, field)
+	jQuery.fn.ajaxField = function (url, id, field, callback)
 	{
 		function commitChanges () {
 			var self = jQuery(this);
@@ -38,6 +38,8 @@
 					{
 						self.data("lastValue", currentValue);
 						self.addClass("textValue").removeClass("error");
+						if (callback)
+							callback(self, field, currentValue);
 					}
 				},
 				error: function (request, textStatus, errorThrown) {
