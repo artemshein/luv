@@ -75,7 +75,7 @@ local User = models.Model:extend{
 		if self._authUser then return self._authUser end
 		local sessId = self:sessId()
 		if not loginForm or "table" ~= type(loginForm) or not loginForm.isA
-			or not loginForm:isA(require(MODULE).forms.Login) or not loginForm:submitted() or not loginForm:valid() then
+		or not loginForm:isA(require(MODULE).forms.Login) or not loginForm:submitted() or not loginForm:valid() then
 			if not session[sessId] then
 				session[sessId] = nil
 				session:save()

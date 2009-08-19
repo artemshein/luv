@@ -8,6 +8,7 @@ local Object, Exception, try = require"luv.oop".Object, exceptions.Exception, ex
 module(...)
 
 local MODULE = (...)
+local property = Object.property
 
 local Factory = Object:extend{
 	__tag = .....".Factory";
@@ -30,7 +31,7 @@ local Factory = Object:extend{
 
 local Select = Object:extend{
 	__tag = .....".Select";
-	db = Object.property;
+	db = property;
 	init = function (self, db, ...)
 		self:db(db)
 		self._fields = {}
@@ -161,7 +162,7 @@ local Select = Object:extend{
 	joinRightUsing = function (self, ...) table.insert(self._joinsUsing.right, {...}) return self end;
 	joinFullUsing = function (self, ...) table.insert(self._joinsUsing.full, {...}) return self end;
 	_evaluate = function (self)
-		self._values = self._db:fetchAll(tostring(self))
+		self._values = self:db():fetchAll(tostring(self))
 	end;
 	__tostring = Object.abstractMethod;
 	__call = function (self, ...)

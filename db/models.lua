@@ -162,18 +162,18 @@ local Model = Struct:extend{
 	-- Find
 	fieldPlaceholder = function (self, field)
 		if not field then
-			Exception "field expected"
+			Exception"field expected"
 		end
 		if not field.isA then
 			field = self:field(field)
 		end
 		if not field or not field.isA or not field:isA(fields.Field) then
-			Exception "field required"
+			Exception"field required"
 		end
 		if not field:required() then
 			return "?n"
 		end
-		if field:isA(fields.Text) or field:isA(fields.Datetime) then
+		if field:isA(fields.Text) or field:isA(fields.Date) or field:isA(fields.Datetime) then
 			return "?"
 		elseif field:isA(fields.Int) then
 			return "?d"
@@ -784,6 +784,20 @@ local Q = TreeNode:extend{
 		obj:negated(not obj:negated())
 		return obj
 	end;
+	add = function (self, child, connector)
+		if table.size(self:children()) < 2 then
+			 self:connector(connector)
+		end
+		if connector == self:connector() and not self:negated() then
+			table.insert(self:children(), child)
+		else
+			local obj = self
+			self = self:parent()(obj)
+			table.insert(self:children(), child)
+			self:connector(connector)
+		end
+		return self
+	end;
 }
 
 local QuerySet = Object:extend{
@@ -846,11 +860,12 @@ local SqlQuerySet = QuerySet:extend{
 	_processFieldName = function (self, s, parts)
 		local curModel = self._model
 		local result = {}
+		local field
 		for i, part in ipairs(parts) do
 			if "pk" == part then
 				part = curModel:pkName()
 			end
-			local field = curModel:field(part)
+			field = curModel:field(part)
 			if not curModel then
 				Exception"invalid field"
 			end
@@ -966,6 +981,12 @@ local SqlQuerySet = QuerySet:extend{
 				end
 			else
 				valStr = operators[op]..self:model():fieldPlaceholder(res.field or res[#res])
+			end
+			local f = res.field or self:model():field(res[#res])
+			if f:isA(fields.Datetime) then
+				v = os.date("%Y-%m-%d %H:%M:%S", v)
+			elseif f:isA(fields.Date) then
+				v = os.date("%Y-%m-%d", v)
 			end
 			result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
 			for _, val in ipairs(res) do

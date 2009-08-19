@@ -67,8 +67,8 @@ end
 
 local TreeNode = Object:extend{
 	__tag = .....".TreeNode";
-	connector = property;
-	children = property;
+	connector = property"string";
+	children = property"table";
 	init = function (self, children, connector)
 		self:connector(connector)
 		self:children(children)
