@@ -43,7 +43,7 @@ local Field = Widget:extend{
 		return " value="..("%q"):format(html.escape(tostring(f:value() or f:defaultValue() or "")))
 	end;
 	_renderHint = function (self, f)
-		return (f:hint() and (" "..f:hint()) or "")
+		return (f:hint() and (" "..f:hint():tr()) or "")
 	end;
 }
 

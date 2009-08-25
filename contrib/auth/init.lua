@@ -94,7 +94,7 @@ local User = models.Model:extend{
 		if not user or not user:comparePassword(loginForm.password) then
 			session[sessId] = nil
 			session:save()
-			loginForm:addError(tr"Invalid authorisation data.")
+			loginForm:addError(("Invalid authorisation data."):tr())
 			return nil
 		end
 		session[sessId] = {user=user.pk}
