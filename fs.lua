@@ -166,9 +166,12 @@ local Dir = Object:extend{
 	end;
 	files = function (self)
 		local res, path = {}, self:path()
-		for f in posix.files(tostring(path)) do
-			if ".." ~= f and "." ~= f then
-				table.insert(res, File(path / f))
+		local files = posix.files(tostring(path))
+		if files then
+			for f in files do
+				if ".." ~= f and "." ~= f then
+					table.insert(res, File(path / f))
+				end
 			end
 		end
 		return res

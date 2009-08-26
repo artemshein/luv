@@ -511,13 +511,13 @@ local Date = Field:extend{
 local Datetime = Field:extend{
 	__tag = .....".Datetime";
 	_defaultFormat = "%Y-%m-%d %H:%M:%S";
-	autoNow = property "boolean";
+	autoNow = property"boolean";
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.Datetime()
-		self:autoNow(params.autoNow)
+		self:autoNow(params.autoNow or false)
 		Field.init(self, params)
-		self:addClass "datetime"
+		self:addClass"datetime"
 	end;
 	defaultValue = function (self, ...)
 		if select("#", ...) > 0 then
@@ -561,8 +561,8 @@ local Datetime = Field:extend{
 		end
 		return ""
 	end;
-	getMinLength = function (self) return 19 end;
-	getMaxLength = function (self) return 19 end;
+	minLength = function (self) return 19 end;
+	maxLength = function (self) return 19 end;
 }
 
 local Time = Field:extend{

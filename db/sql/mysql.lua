@@ -112,39 +112,67 @@ local CreateTable = Driver.CreateTable:extend{
 }
 
 local DropTable = Driver.DropTable:extend{
-	__tag = .....".DropTable",
+	__tag = .....".DropTable";
 	__tostring = function (self)
 		return self._db:processPlaceholders("DROP TABLE ?#;", self._table)
 	end
 }
 
+local AddColumn = Driver.AddColumn:extend{
+	__tag = .....".AddColumn";
+	__tostring = function (self)
+		local db = self:db()
+		return
+			"ALTER TABLE "
+			..db:processPlaceholder("?#", self._table)
+			.." ADD "
+			..db:constructFieldsDefinition{self._column}
+			..";"
+	end;
+}
+
+local RemoveColumn = Driver.RemoveColumn:extend{
+	__tag = .....".RemoveColumn";
+	__tostring = function (self)
+		local db = self:db()
+		return
+			"ALTER TABLE "
+			..db:processPlaceholder("?#", self._table)
+			.." DROP "
+			..db:processPlaceholder("?#", self._column)
+			..";"
+	end;
+}
+
 local MysqlDriver = Driver:extend{
-	__tag = .....".Driver",
-	Select = Select,
-	SelectRow = SelectRow,
-	SelectCell = SelectCell,
-	Insert = Insert,
-	InsertRow = InsertRow,
-	Update = Update,
-	UpdateRow = UpdateRow,
-	Delete = Delete,
-	DeleteRow = DeleteRow,
-	CreateTable = CreateTable,
-	DropTable = DropTable,
+	__tag = .....".Driver";
+	Select = Select;
+	SelectRow = SelectRow;
+	SelectCell = SelectCell;
+	Insert = Insert;
+	InsertRow = InsertRow;
+	Update = Update;
+	UpdateRow = UpdateRow;
+	Delete = Delete;
+	DeleteRow = DeleteRow;
+	CreateTable = CreateTable;
+	DropTable = DropTable;
+	AddColumn = AddColumn;
+	RemoveColumn = RemoveColumn;
 	init = function (self, host, login, pass, database, port, params)
 		local mysql = LuaSql.mysql()
 		self._connection, error = mysql:connect(database, login, pass, host, port)
 		if not self._connection then
 			Driver.Exception("Could not connect to "..login.."@"..host.." (using password: "..(pass and "yes" or "no").."): "..error)
 		end
-	end,
+	end;
 	lastInsertId = function (self)
 		local res = self:query("SELECT LAST_INSERT_ID() AS `i`;")
 		if not res then
 			return nil
 		end
 		return tonumber(res.i)
-	end,
+	end;
 	processPlaceholder = function (self, placeholder, value)
 		if placeholder == "?q" then
 			return "?"
@@ -198,16 +226,16 @@ local MysqlDriver = Driver:extend{
 			else
 				return "NULL"
 			end
-		elseif placeholder == '?a' then
-			local res = ''
+		elseif placeholder == "?a" then
+			local res = ""
 			for _, v in ipairs(value) do
-				if res ~= '' then res = res..', ' end
-				if type(v) == 'number' then
-					res = res..self:processPlaceholder('?d', v)
-				elseif type(v) == 'string' then
-					res = res..self:processPlaceholder('?', v)
+				if res ~= "" then res = res..", " end
+				if type(v) == "number" then
+					res = res..self:processPlaceholder("?d", v)
+				elseif type(v) == "string" then
+					res = res..self:processPlaceholder("?", v)
 				else
-					Driver.Exception('invalid value type '..type(v))
+					Driver.Exception("invalid value type "..type(v))
 				end
 			end
 			return res
@@ -227,7 +255,7 @@ local MysqlDriver = Driver:extend{
 			return res
 		end
 		Driver.Exception("Invalid placeholder "..string.format("%q", placeholder).."!")
-	end,
+	end;
 	constructFields = function (self, fields, tables)
 		local res = {}
 		for k, v in pairs(fields) do
@@ -244,7 +272,7 @@ local MysqlDriver = Driver:extend{
 		res = table.join(res, ", ")
 		if res == "" or res == "*" then return self:processPlaceholder("?#", tables[1])..".*" end
 		return res
-	end,
+	end;
 	constructFrom = function (self, from)
 		local res = {}
 		for k, v in pairs(from) do
@@ -255,7 +283,7 @@ local MysqlDriver = Driver:extend{
 			end
 		end
 		return " FROM "..table.join(res, ", ")
-	end,
+	end;
 	constructWhere = function (self, where, orWhere)
 		local w, ow, res, res2 = {}, {}, nil, nil
 		for k, v in pairs(where) do
@@ -277,7 +305,7 @@ local MysqlDriver = Driver:extend{
 			end
 		end
 		return res..res2
-	end,
+	end;
 	constructOrder = function (self, order)
 		local res = {}
 		for k, v in pairs(order) do
@@ -292,7 +320,7 @@ local MysqlDriver = Driver:extend{
 		res = table.join(res, ", ")
 		if res == "" then return "" end
 		return " ORDER BY "..res
-	end,
+	end;
 	constructLimit = function (self, limit)
 		if not limit.to then
 			if not limit.from then
@@ -306,21 +334,21 @@ local MysqlDriver = Driver:extend{
 		else
 			return " LIMIT "..(limit.to-limit.from).." OFFSET "..limit.from
 		end
-	end,
+	end;
 	constructSet = function (self, sets)
 		local res = {}
 		for k, v in pairs(sets) do
 			res[k] = self:processPlaceholders(unpack(v))
 		end
 		return " SET "..table.join(res, ", ")
-	end,
+	end;
 	constructValues = function (self, placeholders, values)
 		local res = {}
 		for _, v in pairs(values) do
 			table.insert(res, self:processPlaceholders(placeholders, unpack(v)))
 		end
 		return "("..table.join(res, "), (")..")"
-	end,
+	end;
 	constructFieldsDefinition = function (self, fields)
 		local res, fld = {}
 		for _, v in pairs(fields) do
@@ -346,7 +374,7 @@ local MysqlDriver = Driver:extend{
 			table.insert(res, fld)
 		end
 		return table.join(res, ", ")
-	end,
+	end;
 	constructPrimaryKey = function (self, primary)
 		local res = {}
 		if not primary then return "" end
@@ -354,7 +382,7 @@ local MysqlDriver = Driver:extend{
 			table.insert(res, self:processPlaceholder("?#", v))
 		end
 		return ", PRIMARY KEY ("..table.join(res, ", ")..")"
-	end,
+	end;
 	constructUnique = function (self, unique)
 		local res, uniq, v2 = {}
 		if not unique then return "" end
@@ -366,7 +394,7 @@ local MysqlDriver = Driver:extend{
 			table.insert(res, ", UNIQUE ("..table.join(uniq, ", ")..")")
 		end
 		return table.join(res, ",")
-	end,
+	end;
 	constructConstraints = function (self, refs)
 		local res, ref = {}
 		if not refs then return "" end
@@ -377,7 +405,7 @@ local MysqlDriver = Driver:extend{
 			table.insert(res, ref)
 		end
 		return table.join(res)
-	end,
+	end;
 	constructOptions = function (self, options)
 		local res = {}
 		if not options then return "" end
@@ -391,7 +419,7 @@ local MysqlDriver = Driver:extend{
 			end
 		end
 		return " "..table.join(res, " ")
-	end,
+	end;
 	constructJoins = function (self, joins)
 		local res, tbl = {}
 		for k, v in pairs(joins.inner) do
@@ -408,9 +436,7 @@ local MysqlDriver = Driver:extend{
 		else
 			return ""
 		end
-	end
+	end;
 }
 
-return {
-	Driver = MysqlDriver
-}
+return {Driver=MysqlDriver}

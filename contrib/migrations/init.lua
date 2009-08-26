@@ -14,10 +14,10 @@ local property = Object.property
 
 local MigrationLog = models.Model:extend{
 	__tag = .....".MigrationLog";
-	Meta = {labels={("migration log"):tr();("migration logs"):tr()}};
+	Meta = {labels={"migration log";"migration logs"}};
 	from = fields.Int{required=true};
 	to = fields.Int{required=true};
-	datetime = fields.Datetime{autonow=true};
+	datetime = fields.Datetime{autoNow=true};
 }
 
 local Migration = Object:extend{
@@ -31,12 +31,14 @@ local MigrationManager = Object:extend{
 	__tag = .....".MigrationManager";
 	db = property;
 	scriptsDir = property;
-	migrations = property"table"
+	_logger = function () end;
+	logger = property;
+	migrations = property"table";
 	lastMigration = property"number";
 	currentMigration = property("number", function (self)
 		if not self._currentMigration then
-			-- FIXME: key-value DB support
-			self._currentMigration = self:db():SelectCell"to":from(MigrationLog:tableName()):order"-datetime"() or 0
+			local lastLog = MigrationLog:all(1):order"-datetime":order"-id"[1]
+			self._currentMigration = lastLog and lastLog.to or 0
 		end
 		return self._currentMigration
 	end);
@@ -60,8 +62,7 @@ local MigrationManager = Object:extend{
 		end
 	end;
 	_log = function (self, from, to)
-		-- FIXME: key-value DB support
-		self:db():InsertRow():into(MigrationLog:tableName()):set("?# = ?d", "from", from):set("?# = ?d", "to", to)()
+		MigrationLog:create{from=from;to=to}
 	end;
 	_loadMigration = function (self, num)
 		if self:migrations()[num] then
@@ -70,36 +71,49 @@ local MigrationManager = Object:extend{
 	end;
 	_apply = function (self, from, to)
 		local iter = 1
+		local logger = self:logger()
+		local migFrom, migTo
 		if from == to then
 			Exception"migrations from and to should be different"
 		elseif from > to then
 			iter = -1
+			migFrom = from
+			migTo = to+1
+		else
+			migFrom = from+1
+			migTo = to
 		end
-		for i = from+iter, to, iter do
+		for i = migFrom, migTo, iter do
 			if not self:migrations()[i] then
 				Exception("migration "..i.." not founded")
 			end
 		end
-		for i = from+iter, to, iter do
+		for i = migFrom, migTo, iter do
 			local migration = self:_loadMigration(i)
 			if iter > 0 then
+				logger(("trying to apply migration %d"):format(i))
 				if not migration or not migration:up() then
 					-- Try to rollback
-					for j = i-1, from+iter, -1 do
+					logger"fail, trying to rollback"
+					for j = i-1, migFrom+iter, -1 do
 						migration = self:_loadMigration(j)
+						logger(("trying to unapply migration %d"):format(j))
 						if not migration or not migration:down() then
-							Exception("migration fails to apply from "..from.." to "..to.." and fails to rollback from "..j.." to "..(j-1))
+							Exception("migration fails to apply from "..migFrom.." to "..migTo.." and fails to rollback from "..j.." to "..(j-1))
 						end
 					end
 					return false, ("fails to apply up from "..(i-1).." to "..i)
 				end
 			else
+				logger(("trying to unapply migration %d"):format(i))
 				if not migration or not migration:down() then
 					-- Try to rollback
-					for j = i+1, from+iter do
+					logger"fail, trying to rollback"
+					for j = i+1, migFrom+iter do
 						migration = self:_loadMigration(j)
+						logger(("trying to apply migration %d"):format(j))
 						if not migration or not migration:up() then
-							Exception("migration fails to apply from "..from.." to "..to.." and fails to rollback from "..j.." to "..(j+1))
+							Exception("migration fails to apply from "..migFrom.." to "..migTo.." and fails to rollback from "..j.." to "..(j+1))
 						end
 					end
 					return false, ("fails to apply down from "..i.." to "..(i-1))
@@ -157,7 +171,6 @@ local MigrationManager = Object:extend{
 }
 
 return {
-	models={MigrationLog=MigrationLog};
-	Migration=Migration;
+	models={MigrationLog=MigrationLog};Migration=Migration;
 	MigrationManager=MigrationManager;
 }

@@ -672,7 +672,7 @@ local NestedSet = Tree:extend{
 		return true
 	end;
 	addChild = function (self, child)
-		if not child:isA(self._parent) then Exception "not valid child class" end
+		if not child:isA(self._parent) then Exception"not valid child class" end
 		child.level = self.level+1
 		child.left = self.left+1
 		child.right = self.left+2
@@ -1421,7 +1421,7 @@ local Paginator = Object:extend{
 
 local function tablesListForModels (models)
 	local tables = {}
-	table.imap(models, function (model)
+	table.map(models, function (model)
 		local tableName = model:tableName()
 		for _, info in ipairs(tables) do
 			if info[1] == tableName then

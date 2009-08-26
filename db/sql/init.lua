@@ -9,6 +9,7 @@ module(...)
 
 local MODULE = (...)
 local property = Object.property
+local abstract = Object.abstractMethod
 
 local Factory = Object:extend{
 	__tag = .....".Factory";
@@ -31,6 +32,16 @@ local Factory = Object:extend{
 
 local Select = Object:extend{
 	__tag = .....".Select";
+	__tostring = abstract;
+	__call = function (self, ...)
+		if not self._values then
+			self:_evaluate()
+		end
+		return self._values
+	end;
+	_evaluate = function (self)
+		self._values = self:db():fetchAll(tostring(self))
+	end;
 	db = property;
 	init = function (self, db, ...)
 		self:db(db)
@@ -121,7 +132,7 @@ local Select = Object:extend{
 		end
 		-- Condition
 		if "table" == type(condition) then
-			condition = self._db:processPlaceholders (unpack(condition))
+			condition = self._db:processPlaceholders(unpack(condition))
 		end
 		local founded
 		for _, v in pairs(self._tables) do
@@ -161,16 +172,6 @@ local Select = Object:extend{
 	joinLeftUsing = function (self, ...) table.insert(self._joinsUsing.left, {...}) return self end;
 	joinRightUsing = function (self, ...) table.insert(self._joinsUsing.right, {...}) return self end;
 	joinFullUsing = function (self, ...) table.insert(self._joinsUsing.full, {...}) return self end;
-	_evaluate = function (self)
-		self._values = self:db():fetchAll(tostring(self))
-	end;
-	__tostring = Object.abstractMethod;
-	__call = function (self, ...)
-		if not self._values then
-			self:_evaluate()
-		end
-		return self._values
-	end
 }
 
 local SelectRow = Select:extend{
@@ -335,9 +336,13 @@ local DropTable = Object:extend{
 }
 
 local CreateTable = Object:extend{
-	__tag = .....".Driver.CreateTable",
+	__tag = .....".Driver.CreateTable";
+	__tostring = abstract;
+	__call = function (self) return self:_evaluate() end;
+	_evaluate = function (self) return self:db():query(tostring(self)) end;
+	db = property;
 	init = function (self, db, table)
-		self._db = db
+		self:db(db)
 		self._table = table
 		self._fields = {}
 		self._unique = {}
@@ -352,9 +357,32 @@ local CreateTable = Object:extend{
 	end;
 	constraint = function (self, ...) table.insert(self._constraints, {...}) return self end;
 	primaryKey = function (self, ...) self._primaryKeyValue = {...} return self end;
-	_evaluate = function (self) return self._db:query(tostring(self)) end;
-	__tostring = Object.abstractMethod;
+}
+
+local AddColumn = Object:extend{
+	__tag = .....".Driver.AddColumn";
+	__tostring = abstract;
 	__call = function (self) return self:_evaluate() end;
+	_evaluate = function (self) return self:db():query(tostring(self)) end;
+	db = property;
+	init = function (self, db, table, ...)
+		self:db(db)
+		self._table = table
+		self._column = {...}
+	end;
+}
+
+local RemoveColumn = Object:extend{
+	__tag = .....".Driver.RemoveColumn";
+	__tostring = abstract;
+	__call = function (self) return self:_evaluate() end;
+	_evaluate = function (self) return self:db():query(tostring(self)) end;
+	db = property;
+	init = function (self, db, table, column)
+		self:db(db)
+		self._table = table
+		self._column = column
+	end;
 }
 
 local Driver = Object:extend{
@@ -371,6 +399,8 @@ local Driver = Object:extend{
 	DeleteRow = DeleteRow;
 	CreateTable = CreateTable;
 	DropTable = DropTable;
+	AddColumn = AddColumn;
+	RemoveColumn = RemoveColumn;
 	_logger = function (sql, result, time) end;
 	logger = Object.property;
 	processPlaceholder = Object.abstractMethod;
