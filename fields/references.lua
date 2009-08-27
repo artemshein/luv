@@ -1,6 +1,5 @@
 local debug = debug
 local string = require "luv.string"
-local f = require "luv.function".f
 local type, require, pairs, table, select, io, ipairs = type, require, pairs, table, select, io, ipairs
 local fields, Exception = require "luv.fields", require "luv.exceptions".Exception
 local widgets = require "luv.fields.widgets"

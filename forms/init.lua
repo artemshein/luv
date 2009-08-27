@@ -5,7 +5,6 @@ local luv, fields, exceptions, models = require"luv", require"luv.fields", requi
 local references = require "luv.fields.references"
 local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
 local widgets = require "luv.fields.widgets"
-local f = require "luv.function".f
 local json = require "luv.utils.json"
 
 module(...)
@@ -14,7 +13,7 @@ local Form = Struct:extend{
 	__tag = .....".Form",
 	extend = function (self, new)
 		local new = Struct.extend(self, new)
-		new:fields(table.map(self:fields() or {}, f"a:clone()"))
+		new:fields(table.map(self:fields() or {}, "clone"))
 		-- Add self fields
 		for k, v in pairs(new) do
 			if type(v) == "table" and v.isA and v:isA(fields.Field) then
@@ -33,7 +32,7 @@ local Form = Struct:extend{
 		if not self.Meta.widget then
 			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
 		end
-		self:fields(table.map(self:fields(), f"a:clone()"))
+		self:fields(table.map(self:fields(), "clone"))
 		if values then
 			if "table" == type(values) and values.isA and values:isA(Model) then
 				self:values(values:values())
@@ -122,7 +121,7 @@ local Form = Struct:extend{
 	hiddenFields = function (self)
 		local res = {}
 		for _, field in ipairs(self:fieldsList()) do
-			field = self:field(field)
+			field = self:field(field) or Exception("field "..("%q"):format(field).." not founded")
 			local widget = field:widget()
 			if widget and widget:isA(widgets.HiddenInput) then
 				table.insert(res, field)
@@ -187,6 +186,9 @@ local Form = Struct:extend{
 			else
 				io.write(json.serialize{result="error";errors=self:errors()})
 			end
+			return true
+		else
+			return false
 		end
 	end;
 }
@@ -205,7 +207,7 @@ local ModelForm = Form:extend{
 			if f:isA(fields.Button)
 			or ((not new.Meta.fields or table.find(new.Meta.fields, name))
 				and (not new.Meta.exclude or not table.find(new.Meta.exclude, name))) then
-				new:addField(name, f)
+				new:addField(name, f:clone())
 			end
 		end
 		return new

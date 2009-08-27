@@ -7,7 +7,6 @@ local Object, validators, Widget, widgets, string = require"luv.oop".Object, req
 local fs, Struct = require"luv.fs", require"luv".Struct
 local exceptions = require"luv.exceptions"
 local Exception, try = exceptions.Exception, exceptions.try
-local f = require"luv.function".f
 local json = require"luv.utils.json"
 
 module(...)

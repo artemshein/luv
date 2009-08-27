@@ -108,7 +108,7 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core";
-	_version = Version(0, 11, 0, "alpha");
+	_version = Version(0, 12, 0, "alpha");
 	version = property(Version);
 	urlConf = property(UrlConf);
 	wsApi = property(ws.Api);
@@ -120,10 +120,10 @@ local Core = Object:extend{
 	i18n = property;
 	cacher = property("table", nil, function (self, cacher)
 		self._cacher = cacher
-		require "luv.db.models".Model:cacher(cacher)
+		require"luv.db.models".Model:cacher(cacher)
 		return self
 	end);
-	dsn = property(nil, nil, function (self, dsn)
+	dsn = property("string", nil, function (self, dsn)
 		local drivers = {mysql="sql";redis="keyvalue"}
 		self._dsn = dsn
 		local db = require("luv.db."..drivers[dsn:slice(1, dsn:find":"-1):lower()]).Factory(dsn)
@@ -136,7 +136,7 @@ local Core = Object:extend{
 		self:profiler(dev.Profiler())
 		self:beginProfiling "Luv"
 		--
-		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self.version)))
+		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self:version())))
 		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi())))
 		self:cacher(TagEmuWrapper(Memory()))
 	end;

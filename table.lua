@@ -12,18 +12,27 @@ table.keys = checkTypes("table", function (self)
 	return res
 end, "table")
 
-table.map = checkTypes("table", "function", function (self, func)
+table.map = checkTypes("table", function (self, func)
 	local res = {}
 	for key, val in pairs(self) do
-		res[key] = func(val)
+		if "string" == type(func) then
+			res[key] = val[func](val)
+		else
+			res[key] = func(val)
+		end
 	end
 	return res
 end, "table")
 
-table.imap = checkTypes("table", "function", function (self, func)
+table.imap = checkTypes("table", function (self, func)
 	local res = {}
 	for _, val in ipairs(self) do
-		local newVal = func(val)
+		local newVal
+		if "string" == type(func) then
+			newVal = val[func](val)
+		else
+			newVal = func(val)
+		end
 		if newVal then
 			table.insert(res, func(val))
 		end

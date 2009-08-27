@@ -7,7 +7,6 @@ local Object, Struct, fields, references, Exception = require"luv.oop".Object, r
 local cache = require "luv.cache.frontend"
 local crypt = require "luv.crypt"
 local TreeNode = require "luv.utils".TreeNode
-local f = require "luv.function".f
 local json = require "luv.utils.json"
 local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
 local checkTypes = require"luv.checktypes".checkTypes
@@ -113,7 +112,7 @@ local Model = Struct:extend{
 		if not classFields then
 			Exception"abstract model can't be created (extend it first)"
 		end
-		self:fields(table.map(classFields, f"a:clone()"))
+		self:fields(table.map(classFields, "clone"))
 		if values then
 			if type(values) == "table" then
 				self:values(values)
@@ -124,7 +123,7 @@ local Model = Struct:extend{
 	end;
 	clone = function (self)
 		local new = Struct.clone(self)
-		new:fields(table.map(self:fields(), f"a:clone()"))
+		new:fields(table.map(self:fields(), "clone"))
 		return new
 	end;
 	pkName = function (self)

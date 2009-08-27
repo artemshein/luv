@@ -91,7 +91,7 @@ local Form = Widget:extend{
 		for name, f in pairs(form:fields()) do
 			for _, v in pairs(f:validators()) do
 				local id = self:_fieldId(f, form)
-				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:js().."){$('#"..id.."').showError("..("%q"):format(v:errorMsg():format(f:label()))..");return false;}"
+				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:js().."){$('#"..id.."').showError("..("%q"):format(v:errorMsg():format(f:label():tr():capitalize()))..");return false;}"
 			end
 		end
 		validationFunc = validationFunc.."return true;}"
