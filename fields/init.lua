@@ -142,16 +142,29 @@ local Field = Object:extend{
 	asAjax = function (self, callback)
 		local html, js = (self:ajaxWidget() or self:widget()):render(self, self:container())
 		return html
-		..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n%(js)s$(%(id)s).ajaxField(%(ajaxUrl)s, %(pk)s, %(name)s, %(callback)s);\n//]]></script>'
-		% {
-			js=js or "";
-			id=("%q"):format("#"..self:id());
-			ajaxUrl=("%q"):format(self:ajaxUrl());
-			pk=json.serialize(self:container().pk);
-			name=("%q"):format(self:name());
-			callback=callback or "null";
-		}
-		--return html..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..(js or "").."$('#"..self:id().."').ajaxField("..("%q"):format(self:ajaxUrl())..", '"..self:container().pk.."', '"..self:name().."');\n//]]></script>"
+			..'<script type="text/javascript" language="JavaScript">//<![CDATA[\n%(js)s$(%(id)s).ajaxField(%(ajaxUrl)s, %(pk)s, %(name)s, %(callback)s);\n//]]></script>'
+			% {
+				js=js or "";
+				id=("%q"):format("#"..self:id());
+				ajaxUrl=("%q"):format(self:ajaxUrl());
+				pk=json.serialize(self:container().pk);
+				name=("%q"):format(self:name());
+				callback=callback or "null";
+			}
+	end;
+	asInlineEditAjax = function (self, callback)
+		local html, js = (self:ajaxWidget() or self:widget()):render(self, self:container())
+		return html
+			..'<span id=%(valueId)s></span><script type="text/javascript" language="JavaScript">//<![CDATA[\n%(js)s$(%(id)s).inlineEditAjaxField(%(ajaxUrl)s, %(pk)s, %(name)s, %(callback)s);\n//]]></script>'
+			% {
+				js=js or "";
+				id=("%q"):format("#"..self:id());
+				valueId=("%q"):format(self:id().."Value");
+				ajaxUrl=("%q"):format(self:ajaxUrl());
+				pk=json.serialize(self:container().pk);
+				name=("%q"):format(self:name());
+				callback=callback or "null";
+			}
 	end;
 }
 

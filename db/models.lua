@@ -591,37 +591,6 @@ local Model = Struct:extend{
 		if self:cacher() then ModelTag(self:cacher(), self):clear() end
 		return self
 	end;
-	-- Ajax
-	ajaxHandler = function (self, data)
-		if not data.field or not self:field(data.field) then
-			return false
-		end
-		local F = require "luv.forms".Form:extend{
-			id = self:pkField():clone();
-			field = fields.Text{required=true};
-			value = self:field(data.field):clone();
-			set = fields.Submit{defaultValue="Set"};
-			initModel = function (self, model)
-				model[self.field] = self.value
-			end;
-		}
-		local f = F(data)
-		if not f:submitted() then
-			return false
-		end
-		if not f:valid() then
-			return json.serialize{status="error";errors=f:errors()}
-		end
-		local obj = self:find(f.id)
-		if not obj then
-			return false
-		end
-		f:initModel(obj)
-		if not obj:update() then
-			return json.serialize{status="error";errors=f:errors()}
-		end
-		return json.serialize{status="ok"}
-	end;
 }
 
 local Tree = Model:extend{

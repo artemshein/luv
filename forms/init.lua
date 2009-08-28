@@ -253,4 +253,49 @@ local ModelForm = Form:extend{
 	end;
 }
 
+-- Model improvements
+
+models.Model.ajaxFieldForm = function (self, data)
+	if not data or not data.field or not self:field(data.field) then
+		return false
+	end
+	local f = Form:extend{
+		id = self:pkField():clone();
+		field = fields.Text{required=true};
+		value = self:field(data.field):clone();
+		set = fields.Submit{defaultValue="Set"};
+		initModel = function (self, model)
+			model[self.field] = self.value
+		end;
+	}(data)
+	if not f:submitted() then
+		return false
+	end
+	return f
+end
+
+models.Model.ajaxFieldHandler = function (self, data, preCond, postFunc)
+	local f = self:ajaxFieldForm(data)
+	if not f then
+		return false
+	end
+	if not f:valid() then
+		io.write(json.serialize{status="error";errors=f:errors()})
+		return true
+	end
+	local obj = self:find(f.id)
+	if not obj or (preCond and not preCond(f, obj)) then
+		return false
+	end
+	f:initModel(obj)
+	if not obj:update() then
+		io.write(json.serialize{status="error";errors=f:errors()})
+		return true
+	end
+	io.write(json.serialize{status="ok"})
+	postFunc(f, obj)
+	return true
+end
+
+
 return {Form=Form;ModelForm=ModelForm}
