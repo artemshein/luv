@@ -286,6 +286,8 @@ local Model = Struct:extend{
 								val = os.date("%Y-%m-%d %H:%M:%S", val)
 							elseif f:isA(fields.Date) then
 								val = os.date("%Y-%m-%d", val)
+							elseif f:isA(fields.Time) then
+								val = tostring(math.floor(val/60/60))..":"..tostring(math.floor(val/60)%60)..":"..tostring(val%60)
 							end
 						end
 						insert:set("?#="..self:fieldPlaceholder(f), name, val)
@@ -381,6 +383,8 @@ local Model = Struct:extend{
 								val = os.date("%Y-%m-%d %H:%M:%S", val)
 							elseif f:isA(fields.Date) then
 								val = os.date("%Y-%m-%d", val)
+							elseif f:isA(fields.Time) then
+								val = tostring(math.floor(val/60/60))..":"..tostring(math.floor(val/60)%60)..":"..tostring(val%60)
 							end
 						end
 						updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
