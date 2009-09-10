@@ -301,7 +301,7 @@ local Struct = Object:extend{
 			if not f:valid() then
 				for _, e in ipairs(f:errors()) do
 					local label = f:label()
-					self:addError(e:gsub("%%s", label and tr(label):capitalize() or tr(name):capitalize()))
+					self:addError(e:gsub("%%s", label and label:tr():capitalize() or name:tr():capitalize()))
 				end
 			end
 		end
