@@ -144,10 +144,10 @@ local User = models.Model:extend{
 
 local Login = forms.Form:extend{
 	__tag = .....".Login",
-	Meta = {fields={"login";"password";"authorise"}};
+	Meta = {fields={"login";"password";"signIn"}};
 	login = User:field"login":clone();
 	password = fields.Password{required=true};
-	authorise = fields.Submit(("log in"):tr():capitalize());
+	signIn = fields.Submit(("sign in"):tr():capitalize());
 }
 
 local _modelsAdmins
