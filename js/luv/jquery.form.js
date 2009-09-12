@@ -57,8 +57,8 @@ $.fn.ajaxSubmit = function(options) {
     if (url) {
 	    // clean url (don't include hash vaue)
 	    url = (url.match(/^([^#]+)/)||[])[1];
-   	}
-   	url = url || window.location.href || ''
+	}
+	url = url || window.location.href || ''
 
     options = $.extend({
         url:  url,
@@ -422,7 +422,7 @@ $.fn.formToArray = function(semantic) {
         if (semantic && form.clk && el.type == "image") {
             // handle image inputs on the fly when semantic == true
             if(!el.disabled && form.clk == el) {
-            	a.push({name: n, value: $(el).val()});
+				a.push({name: n, value: $(el).val()});
                 a.push({name: n+'.x', value: form.clk_x}, {name: n+'.y', value: form.clk_y});
             }
             continue;
@@ -441,7 +441,7 @@ $.fn.formToArray = function(semantic) {
         // input type=='image' are not found in elements array! handle it here
         var $input = $(form.clk), input = $input[0], n = input.name;
         if (n && !input.disabled && input.type == 'image') {
-        	a.push({name: n, value: $input.val()});
+			a.push({name: n, value: $input.val()});
             a.push({name: n+'.x', value: form.clk_x}, {name: n+'.y', value: form.clk_y});
         }
     }
@@ -551,7 +551,7 @@ $.fieldValue = function(el, successful) {
             if (op.selected) {
 				var v = op.value;
 				if (!v) // extra pain for IE...
-                	v = (op.attributes && op.attributes['value'] && !(op.attributes['value'].specified)) ? op.text : op.value;
+					v = (op.attributes && op.attributes['value'] && !(op.attributes['value'].specified)) ? op.text : op.value;
                 if (one) return v;
                 a.push(v);
             }

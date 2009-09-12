@@ -23,8 +23,9 @@
 	};
 	jQuery.fn.ajaxField = function (url, id, field, callback)
 	{
+		var self = this;
+		this.addClass("ajaxField");
 		function commitChanges () {
-			var self = jQuery(this);
 			var currentValue = self.fieldRawVal();
 			if (currentValue != self.data("lastValue"))
 			{
@@ -37,7 +38,7 @@
 					else
 					{
 						self.data("lastValue", currentValue);
-						self.addClass("textValue").removeClass("error");
+						self.removeClass("error");
 						if (callback)
 							callback(self, field, currentValue);
 					}
@@ -47,20 +48,48 @@
 				}});
 			}
 			else
-				self.addClass("textValue").removeClass("error");
-		}
-		function showField ()
-		{
-			jQuery(this).removeClass("textValue");
+			{
+				self.removeClass("error");
+				if (callback)
+					callback(self, field, currentValue);
+			}
 		}
 		this.data("lastValue", this.fieldRawVal());
 		if (this.is(":checkbox"))
 			this.change(commitChanges).change();
 		else if (this.hasClass("hasDatepicker"))
-			this.change(commitChanges).focus(showField).blur(function () { jQuery(this).addClass("textValue"); }).addClass("textValue");
+			this.change(commitChanges).blur(commitChanges);
 		else
-			this.focus(showField).blur(commitChanges).blur();
+			this.blur(commitChanges).blur();
 		return this;
+	};
+	jQuery.fn.inlineEditAjaxField = function (url, id, field, callback)
+	{
+		var self = this;
+		var value = jQuery("#"+this.attr("id")+"Value");
+		function setValue (text) {
+			if (!text || text.length == 0)
+			{
+				value.addClass("emptyInlineEditValue");
+				text = "                ";
+			}
+			value.text(text);
+		}
+		function newCallback (self, field, currentValue) {
+			if (callback)
+				callback(self, field, currentValue);
+			self.hide();
+			setValue(self.fieldVal());
+			value.show();
+		}
+		this.ajaxField(url, id, field, newCallback);
+		setValue(this.fieldVal());
+		value.click(function () {
+			self.show().focus();
+			value.hide();
+		});
+		this.removeClass("ajaxField").addClass("inlineEditAjaxField").hide();
+		value.addClass("inlineEditValue");
 	};
 	jQuery.fn.hideError = function ()
 	{

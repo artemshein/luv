@@ -262,7 +262,7 @@ local Model = Struct:extend{
 	-- Save, insert, update, create
 	insert = function (self)
 		if not self:valid() then
-			Exception("validation fail "..require"luv.dev".dump(self:errors()))
+			Exception("validation fail: "..require"luv.dev".dump(self:errors()))
 		end
 		local db = self:db()
 		local tableName = self:tableName()
