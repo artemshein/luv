@@ -64,6 +64,9 @@ local MigrationManager = Object:extend{
 	_log = function (self, from, to)
 		MigrationLog:create{from=from;to=to}
 	end;
+	mark = function (self, from, to)
+		self:_log(from, to)
+	end;
 	_loadMigration = function (self, num)
 		if self:migrations()[num] then
 			return assert(loadstring(self:migrations()[num]:openReadAndClose"*a"))()(self:db())
@@ -130,11 +133,23 @@ local MigrationManager = Object:extend{
 		end
 		return self:_apply(self:currentMigration(), self:currentMigration()+1)
 	end;
+	markUp = function (self)
+		if self:currentMigration() >= self:lastMigration() then
+			Exception"last migration already reached up"
+		end
+		return self:mark(self:currentMigration(), self:currentMigration()+1)
+	end;
 	down = function (self)
 		if self:currentMigration() <= 0 then
 			Exception "migration 0 already reached down"
 		end
 		return self:_apply(self:currentMigration(), self:currentMigration()-1)
+	end;
+	markDown = function (self)
+		if self:currentMigration() <= 0 then
+			Exception"migration 0 already reached down"
+		end
+		return self:mark(self:currentMigration(), self:currentMigration()-1)
 	end;
 	upTo = function (self, to)
 		if self:currentMigration() >= self:lastMigration() then
@@ -146,6 +161,16 @@ local MigrationManager = Object:extend{
 		end
 		return self:_apply(self:currentMigration(), to)
 	end;
+	markUpTo = function (self, to)
+		if self:currentMigration() >= self:lastMigration() then
+			Exception"last migration already reached up"
+		elseif self:currentMigration() >= to then
+			Exception("migration "..to.." already reached up")
+		elseif to > self:lastMigration() then
+			Exception("migration "..to.." can't be reached up")
+		end
+		return self:mark(self:currentMigration(), to)
+	end;
 	downTo = function (self, to)
 		if self:currentMigration() <= 0 then
 			Exception "migration 0 already reached down"
@@ -156,17 +181,39 @@ local MigrationManager = Object:extend{
 		end
 		return self:_apply(self:currentMigration(), to)
 	end;
+	markDownTo = function (self, to)
+		if self:currentMigration() <= 0 then
+			Exception "migration 0 already reached down"
+		elseif self:currentMigration() <= to then
+			Exception("migration "..to.." already reached down")
+		elseif to <= 0 then
+			Exception("migration "..to.." can't be reached down")
+		end
+		return self:mark(self:currentMigration(), to)
+	end;
 	allUp = function (self)
 		if self:currentMigration() >= self:lastMigration() then
 			Exception "last migration already reached up"
 		end
 		return self:_apply(self:currentMigration(), self:lastMigration())
 	end;
+	markAllUp = function (self)
+		if self:currentMigration() >= self:lastMigration() then
+			Exception"last migration already reached up"
+		end
+		return self:mark(self:currentMigration(), self:lastMigration())
+	end;
 	allDown = function (self)
 		if self:currentMigration() <= 0 then
 			Exception"migration 0 already reached down"
 		end
 		return self:_apply(self:currentMigration(), 0)
+	end;
+	markAllDown = function (self)
+		if self:currentMigration() <= 0 then
+			Exception"migration 0 already reached down"
+		end
+		return self:mark(self:currentMigration(), 0)
 	end;
 }
 

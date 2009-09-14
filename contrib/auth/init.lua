@@ -13,27 +13,27 @@ local MODULE = (...)
 local property = models.Model.property
 
 local GroupRight = models.Model:extend{
-	__tag = .....".GroupRight",
-	Meta = {labels={"group right";"group rights"}},
+	__tag = .....".GroupRight";
+	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
+	Meta = {labels={"group right";"group rights"}};
 	model = fields.Text{required=true;minLength=1};
 	action = fields.Text{required=true;minLength=1};
 	description = fields.Text{maxLength=false};
-	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
 	superuserRight = function (self) return self._superuserRight end;
 }
 
 GroupRight.superuserRight = GroupRight{model="any model";action="any action"}
 
 local UserGroup = models.Model:extend{
-	__tag = .....".UserGroup",
-	Meta = {labels={"user group";"user groups"}},
-	title = fields.Text{required=true;unique=true},
-	description = fields.Text{maxLength=false},
-	rights = references.ManyToMany{references=GroupRight;relatedName="groups"},
+	__tag = .....".UserGroup";
 	__tostring = function (self) return tostring(self.title) end;
+	Meta = {labels={"user group";"user groups"}};
+	title = fields.Text{required=true;unique=true};
+	description = fields.Text{maxLength=false};
+	rights = references.ManyToMany{references=GroupRight;relatedName="groups"};
 	hasRight = function (self, model, action)
 		local superuserRight = GroupRight:superuserRight()
-		for _, v in ipairs(self.rights:getValue()) do
+		for _, v in ipairs(self.rights:value()) do
 			if (v.model == superuserRight.model and v.action == superuserRight.action)
 			or (v.model == model and v.action == action) then
 				return true
@@ -44,19 +44,19 @@ local UserGroup = models.Model:extend{
 }
 
 local User = models.Model:extend{
-	__tag = .....".User",
-	Meta = {labels={"user";"users"}};
+	__tag = .....".User";
+	__tostring = function (self) return tostring(self.name) end;
 	_sessId = "LUV_AUTH";
 	sessId = property"string";
 	secretSalt = property"string";
+	Meta = {labels={"user";"users"}};
 	-- Fields
-	isActive = fields.Boolean{defaultValue=true;label="active user"};
+	active = fields.Boolean{defaultValue=true;label="active user"};
 	login = fields.Login();
 	name = fields.Text();
 	email = fields.Email();
 	passwordHash = fields.Text{required=true};
 	group = references.ManyToOne{references=UserGroup;relatedName="users"};
-	__tostring = function (self) return tostring(self.name) end;
 	-- Methods
 	encodePassword = function (self, password, method, salt)
 		if not password then Exception"empty password is restricted" end
@@ -181,21 +181,21 @@ local modelsAdmins = function ()
 				_bigIcon = {path="/images/icons/auth/community_users48.png";width=48;height=48};
 				_displayList = {"login";"name";"group"};
 				_form = forms.ModelForm:extend{
-					Meta = {model = User;fields={"id";"login";"password";"password2";"name";"group";"isActive"}};
+					Meta = {model = User;fields={"id";"login";"password";"password2";"name";"group";"active"}};
 					id = User:field"id":clone();
 					login = User:field"login":clone();
 					name = User:field"name":clone();
 					password = fields.Text{minLength=6;maxLength=32;widget=widgets.PasswordInput};
 					password2 = fields.Text{minLength=6;maxLength=32;label="repeat password";widget=widgets.PasswordInput};
 					group = fields.ModelSelect(UserGroup:all():value());
-					isActive = User:field "isActive":clone();
+					active = User:field"active":clone();
 					isValid = function (self)
 						if not forms.Form.valid(self) then
 							return false
 						end
 						if self.password then
 							if self.password ~= self.password2 then
-								self:addError "Entered passwords don't match."
+								self:addError(("Entered passwords don't match."):tr())
 								return false
 							end
 						end
@@ -207,7 +207,7 @@ local modelsAdmins = function ()
 					model.login = form.login
 					model.name = form.name
 					model.group = form.group
-					model.isActive = form.isActive
+					model.active = form.active
 					if form.password then
 						model.passwordHash = model:encodePassword(form.password)
 					end
