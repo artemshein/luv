@@ -1,4 +1,4 @@
-local error, select = error, select
+local error, select, math = error, select, math
 local require, tostring = require, tostring
 local pairs, tonumber, ipairs, os, type, io = pairs, tonumber, ipairs, os, type, io
 local table = require"luv.table"
@@ -579,24 +579,48 @@ local Datetime = Field:extend{
 
 local Time = Field:extend{
 	__tag = .....".Time";
+	__tostring = function (self)
+		local value = self:value()
+		if not value then
+			return ""
+		end
+		local time = os.date"*t"
+		time.hour = math.floor(value/60/60)
+		time.min = math.floor(value/60)%60
+		time.sec = value%60
+		return os.date(self:defaultFormat(), os.time(time))
+	end;
 	_defaultFormat = "%H:%M:%S";
-	autoNow = property "boolean";
+	defaultFormat = property"string";
+	autoNow = property"boolean";
+	_strToSeconds = function (str)
+		if str:match"^%d$" then str = "0"..str end
+		if str:match"^%d%d$" then str = str..":00" end
+		if str:match"^%d%d[^%d]%d%d$" then str = str..":00" end
+		if str:match"^%d%d[^%d]%d%d[^%d]%d%d$" then
+			return (tonumber(str:slice(1, 2))*60 + tonumber(str:slice(4, 5)))*60 + tonumber(str:slice(7, 8))
+		end
+	end;
 	init = function (self, params)
 		params = params or {}
 		params.widget = params.widget or widgets.Time()
 		self:autoNow(params.autoNow or false)
 		Field.init(self, params)
-		self:addClass "time"
+		self:addClass"time"
 	end;
 	defaultValue = function (self, ...)
 		if select("#", ...) > 0 then
-			return Field.defaultValue(self, ...)
+			local value = (select(1, ...))
+			if "string" == type(value) then
+				value = self._strToSeconds(value)
+			end
+			return Field.defaultValue(self, value)
 		else
 			if self._defaultValue then
 				return self._defaultValue
 			end
 			if self:autoNow() then
-				return os.date("%H:%M:%S")
+				return self._strToSeconds(os.date(self:defaultFormat()))
 			end
 			return nil
 		end
@@ -605,24 +629,12 @@ local Time = Field:extend{
 		if select("#", ...) > 0 then
 			local value = (select(1, ...))
 			if "string" == type(value) then
-				if value:match"^%d%d[^%d]%d%d[^%d]%d%d$" then
-					self._value = value
-				elseif value:match"^%d%d[^%d]%d%d$" then
-					self._value = value:slice(1, 2)..":"..value:slice(4, 5)..":00"
-				elseif value:match"^%d%d$" then
-					self._value = value..":00:00"
-				else
-					self._value = nil
-				end
-			else
-				self._value = value
+				value = self._strToSeconds(value)
 			end
+			return Field.value(self, value)
 		else
 			return Field.value(self)
 		end
-	end;
-	__tostring = function (self)
-		return self:value() or ""
 	end;
 	minLength = function (self) return 1 end;
 	maxLength = function (self) return 8 end;

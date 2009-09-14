@@ -1,11 +1,13 @@
 local string = require"luv.string"
 local table = require"luv.table"
-local tostring, io, type, os = tostring, io, type, os
+local tostring, io, type, os, math = tostring, io, type, os, math
 local pairs, ipairs, require = pairs, ipairs, require
 local Widget, html = require"luv".Widget, require"luv.utils.html"
 local json = require"luv.utils.json"
 
 module(...)
+
+local property = Widget.property
 
 local Field = Widget:extend{
 	__tag = .....".Field";
@@ -277,9 +279,9 @@ local NestedSetSelect = Select:extend{
 local DateInput = TextInput:extend{
 	__tag = .....".DateInput";
 	_format = "%d.%m.%Y";
-	format = TextInput.property;
+	format = property"string";
 	_regional = "ru";
-	regional = TextInput.property;
+	regional = property"string";
 	_renderValue = function (self, f)
 		local value = f:value() or f:defaultValue()
 		if value then
@@ -306,6 +308,35 @@ local DateInput = TextInput:extend{
 
 local Time = TextInput:extend{
 	__tag = .....".Time";
+	_format = "%H:%M:%S";
+	format = property"string";
+	_regional = "ru";
+	regional = property"string";
+	_renderValue = function (self, f)
+		local value = f:value() or f:defaultValue()
+		if value then
+			local time = os.date"*t"
+			time.hour = math.floor(value/60/60)
+			time.min = math.floor(value/60)%60
+			time.sec = value%60
+			value = os.date(self:format(), os.time(time))
+		end
+		return " value="..("%q"):format(html.escape(value or ""))
+	end;
+	render = function (self, field, form, tail)
+		local html =
+		"<input"
+		..self:_renderType()
+		..self:_renderName(field)
+		..self:_renderId(field, form)
+		..self:_renderValue(field)
+		..self:_renderClasses(field)
+		..self:_renderOnClick(field)
+		..self:_renderOnChange(field)
+		..(tail or "").." />"
+		..self:_renderHint(field)
+		return html, js
+	end;
 }
 
 local Datetime = TextInput:extend{
