@@ -1,4 +1,4 @@
-local error, select, math = error, select, math
+local error, select, math, debug = error, select, math, debug
 local require, tostring = require, tostring
 local pairs, tonumber, ipairs, os, type, io = pairs, tonumber, ipairs, os, type, io
 local table = require"luv.table"
@@ -36,21 +36,21 @@ local Field = Object:extend{
 		end
 		return self._label
 	end);
-	validators = property "table";
-	errors = property "table";
+	validators = property"table";
+	errors = property"table";
 	container = property(Struct);
-	unique = property "boolean";
-	pk = property "boolean";
-	name = property "string";
+	unique = property"boolean";
+	pk = property"boolean";
+	name = property"string";
 	value = property;
 	choices = property;
 	defaultValue = property;
-	classes = property "table";
+	classes = property"table";
 	widget = property(Widget);
 	onClick = property;
 	onChange = property;
 	onLoad = property;
-	hint = property;
+	hint = property"string";
 	ajaxWidget = property(Widget);
 	init = function (self, params)
 		if self:parent():parent() == Object then
@@ -74,7 +74,7 @@ local Field = Object:extend{
 		if params.widget then self:widget(params.widget) end
 		self:onClick(params.onClick)
 		self:onChange(params.onChange)
-		self:hint(params.hint)
+		if params.hint then self:hint(params.hint) end
 		if params.choices then self:choices(params.choices) end
 		if params.classes then self:classes(params.classes) end
 		self:required(params.required or false)
@@ -343,6 +343,37 @@ local Int = Field:extend{
 	end;
 	minLength = function (self) return self:required() and 1 or 0 end;
 	maxLength = function (self) return 12 end;
+}
+
+local NonNegativeInt = Int:extend{
+	__tag = .....".NonNegativeInt";
+	init = function (self)
+		Int.init(self)
+		self:validator("nonNegative", validators.NonNegative())
+	end;
+}
+
+local Float = Field:extend{
+	__tag = .....".Float",
+	init = function (self, params)
+		params = params or {}
+		if not params.widget then
+			params.widget = params.choices and widgets.Select() or widgets.TextInput()
+		end
+		Field.init(self, params)
+		self:validator("float", validators.Float())
+	end,
+	value = function (self, ...)
+		if select("#", ...) > 0 then
+			local value = (select(1, ...))
+			Field.value(self, value and tonumber(value))
+			return self
+		else
+			return Field.value(self)
+		end
+	end;
+	minLength = function (self) return self:required() and 1 or 0 end;
+	maxLength = function (self) return 20 end;
 }
 
 local Boolean = Int:extend{
@@ -711,6 +742,6 @@ return {
 	Button=Button;ImageButton=ImageButton;Submit=Submit;Date=Date;
 	Datetime=Datetime;Time=Time;Email=Email;Phone=Phone;Url=Url;
 	File=File;Image=Image;ModelSelect=ModelSelect;
-	ModelMultipleSelect=ModelMultipleSelect;
-	NestedSetSelect=NestedSetSelect;
+	ModelMultipleSelect=ModelMultipleSelect;Float=Float;
+	NestedSetSelect=NestedSetSelect;NonNegativeInt=NonNegativeInt;
 }

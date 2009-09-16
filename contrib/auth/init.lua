@@ -110,6 +110,9 @@ local User = models.Model:extend{
 	hasRight = function (self, model, action)
 		return self.group and self.group:hasRight(model, right)
 	end;
+	hasSuperuserRight = function (self)
+		return self.group and self.group:hasRight(GroupRight.superuserRight.model, GroupRight.superuserRight.action)
+	end;
 	rightToCreate = function (self, model)
 		if "string" ~= type(model) then
 			model = model:label()

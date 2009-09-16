@@ -9,8 +9,20 @@ local json = require "luv.utils.json"
 
 module(...)
 
+local property = Struct.property
+
 local Form = Struct:extend{
-	__tag = .....".Form",
+	__tag = .....".Form";
+	__tostring = function (self) return self:asHtml() end;
+	action = property("string", "self.Meta.action", "self.Meta.action");
+	id = property("string", function (self)
+		if not self.Meta.id then
+			self:id("f"..tostring(math.random(2000000000)))
+		end
+		return self.Meta.id
+	end, "self.Meta.id");
+	ajax = property("string", "self.Meta.ajax", "self.Meta.ajax");
+	widget = property(Widget, "self.Meta.widget", "self.Meta.widget");
 	extend = function (self, new)
 		local new = Struct.extend(self, new)
 		new:fields(table.map(self:fields() or {}, "clone"))
@@ -29,8 +41,8 @@ local Form = Struct:extend{
 			Exception"abstract Form can't be created"
 		end
 		self.Meta = self.Meta or {}
-		if not self.Meta.widget then
-			self.Meta.widget = require"luv.forms.widgets".VerticalTableForm
+		if not self:widget() then
+			self:widget(require"luv.forms.widgets".VerticalTableForm())
 		end
 		self:fields(table.map(self:fields(), "clone"))
 		if values then
@@ -44,54 +56,28 @@ local Form = Struct:extend{
 	addField = function (self, name, f)
 		if f:isA(references.OneToOne) or f:isA(references.ManyToOne) then
 			if f:refModel():isA(models.NestedSet) then
-				Struct.addField(self, name, fields.NestedSetSelect{label=f:label();choices=f:choices() or f:refModel():all();required=f:required()})
+				Struct.addField(self, name, fields.NestedSetSelect{
+					label=f:label();required=f:required();hint=f:hint();
+					choices=f:choices() or f:refModel():all();
+				})
 			else
-				Struct.addField(self, name, fields.ModelSelect{label=f:label();choices=f:choices() or f:refModel():all();required=f:required()})
+				Struct.addField(self, name, fields.ModelSelect{
+					label=f:label();required=f:required();hint=f:hint();
+					choices=f:choices() or f:refModel():all();
+				})
 			end
 		elseif f:isA(references.OneToMany) or f:isA(references.ManyToMany) then
-			Struct.addField(self, name, fields.ModelMultipleSelect{label=f:label();choices=f:choices() or f:refModel():all();required=f:required()})
+			Struct.addField(self, name, fields.ModelMultipleSelect{
+				label=f:label();required=f:required();hint=f:hint();
+				choices=f:choices() or f:refModel():all();
+			})
 		else
-			Struct.addField(self, name, f:clone())
+			Struct.addField(self, name, f)
 		end
 		return self
 	end;
-	action = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.action = (select(1, ...))
-			return self
-		else
-			return self.Meta.action or ""
-		end
-	end;
-	id = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.id = (select(1, ...))
-			return self
-		else
-			if not self.Meta.id then
-				self:id("f"..tostring(math.random(2000000000)))
-			end
-			return self.Meta.id
-		end
-	end;
 	htmlId = function (self)
 		return self:id()
-	end;
-	ajax = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.ajax = (select(1, ...))
-			return self
-		else
-			return self.Meta.ajax
-		end
-	end;
-	widget = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.widget = (select(1, ...))
-			return self
-		else
-			return self.Meta.widget
-		end
 	end;
 	submitted = function (self, value)
 		for name, f in pairs(self:fields()) do
@@ -107,7 +93,6 @@ local Form = Struct:extend{
 		return false
 	end;
 	asHtml = function (self) return self.Meta.widget:render(self) end;
-	__tostring = function (self) return self:asHtml() end;
 	fieldsList = function (self)
 		if self.Meta.fields then
 			return self.Meta.fields
@@ -195,6 +180,7 @@ local Form = Struct:extend{
 
 local ModelForm = Form:extend{
 	__tag = .....".ModelForm";
+	model = property(Model, "self.Meta.model", "self.Meta.model");
 	extend = function (self, new)
 		new = Form.extend(self, new)
 		if not new.Meta then
@@ -206,19 +192,12 @@ local ModelForm = Form:extend{
 		for name, f in pairs(new.Meta.model:fields()) do
 			if f:isA(fields.Button)
 			or ((not new.Meta.fields or table.find(new.Meta.fields, name))
-				and (not new.Meta.exclude or not table.find(new.Meta.exclude, name))) then
+			and (not new.Meta.exclude or not table.find(new.Meta.exclude, name)))
+			and not new:field(name) then
 				new:addField(name, f:clone())
 			end
 		end
 		return new
-	end;
-	model = function (self, ...)
-		if select("#", ...) > 0 then
-			self.Meta.model = (select(1, ...))
-			return self
-		else
-			return self.Meta.model
-		end
 	end;
 	pkField = function (self) return self:model():pkField() end;
 	pkName = function (self) return self:model():pkName() end;
