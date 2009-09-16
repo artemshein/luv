@@ -57,7 +57,7 @@ local Model = Struct:extend{
 	end, nil);
 	label = property("string", "self.Meta.label or self.Meta.labels[1]", "self.Meta.label");
 	labelMany = property("string",
-		function (self) return self.Meta.labelMany or self.Meta.labels[2] end,
+		function (self) return self.Meta and (self.Meta.labelMany or self.Meta.labels[2]) or Exception"define Meta first" end,
 		"self.Meta.labelMany"
 	);
 	order = property(nil, "self.Meta.order", "self.Meta.order");
@@ -511,6 +511,8 @@ local Model = Struct:extend{
 			return "INT(4)"
 		elseif field:isA(fields.Datetime) then
 			return "DATETIME"
+		elseif field:isA(fields.Float) then
+			return "FLOAT"
 		elseif field:isA(fields.Date) then
 			return "DATE"
 		elseif field:isA(fields.Time) then

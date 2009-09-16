@@ -63,6 +63,25 @@ local Int = Validator:extend{
 	end;
 }
 
+local NonNegative = Validator:extend{
+	__tag = .....".NonNegative";
+	_errorMsg = ('Field "%s" must be bigger or equal to 0.'):tr();
+	_js = "validNonNegative()";
+	valid = function (self, value)
+		Validator.valid(self, value)
+		if value == nil then
+			return true
+		end
+		if type(value) == "number" or type(value) == "string" then
+			if tonumber(value) >= 0 then
+				return true
+			end
+		end
+		self:addError(self:errrorMsg())
+		return false
+	end;
+}
+
 local Length = Validator:extend{
 	__tag = .....".Length";
 	_errorMsg = ('Field "%s" has incorrect length.'):tr();
@@ -139,7 +158,20 @@ local Value = Validator:extend{
 	js = function (self) return "validValue("..json.serialize(self:value())..")" end;
 }
 
+local Float = Validator:extend{
+	__tag = .....".Float";
+	_errorMsg = ('Field "%s" must be float.'):tr();
+	_js = "validFloat()";
+	valid = function (self, value)
+		Validator.valid(self, value)
+		if value == nil then
+			return true
+		end
+		return true
+	end;
+}
+
 return {
 	Validator=Validator;Filled=Filled;Int=Int;Length=Length;
-	Regexp=Regexp;Value=Value;
+	Regexp=Regexp;Value=Value;NonNegative=NonNegative;Float=Float;
 }
