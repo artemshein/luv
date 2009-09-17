@@ -1031,7 +1031,8 @@ local SqlQuerySet = QuerySet:extend{
 		local db = model:db()
 		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
-		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..("%q"):format(model:pkName()).."]")))
+		local pkName = model:pkName()
+		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), function (a) return a[pkName] end))
 		local val
 		for k, v in pairs(set) do
 			if type(v) == "table" and v.isA and v:isA(Model) then
@@ -1048,7 +1049,8 @@ local SqlQuerySet = QuerySet:extend{
 		local db = model:db()
 		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
-		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), f ("a["..("%q"):format(model:pkName()).."]")))
+		local pkName = model:pkName()
+		local u = db:Delete():from(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), function (a) return a[pkName] end))
 		return u()
 	end;
 	__call = function (self, ...)

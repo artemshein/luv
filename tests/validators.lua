@@ -27,7 +27,7 @@ local Int = TestCase:extend{
 		self.assertTrue(v:valid())
 		self.assertFalse(v:valid(true))
 		self.assertFalse(v:valid(false))
-		self.assertTrue(v:valid("0.43e-23"))
+		self.assertFalse(v:valid("0.43e-23"))
 	end
 }
 
@@ -89,9 +89,9 @@ local Value = TestCase:extend{
 		self.assertFalse(v:valid())
 		self.assertFalse(v:valid(false))
 		self.assertFalse(v:valid(true))
-		v = Validators.Value(-0.25)
-		self.assertTrue(v:valid("-0.25"))
-		self.assertTrue(v:valid(-0.25))
+		v = Validators.Value(-625)
+		self.assertTrue(v:valid("-625"))
+		self.assertTrue(v:valid(-625))
 		self.assertFalse(v:valid(-0.26))
 		self.assertFalse(v:valid(""))
 		self.assertFalse(v:valid())
