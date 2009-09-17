@@ -506,9 +506,9 @@ local Model = Struct:extend{
 				return "TEXT"
 			end
 		elseif field:isA(fields.Boolean) then
-			return "INT(1)"
+			return "BOOLEAN"
 		elseif field:isA(fields.Int) then
-			return "INT(4)"
+			return "INTEGER"
 		elseif field:isA(fields.Datetime) then
 			return "DATETIME"
 		elseif field:isA(fields.Float) then
