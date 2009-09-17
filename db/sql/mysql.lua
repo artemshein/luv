@@ -6,7 +6,7 @@ local Driver, LuaSql = require"luv.db.sql".Driver, require"luasql.mysql"
 module(...)
 
 local Select = Driver.Select:extend{
-	__tag = .....".Select",
+	__tag = .....".Select";
 	__tostring = function (self)
 		return
 			"SELECT "
@@ -17,21 +17,21 @@ local Select = Driver.Select:extend{
 			..self._db:constructOrder(self._conditions.order)
 			..self._db:constructLimit(self._conditions.limit)
 			..";"
-	end
+	end;
 }
 
 local SelectRow = Driver.SelectRow:extend{
-	__tag = .....".SelectRow",
-	__tostring = Select.__tostring
+	__tag = .....".SelectRow";
+	__tostring = Select.__tostring;
 }
 
 local SelectCell = Driver.SelectCell:extend{
-	__tag = .....".SelectCell",
-	__tostring = SelectRow.__tostring
+	__tag = .....".SelectCell";
+	__tostring = SelectRow.__tostring;
 }
 
 local Insert = Driver.Insert:extend{
-	__tag = .....".Insert",
+	__tag = .....".Insert";
 	__tostring = function (self)
 		return
 			"INSERT INTO "
@@ -39,22 +39,22 @@ local Insert = Driver.Insert:extend{
 			.." ("..self._db:constructFields(self._fieldNames)..") VALUES "
 			..self._db:constructValues(self._fields, self._valuesData)
 			..";"
-	end
+	end;
 }
 
 local InsertRow = Driver.InsertRow:extend{
-	__tag = .....".InsertRow",
+	__tag = .....".InsertRow";
 	__tostring = function (self)
 		return
 			"INSERT INTO "
 			..self._db:processPlaceholder("?#", self._table)
 			..self._db:constructSet(self._sets)
 			..";"
-	end
+	end;
 } 
 
 local Update = Driver.Update:extend{
-	__tag = .....".Update",
+	__tag = .....".Update";
 	__tostring = function (self)
 		return
 			"UPDATE "
@@ -64,16 +64,16 @@ local Update = Driver.Update:extend{
 			..self._db:constructOrder(self._conditions.order)
 			..self._db:constructLimit(self._conditions.limit)
 			..";"
-	end
+	end;
 }
 
 local UpdateRow = Driver.UpdateRow:extend{
-	__tag = .....".UpdateRow",
-	__tostring = Update.__tostring
+	__tag = .....".UpdateRow";
+	__tostring = Update.__tostring;
 }
 
 local Delete = Driver.Delete:extend{
-	__tag = .....".Delete",
+	__tag = .....".Delete";
 	__tostring = function (self)
 		return
 			"DELETE FROM "
@@ -82,20 +82,20 @@ local Delete = Driver.Delete:extend{
 			..self._db:constructOrder(self._conditions.order)
 			..self._db:constructLimit(self._conditions.limit)
 			..";"
-	end
+	end;
 }
 
 local DeleteRow = Driver.DeleteRow:extend{
-	__tag = .....".DeleteRow",
-	__tostring = Delete.__tostring
+	__tag = .....".DeleteRow";
+	__tostring = Delete.__tostring;
 }
 
 local CreateTable = Driver.CreateTable:extend{
-	__tag = .....".CreateTable",
+	__tag = .....".CreateTable";
 	init = function (self, ...)
 		Driver.CreateTable.init(self, ...)
 		self._options = {charset="utf8", engine="InnoDB"}
-	end,
+	end;
 	__tostring = function (self)
 		return
 			"CREATE TABLE "
@@ -108,14 +108,14 @@ local CreateTable = Driver.CreateTable:extend{
 			..")"
 			..self._db:constructOptions(self._options)
 			..";"
-	end
+	end;
 }
 
 local DropTable = Driver.DropTable:extend{
 	__tag = .....".DropTable";
 	__tostring = function (self)
 		return self._db:processPlaceholders("DROP TABLE ?#;", self._table)
-	end
+	end;
 }
 
 local AddColumn = Driver.AddColumn:extend{
