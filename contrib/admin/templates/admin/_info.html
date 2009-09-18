@@ -1,5 +1,5 @@
 <div class="span-24 last" style="border:#AAA solid 0;border-bottom-width:1px">
-	<div class="span-16"><h1 style="margin:8px 0 12px 0">{% if titleIcon then %}<img src="{{ titleIcon.path }}" width="{{ titleIcon.width }}" height="{{ titleIcon.height }}" /> {% end %}{{ title }}</h1></div>
+	<div class="span-16"><h1 style="margin:8px 0 12px 0">{% if titleIcon then %}<img src="{{ titleIcon.path }}" width="{{ titleIcon.width }}" height="{{ titleIcon.height }}" /> {% end %}{{ title:tr():capitalize() }}</h1></div>
 	<div id="userInfo" class="span-8 last">
 		{{ ("you are"):tr():capitalize() }} <a href="{{ baseUri }}/users/{{ user.id }}/edit"><img src="/images/admin/user.png" width="16" height="16" alt="{{ ("user"):tr() }}" /></a>
 		<a href="{{ urlConf:baseUri() }}/users/{{ user.id }}">{{ user }}</a>.

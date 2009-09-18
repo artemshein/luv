@@ -152,7 +152,7 @@ local Dir = Object:extend{
 	__tag = .....".Dir";
 	path = property;
 	init = function (self, path)
-		if not path.isA or not path:isA(Path) then
+		if not path or not path.isA or not path:isA(Path) then
 			self:path(Path(path))
 		else
 			self:path(path)

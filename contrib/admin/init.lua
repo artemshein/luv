@@ -12,6 +12,7 @@ local ws = require"luv.webservers"
 
 module(...)
 
+local MODULE = (...)
 local property = Object.property
 
 local ModelAdmin = Object:extend{
@@ -39,7 +40,7 @@ local ModelAdmin = Object:extend{
 	end);
 	form = property(nil, function (self)
 		if not self._form then
-			self:form(forms.ModelForm:extend{Meta={id="form";model=self:model();fields=self:fields()}})
+			self:form(forms.ModelForm:extend{__tag=MODULE..".ModelAdminForm";Meta={id="form";model=self:model();fields=self:fields()}})
 		end
 		return self._form
 	end);
@@ -114,8 +115,9 @@ local AdminSite = Object:extend{
 		local luv = self:luv()
 		luv:debug(luv:postData())
 		local function authUser (urlConf)
-			local user = auth.models.User:authUser(luv:session())
-			if not user or not user.isActive then luv:responseHeader("Location", urlConf:baseUri().."/login"):sendHeaders() end
+			local request = urlConf:request()
+			local user = auth.models.User:authUser(urlConf:session())
+			if not user or not user.active then request:backend():responseHeader("Location", urlConf:baseUri().."/login"):sendHeaders() end
 			return user
 		end
 		local function requireAuth (func)
@@ -124,32 +126,35 @@ local AdminSite = Object:extend{
 			end
 		end
 		return {
-			{"^/login$"; function (urlConf)
-				local form = auth.forms.Login(luv:postData())
-				local user = auth.models.User:authUser(luv:session(), form)
-				if user and user.isActive then luv:responseHeader("Location", urlConf:baseUri()):sendHeaders() end
+			{"^/login/?$"; function (urlConf)
+				local request = urlConf:request()
+				local form = auth.forms.Login(request:postData())
+				local user = auth.models.User:authUser(urlConf:session(), form)
+				if user and user.active then request:backend():responseHeader("Location", urlConf:baseUri()):sendHeaders() end
 				luv:assign{
 					title=("authorisation"):tr();ipairs=ipairs;
 					tostring=tostring;form=form;user=user;
 				}
 				luv:display"admin/login.html"
 			end};
-			{"^/logout$"; function (urlConf)
-				auth.models.User:logout(luv:session())
-				luv:responseHeader("Location", "/"):sendHeaders()
+			{"^/logout/?$"; function (urlConf)
+				local request = urlConf:request()
+				auth.models.User:logout(urlConf:session())
+				request:backend():responseHeader("Location", "/"):sendHeaders()
 			end};
 			{"^/([^/]+)/create/?$"; requireAuth(function (urlConf, user, modelName)
+				local request = urlConf:request()
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				if not user:canCreate(model) then ws.Http403() end
-				local form = admin:form():addField("create", fields.Submit(("create"):tr():capitalize()))(luv:postData()):action(urlConf:uri())
+				local form = admin:form():addField("create", fields.Submit(("create"):tr():capitalize()))(request:postData()):action(urlConf:uri())
 				local msgsStack = UserMsgsStack()
 				if form:submitted"create" and form:valid() then
 					if model:isA(models.Tree) then
 						if model:findRoot() then
 							msgsStack:errorMsg(model:label():capitalize().." was not created!")
-							form:addError"Root record already exist."
+							form:addError(("Root record already exist."):tr())
 						else
 							local record = model()
 							record.left = 1
@@ -191,7 +196,7 @@ local AdminSite = Object:extend{
 				if not admin then ws.Http404() end
 				local model = admin:model()
 				if not user:canDelete(model) then ws.Http403() end
-				local items = luv:getPost"items"
+				local items = luv:post"items"
 				if "table" ~= type(items) then
 					items = {items}
 				end
@@ -218,8 +223,7 @@ local AdminSite = Object:extend{
 					else
 						node = model:findRoot()
 						if not node then ws.Http404() end
-						luv:assign{nodes={node}}
-						luv:assign{isRoot=true}
+						luv:assign{nodes={node};isRoot=true}
 					end
 					luv:display"admin/_records-tree.html"
 				else
@@ -228,7 +232,7 @@ local AdminSite = Object:extend{
 						model=model;page=page;
 						displayFields=admin:displayList();
 						fields=fields;date=os.date;
-						p=models.Paginator(model:parent(), 10);
+						p=models.Paginator(model, 10);
 						title=model:labelMany():tr():capitalize();
 					}
 					luv:display"admin/_records-table.html"
@@ -241,7 +245,7 @@ local AdminSite = Object:extend{
 				if not user:canCreate(model) then ws.Http403() end
 				if not model:isA(models.Tree) then ws.Http404() end
 				local record = objectOr404(model, recordId)
-				local form = admin:form():addField("create", fields.Submit(("create"):tr():capitalize()))(luv:postData()):action(urlConf:uri())
+				local form = admin:form():addField("create", fields.Submit(("create"):tr():capitalize()))(luv:postData()):htmlAction(urlConf:uri())
 				local msgsStack = UserMsgsStack()
 				if form:submitted "create" and form:valid() then
 					local child = model()
@@ -274,7 +278,7 @@ local AdminSite = Object:extend{
 					form:addField("delete", fields.Submit{defaultValue=("delete"):tr():capitalize();onClick="return confirm('O\\'RLY?')"})
 				end
 				form:addField("save", fields.Submit(("save"):tr():capitalize()))
-				form = form(luv:postData()):action(urlConf:uri())
+				form = form(luv:postData()):htmlAction(urlConf:uri())
 				local msgsStack = UserMsgsStack()
 				if form:submitted"save" then
 					if form:valid() then

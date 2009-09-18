@@ -55,7 +55,7 @@ local ManyToMany = Reference:extend{
 		if select("#", ...) > 0 then
 			local value = (select(1, ...))
 			if "table" ~= type(value) then
-				value = nil
+				value = {}
 			else
 				value = table.copy(value)
 				if #value > 0 and "table" ~= type(value[1]) then

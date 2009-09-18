@@ -1,24 +1,24 @@
-local string = require "luv.string"
+local string = require"luv.string"
 local tr, type, require, debug = tr, type, require, debug
 local pairs, ipairs, io = pairs, ipairs, io
-local Widget, widgets = require "luv".Widget, require "luv.fields.widgets"
-local references = require "luv.fields.references"
-local forms, fields, html = require "luv.forms", require "luv.fields", require "luv.utils.html"
-local Exception = require "luv.exceptions".Exception
-local json = require "luv.utils.json"
+local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
+local references = require"luv.fields.references"
+local forms, fields, html = require"luv.forms", require"luv.fields", require"luv.utils.html"
+local Exception = require"luv.exceptions".Exception
+local json = require"luv.utils.json"
 
 module(...)
 
 local Form = Widget:extend{
 	__tag = .....".FormWidget";
 	_fieldId = function (self, f, form)
-		return f:id() or (form:id()..f:name():capitalize())
+		return f:id() or (form:htmlId()..f:name():capitalize())
 	end;
 	_renderId = function (self, form)
-		return form:id() and (" id="..("%q"):format(form:id())) or ""
+		return form:htmlId() and (" id="..("%q"):format(form:htmlId())) or ""
 	end;
 	_renderAction = function (self, form)
-		return " action="..("%q"):format(form:action() or "")
+		return " action="..("%q"):format(form:htmlAction() or "")
 	end;
 	renderFormHeader = function (self, form)
 		local fileUploadFlag
@@ -97,7 +97,7 @@ local Form = Widget:extend{
 		validationFunc = validationFunc.."return true;}"
 		local ajax = form:ajax()
 		return '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'
-		..(ajax and ("var options="..("string" == type(ajax) and ajax or json.serialize(ajax))..";options.beforeSubmit="..validationFunc..';$("#'..form:id()..'").ajaxForm(options);') or ('$("#'..form:id()..'").submit('..validationFunc..");"))
+		..(ajax and ("var options="..("string" == type(ajax) and ajax or json.serialize(ajax))..";options.beforeSubmit="..validationFunc..';$("#'..form:htmlId()..'").ajaxForm(options);') or ('$("#'..form:htmlId()..'").submit('..validationFunc..");"))
 		.."\n//]]></script>"
 	end;
 	render = function (self, form)

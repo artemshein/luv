@@ -6,7 +6,7 @@
 </div>
 
 <div class="span-24 last">
-	{% include("admin/_errors.html", {errors=form:errors()}) %}
+	{{ include("admin/_errors.html", {errors=form:errors()}) }}
 	{{ safe(form) }}
 </div>
 {[ endSection() ]}

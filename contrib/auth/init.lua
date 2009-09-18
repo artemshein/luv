@@ -22,7 +22,7 @@ local GroupRight = models.Model:extend{
 	superuserRight = function (self) return self._superuserRight end;
 }
 
-GroupRight.superuserRight = GroupRight{model="any model";action="any action"}
+GroupRight._superuserRight = GroupRight{model="any model";action="any action"}
 
 local UserGroup = models.Model:extend{
 	__tag = .....".UserGroup";
@@ -33,7 +33,7 @@ local UserGroup = models.Model:extend{
 	rights = references.ManyToMany{references=GroupRight;relatedName="groups"};
 	hasRight = function (self, model, action)
 		local superuserRight = GroupRight:superuserRight()
-		for _, v in ipairs(self.rights:value()) do
+		for _, v in self.rights:all()() do
 			if (v.model == superuserRight.model and v.action == superuserRight.action)
 			or (v.model == model and v.action == action) then
 				return true

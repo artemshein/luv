@@ -4,7 +4,7 @@
 {{ include "admin/_info.html" }}
 {% local modelUrl = urlConf:baseUri().."/"..urlConf:capture(1) %}
 <div class="span-24 last">
-	<div id="chainMenu"><a href="{{ urlConf:baseUri() }}">&larr; {{ ("back to main"):tr():capitalize() }}</a> | <a href="{{ modelUrl }}">{{ record:labelMany():capitalize() }}</a></div>
+	<div id="chainMenu"><a href="{{ urlConf:baseUri() }}">&larr; {{ ("back to main"):tr():capitalize() }}</a> | <a href="{{ modelUrl }}">{{ record:labelMany():tr():capitalize() }}</a></div>
 	{{ include "admin/_user-msgs.html" }}
 	<h2>{{ record }}</h2>
 	<script type="text/javascript" language="JavaScript">//<![CDATA[
@@ -14,7 +14,7 @@
 			else
 			{
 				hideErrors();
-				alert({{ ("%q"):format(("New record was successfully added."):tr()) }});
+				alert("{{ ("New record was successfully added."):tr() }}");
 				Luv.clearForm("form");
 			}
 		}

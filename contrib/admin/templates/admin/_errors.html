@@ -9,10 +9,12 @@
 	}
 //]]></script-->
 {% if errors[1] then %}
-	<div id="errors">
-	<h4>Error!</h4>
+<div id="errors">
+	<h4>{{ ("error"):tr():capitalize() }}!</h4>
+	<ul>
 	{% for _, error in ipairs(errors) do %}
-		{{ error }}<br />
+		<li>{{ error }}</li>
 	{% end %}
-	</div>
+	</ul>
+</div>
 {% end %}

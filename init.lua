@@ -22,12 +22,14 @@ end
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
 	request = property(ws.HttpRequest);
+	session = property;
 	uri = property"string";
 	tailUri = property"string";
 	baseUri = property"string";
 	captures = property"table";
-	init = function (self, request)
+	init = function (self, request, session)
 		self:request(request)
+		self:session(session)
 		self:uri(request:header"REQUEST_URI" or "")
 		local queryPos = self:uri():find"?"
 		if queryPos then
@@ -132,12 +134,13 @@ local Core = Object:extend{
 		return self
 	end);
 	-- Init
-	init = function (self, wsApi)
+	init = function (self, wsApi, session)
 		self:profiler(dev.Profiler())
 		self:beginProfiling "Luv"
 		--
 		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self:version())))
-		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi())))
+		if session then self:session(session) end
+		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi()), session))
 		self:cacher(TagEmuWrapper(Memory()))
 	end;
 	-- Database
@@ -328,9 +331,9 @@ local Widget = Object:extend{
 }
 
 local init = function (params)
-	local core = Core(params.wsApi or ws.Cgi(params.tmpDir))
+	local wsApi = params.wsApi or ws.Cgi(params.tmpDir)
+	local core = Core(wsApi, sessions.Session(wsApi, sessions.SessionFile(params.sessionsDir)))
 	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs))
-	core:session(sessions.Session(core:wsApi(), sessions.SessionFile(params.sessionsDir)))
 	core:dsn(params.dsn)
 	core:debugger(params.debugger)
 	if params.cacher then core:cacher(params.cacher) end

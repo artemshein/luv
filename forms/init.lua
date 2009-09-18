@@ -14,10 +14,10 @@ local property = Struct.property
 local Form = Struct:extend{
 	__tag = .....".Form";
 	__tostring = function (self) return self:asHtml() end;
-	action = property("string", "self.Meta.action", "self.Meta.action");
-	id = property("string", function (self)
+	htmlAction = property("string", "self.Meta.action", "self.Meta.action");
+	htmlId = property("string", function (self)
 		if not self.Meta.id then
-			self:id("f"..tostring(math.random(2000000000)))
+			self:htmlId("f"..tostring(math.random(2000000000)))
 		end
 		return self.Meta.id
 	end, "self.Meta.id");
@@ -75,9 +75,6 @@ local Form = Struct:extend{
 			Struct.addField(self, name, f)
 		end
 		return self
-	end;
-	htmlId = function (self)
-		return self:id()
 	end;
 	submitted = function (self, value)
 		for name, f in pairs(self:fields()) do
@@ -180,7 +177,7 @@ local Form = Struct:extend{
 
 local ModelForm = Form:extend{
 	__tag = .....".ModelForm";
-	model = property(Model, "self.Meta.model", "self.Meta.model");
+	formModel = property(Model, "self.Meta.model", "self.Meta.model");
 	extend = function (self, new)
 		new = Form.extend(self, new)
 		if not new.Meta then
@@ -199,10 +196,10 @@ local ModelForm = Form:extend{
 		end
 		return new
 	end;
-	pkField = function (self) return self:model():pkField() end;
-	pkName = function (self) return self:model():pkName() end;
+	pkField = function (self) return self:formModel():pkField() end;
+	pkName = function (self) return self:formModel():pkName() end;
 	initModel = function (self, model)
-		if not model or not model:isA(self:model()) then
+		if not model or not model:isA(self:formModel()) then
 			Exception"instance of Meta.model expected"
 		end
 		for name, f in pairs(model:fields()) do
@@ -216,7 +213,7 @@ local ModelForm = Form:extend{
 		if "table" ~= type(model) or not model.isA or not model:isA(models.Model) then
 			Exception"instance of Model expected"
 		end
-		if not model or not model:isA(self:model()) then
+		if not model or not model:isA(self:formModel()) then
 			Exception"instance of Meta.model expected"
 		end
 		for name, f in pairs(model:fields()) do
