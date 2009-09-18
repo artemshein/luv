@@ -6,25 +6,29 @@
 	{
 		if (value)
 			return this.val(value);
+		if (this.is(":checkbox"))
+			return this.attr("checked")? this.val() : null;
 		else
-		{
-			if (this.is(":checkbox"))
-				return this.attr("checked")? this.val() : null;
-			else
-				return this.val();
-		}
+			return this.val();
+	};
+	jQuery.fn.showErrors = function (errors)
+	{
+		this.addClass("error");
+		$.each(errors, function (i, error) { alert(error); });
 	};
 	jQuery.fn.fieldVal = function (value)
 	{
 		if (value)
 			return this.val(value);
+		if (this.is("select"))
+			return this.find("option:selected").text();
 		else
 			return this.val();
 	};
 	jQuery.fn.ajaxField = function (url, id, field, callback)
 	{
 		var self = this;
-		this.addClass("ajaxField");
+		this.addClass("ajax");
 		function commitChanges () {
 			var currentValue = self.fieldRawVal();
 			if (currentValue != self.data("lastValue"))
@@ -33,7 +37,9 @@
 				success: function (data, textStatus) {
 					if (data.status == "error")
 					{
-						jQuery.each(data.errors, function (error) { alert(error); });
+						self.showErrors(data.errors);
+						if (!self.fieldVal())
+							self.fieldVal(self.data("lastValue")).focus().select();
 					}
 					else
 					{
@@ -58,38 +64,38 @@
 		if (this.is(":checkbox"))
 			this.change(commitChanges).change();
 		else if (this.hasClass("hasDatepicker"))
-			this.change(commitChanges).blur(commitChanges);
+			this.change(commitChanges).addClass("ajax");
 		else
 			this.blur(commitChanges).blur();
 		return this;
 	};
 	jQuery.fn.inlineEditAjaxField = function (url, id, field, callback)
 	{
-		var self = this;
-		var value = jQuery("#"+this.attr("id")+"Value");
-		function setValue (text) {
-			if (!text || text.length == 0)
-			{
-				value.addClass("emptyInlineEditValue");
-				text = "                ";
-			}
-			value.text(text);
+		function setValue (self, val)
+		{
+			self.text(val);
+			if (val)
+				self.removeClass("emptyInlineEditValue");
+			else
+				self.addClass("emptyInlineEditValue");
 		}
-		function newCallback (self, field, currentValue) {
-			if (callback)
-				callback(self, field, currentValue);
-			self.hide();
-			setValue(self.fieldVal());
-			value.show();
+		var value = jQuery("#"+this.attr("id")+"Value").addClass("inlineEditValue");
+		var self = this;
+		var newCallback = function (self, field, currentValue) {
+			if (!callback || callback(self, field, currentValue))
+			{
+				self.hide();
+				setValue(value, self.fieldVal());
+				value.show();
+			}
 		}
 		this.ajaxField(url, id, field, newCallback);
-		setValue(this.fieldVal());
+		setValue(value, self.fieldVal());
 		value.click(function () {
-			self.show().focus();
 			value.hide();
+			self.show().focus().select();
 		});
-		this.removeClass("ajaxField").addClass("inlineEditAjaxField").hide();
-		value.addClass("inlineEditValue");
+		this.hide();
 	};
 	jQuery.fn.hideError = function ()
 	{
