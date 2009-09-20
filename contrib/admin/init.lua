@@ -9,6 +9,7 @@ local forms = require"luv.forms"
 local json = require"luv.utils.json"
 local references = require"luv.fields.references"
 local ws = require"luv.webservers"
+local Decorator = require"luv.function".Decorator
 
 module(...)
 
@@ -120,11 +121,9 @@ local AdminSite = Object:extend{
 			if not user or not user.active then request:backend():responseHeader("Location", urlConf:baseUri().."/login"):sendHeaders() end
 			return user
 		end
-		local function requireAuth (func)
-			return function (urlConf, ...)
-				return func(urlConf, authUser(urlConf), ...)
-			end
-		end
+		local requireAuth = Decorator(function (func, urlConf, ...)
+			return func(urlConf, authUser(urlConf), ...)
+		end)
 		return {
 			{"^/login/?$"; function (urlConf)
 				local request = urlConf:request()
@@ -142,7 +141,7 @@ local AdminSite = Object:extend{
 				auth.models.User:logout(urlConf:session())
 				request:backend():responseHeader("Location", "/"):sendHeaders()
 			end};
-			{"^/([^/]+)/create/?$"; requireAuth(function (urlConf, user, modelName)
+			{"^/([^/]+)/create/?$"; requireAuth % function (urlConf, user, modelName)
 				local request = urlConf:request()
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
@@ -190,8 +189,8 @@ local AdminSite = Object:extend{
 					form=form;userMsgs=msgsStack:msgs();
 				}
 				luv:display"admin/create.html"
-			end)};
-			{"^/([^/]+)/records/delete/?$"; requireAuth(function (urlConf, user, modelName)
+			end};
+			{"^/([^/]+)/records/delete/?$"; requireAuth % function (urlConf, user, modelName)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
@@ -206,8 +205,8 @@ local AdminSite = Object:extend{
 					ActionLog:logDelete(urlConf:baseUri(), user, admin, record)
 				end
 				io.write""
-			end)};
-			{"^/([^/]+)/records/?$"; requireAuth(function (urlConf, user, modelName)
+			end};
+			{"^/([^/]+)/records/?$"; requireAuth % function (urlConf, user, modelName)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
@@ -237,8 +236,8 @@ local AdminSite = Object:extend{
 					}
 					luv:display"admin/_records-table.html"
 				end
-			end)};
-			{"^/([^/]+)/(.+)/create/?$"; requireAuth(function (urlConf, user, modelName, recordId) -- for TreeModel
+			end};
+			{"^/([^/]+)/(.+)/create/?$"; requireAuth % function (urlConf, user, modelName, recordId) -- for TreeModel
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
@@ -266,8 +265,8 @@ local AdminSite = Object:extend{
 					form=form;userMsgs=msgsStack:msgs();
 				}
 				luv:display"admin/create.html"
-			end)};
-			{"^/([^/]+)/(.+)/?$"; requireAuth(function (urlConf, user, modelName, recordId)
+			end};
+			{"^/([^/]+)/(.+)/?$"; requireAuth % function (urlConf, user, modelName, recordId)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
@@ -305,8 +304,8 @@ local AdminSite = Object:extend{
 					form=form;userMsgs=msgsStack:msgs();
 				}
 				luv:display"admin/edit.html"
-			end)};
-			{"^/([^/]+)/?$"; requireAuth(function (urlConf, user, modelName)
+			end};
+			{"^/([^/]+)/?$"; requireAuth % function (urlConf, user, modelName)
 				local admin = self:findAdmin(modelName)
 				if not admin then ws.Http404() end
 				local model = admin:model()
@@ -317,8 +316,8 @@ local AdminSite = Object:extend{
 					isTree=model:isA(models.Tree);
 				}
 				luv:display"admin/records.html"
-			end)};
-			{"^/?$"; requireAuth(function (urlConf, user)
+			end};
+			{"^/?$"; requireAuth % function (urlConf, user)
 				luv:assign{
 					actionLogs=ActionLog:all(0, 10):order"-datetime":value();
 					empty=table.empty;pairs=pairs;ipairs=ipairs;
@@ -327,7 +326,7 @@ local AdminSite = Object:extend{
 					categories=self:modelsCategories();
 				}
 				luv:display"admin/main.html"
-			end)};
+			end};
 		}
 	end;
 }
