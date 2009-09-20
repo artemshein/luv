@@ -15,9 +15,7 @@ local MODULE = (...)
 local property = Object.property
 local abstract = Object.abstractMethod
 
-if not string.tr then
-	string.tr = function (str) return str end
-end
+string.tr = string.tr or function (str) return str end
 
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
