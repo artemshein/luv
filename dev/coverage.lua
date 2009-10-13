@@ -21,7 +21,7 @@ local Coverage = Object:extend{
 			end
 			local selfInfo = debug.getinfo(1)
 			local info = debug.getinfo(2)
-			if not string.beginsWith(info.short_src, "[")
+			if not info.short_src:beginsWith"["
 			and selfInfo.short_src ~= info.short_src then
 				self._info[info.short_src] = self._info[info.short_src] or {}
 				self._info[info.short_src][lineNumber] = self._info[info.short_src][lineNumber] or {}
@@ -34,7 +34,7 @@ local Coverage = Object:extend{
 		debug.sethook(unpack(self._oldHook or {}))
 		self._oldHook = nil
 	end;
-	getInfo = function (self, only, exclude)
+	info = function (self, only, exclude)
 		if self._coveredInfo then
 			return self._coveredInfo
 		end
@@ -78,7 +78,7 @@ local Coverage = Object:extend{
 		return self._coverInfo
 	end;
 	asHtmlTable = function (self, ...)
-		local coverInfo = self:getInfo(...)
+		local coverInfo = self:info(...)
 		local res = '<table class="coverage"><thead><tr><td>Source</td><td>Coverage (&plusmn;10%)</td></tr></thead><tbody>'
 		for source, info in pairs(coverInfo) do
 			--local min, max = math.max(info.coverPercentage-5, 0), math.min(info.coverPercentage+5, 100)
@@ -88,7 +88,7 @@ local Coverage = Object:extend{
 	end;
 	sourceAsHtml = function (self, source)
 		local lineNumber = 1
-		local info = self:getInfo()[source]
+		local info = self:info()[source]
 		local res = '<pre class="coverage">'
 		for line in io.lines(source) do
 			if info.covered and info.covered[lineNumber] then
@@ -103,7 +103,7 @@ local Coverage = Object:extend{
 			lineNumber = lineNumber + 1
 		end
 		return res.."</pre>"
-	end;
+	end;--[[
 	_parseScript = function (self, filename)
 		local skipStatements = {
 			"if";"then";"while";"for";"then";"else";"elseif";"local";"do";
@@ -145,7 +145,7 @@ local Coverage = Object:extend{
 					if begPos then
 						statement = string.ltrim(string.slice(statement, endPos+1))
 					else
-						skipEnd = "]]"
+						skipEnd = "] ]"
 						statement = ""
 						break
 					end
@@ -172,7 +172,7 @@ local Coverage = Object:extend{
 			lineNumber = lineNumber + 1
 		end
 		return res
-	end
+	end]]
 }
 
 return {Coverage=Coverage}

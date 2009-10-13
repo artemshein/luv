@@ -4,6 +4,7 @@ local type, require, pairs, table, select, io, ipairs = type, require, pairs, ta
 local fields, Exception = require "luv.fields", require "luv.exceptions".Exception
 local widgets = require "luv.fields.widgets"
 local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
+local Redmap = require"luv.db.keyvalue.redmap".Driver
 
 module(...)
 
@@ -105,7 +106,7 @@ local ManyToMany = Reference:extend{
 			c:constraint(refTableName, refTableName, refPkName)
 			c:uniqueTogether(containerTableName, refTableName)
 			return c()
-		elseif db:isA(Redis) then
+		elseif db:isA(Redis) or db:isA(Redmap) then
 			return
 		else
 			Exception"unsupported driver"
@@ -116,7 +117,7 @@ local ManyToMany = Reference:extend{
 		local tableName = self:tableName()
 		if db:isA(sql.Driver) then
 			return db:DropTable(tableName)()
-		elseif db:isA(Redis) then
+		elseif db:isA(Redis) or db:isA(Redmap) then
 			return
 		else
 			Exception"unsupported driver"

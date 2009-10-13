@@ -126,7 +126,7 @@ local Core = Object:extend{
 		return self
 	end);
 	dsn = property("string", nil, function (self, dsn)
-		local drivers = {mysql="sql";redis="keyvalue"}
+		local drivers = {mysql="sql";redis="keyvalue";redmap="keyvalue"}
 		self._dsn = dsn
 		local db = require("luv.db."..drivers[dsn:slice(1, dsn:find":"-1):lower()]).Factory(dsn)
 		require"luv.db.models".Model:db(db)

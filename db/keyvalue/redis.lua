@@ -9,7 +9,7 @@ module(...)
 
 local function get (socket, rawFlag)
 	local res = socket:receive()
-	if res:slice(1, 1) ~= "$" then
+	if not res:beginsWith"$" then
 		Driver.Exception(res)
 	end
 	local len = tonumber(res:slice(2))
@@ -27,7 +27,7 @@ end
 
 local function status (socket)
 	local res = socket:receive()
-	if "+" ~= res:slice(1, 1) then
+	if not res:beginsWith"+" then
 		Driver.Exception(res)
 	end
 	return res
@@ -35,7 +35,7 @@ end
 
 local function numeric (socket)
 	local res = socket:receive()
-	if ":" ~= res:slice(1, 1) then
+	if not res:beginsWith":" then
 		Driver.Exception(res)
 	end
 	return tonumber(res:slice(2))
@@ -43,7 +43,7 @@ end
 
 local function bulk (socket, keys)
 	local res = socket:receive()
-	if "*" ~= res:slice(1, 1) then
+	if not res:beginsWith"*" then
 		Driver.Exception(res)
 	end
 	local count = tonumber(res:slice(2))
