@@ -120,7 +120,7 @@ string.serialize = function (self, seen)
 		local index = 1
 		for k, v in pairs(self) do
 			if not table.ifind(seen, v)
-			and "function" ~= type(v) and "nil" ~= type(v) then
+			and nil ~= v and "function" ~= type(v) then
 				if first then
 					first = false
 				else

@@ -41,7 +41,7 @@ local function dump (obj, depth, tab, seen)
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do
 				if key ~= "__tag" then
-					res = res..ntab..key.." = "..dump(val, depth-1, ntab, seen)..";\n"
+					res = res..ntab..tostring(key).." = "..dump(val, depth-1, ntab, seen)..";\n"
 				end
 			end
 			if getmetatable(obj) then

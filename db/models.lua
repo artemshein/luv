@@ -30,7 +30,9 @@ local ModelTag = cache.Tag:extend{
 local ModelCondSlot = cache.Slot:extend{
 	__tag = .....".ModelCondSlot";
 	init = function (self, backend, model, condition)
-		cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5(serialize(condition))):slice(1, 8))
+		-- FIXME: too big serialize value
+		--cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5(serialize(condition))):slice(1, 8))
+		cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5("FIXME")):slice(1, 8))
 		self:addTag(ModelTag(backend, model))
 	end;
 }
