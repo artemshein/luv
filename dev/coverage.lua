@@ -1,24 +1,35 @@
-local string = require "luv.string"
-local table = table
+local string = require"luv.string"
+local table, require = table, require
 local io, ipairs, type, error, debug = io, ipairs, type, error, debug
 local unpack, pairs, math = unpack, pairs, math
-local Object = require "luv.oop".Object
-local html = require "luv.utils.html"
+local Object = require"luv.oop".Object
+local html = require"luv.utils.html"
+local Exception = require"luv.exceptions".Exception
 
 module(...)
 
+local property = Object.property
+
 local Coverage = Object:extend{
 	__tag = .....".Coverage";
-	init = function (self) self:_begin() end;
-	_begin = function (self)
+	oldHook = property"table";
+	counter = property"number";
+	init = function (self)
 		self._info = {}
-		self._oldHook = {debug.gethook()}
+		self:oldHook{debug.gethook()}
+		self:counter(0)
 		debug.sethook(function (type, lineNumber)
-			local hook = {debug.gethook()}
-			debug.sethook()
+			local counter = self:counter()
+			if counter > 1000000 then
+				debug.sethook()
+				Exception"recursion"
+			end
+			self:counter(counter+1)
 			if type ~= "line" then
 				return
 			end
+			local hook = {debug.gethook()}
+			debug.sethook()
 			local selfInfo = debug.getinfo(1)
 			local info = debug.getinfo(2)
 			if not info.short_src:beginsWith"["
@@ -33,7 +44,7 @@ local Coverage = Object:extend{
 	_end = function (self)
 		debug.sethook(unpack(self._oldHook or {}))
 		self._oldHook = nil
-	end;
+	end;--[[
 	info = function (self, only, exclude)
 		if self._coveredInfo then
 			return self._coveredInfo
@@ -76,15 +87,16 @@ local Coverage = Object:extend{
 			end
 		end
 		return self._coverInfo
-	end;
+	end;]]
 	asHtmlTable = function (self, ...)
-		local coverInfo = self:info(...)
-		local res = '<table class="coverage"><thead><tr><td>Source</td><td>Coverage (&plusmn;10%)</td></tr></thead><tbody>'
+		local coverInfo = self._info
+		require"luv.dev".dprint(coverInfo, 2)
+		--[[local res = '<table class="coverage"><thead><tr><td>Source</td><td>Coverage (&plusmn;10%)</td></tr></thead><tbody>'
 		for source, info in pairs(coverInfo) do
 			--local min, max = math.max(info.coverPercentage-5, 0), math.min(info.coverPercentage+5, 100)
-			res = res.."<tr><td>"..html.escape(source).."</td><td>"..info.coverPercentage.."%</td></tr>"
+			res = res.."<tr><td>"..html.escape(source).."</td><td>"..(info.coverPercentage or "-").."%</td></tr>"
 		end
-		return res.."</tbody></table>"
+		return res.."</tbody></table>"]]
 	end;
 	sourceAsHtml = function (self, source)
 		local lineNumber = 1
@@ -103,76 +115,7 @@ local Coverage = Object:extend{
 			lineNumber = lineNumber + 1
 		end
 		return res.."</pre>"
-	end;--[[
-	_parseScript = function (self, filename)
-		local skipStatements = {
-			"if";"then";"while";"for";"then";"else";"elseif";"local";"do";
-			"function";",";";";"="
-		}
-		local lineNumber, res, skipEnd = 1, {}
-		for line in io.lines(filename) do
-			local statement = string.ltrim(line)
-			if skipEnd then
-				local begPos, endPos = string.find(statement, skipEnd)
-				if begPos then
-					statement = string.ltrim(string.slice(statement, endPos+1))
-					skipEnd = nil
-				else
-					statement = ""
-				end
-			end
-			-- Skip keywords & comments
-			local oldLen
-			while 0 ~= #statement and oldLen ~= #statement do
-				oldLen = #statement
-				for _, skip in ipairs(skipStatements) do
-					if string.beginsWith(statement, skip) then
-						statement = string.ltrim(string.slice(statement, #skip+1))
-					end
-				end
-				if string.beginsWith(statement, "function") then
-					local begPos, endPos = string.find(statement, ")", 1, true)
-					if begPos then
-						statement = string.ltrim(string.slice(statement, endPos+1))
-					else
-						statement = ""
-					end
-				--[[elseif string.match(statement, "^%a%w*") then
-					local begPos, endPos = string.find(statement, "%a%w*")
-					statement = string.ltrim(string.slice(statement, endPos+1))]]
-				elseif string.beginsWith(statement, "--[[") then
-					local begPos, endPos = string.find(statement, "]]", 5, true)
-					if begPos then
-						statement = string.ltrim(string.slice(statement, endPos+1))
-					else
-						skipEnd = "] ]"
-						statement = ""
-						break
-					end
-				elseif string.match(statement, "^--%[=*%[") then
-					local begPos, endPos = string.find(string.slice(statement, 4), "=*")
-					local length = endPos-begPos+1
-					local endTerm = "]"..string.rep("=", length).."]"
-					begPos, endPos = string.find(statement, endTerm, endPos+2, true)
-					if begPos then
-						statement = string.ltrim(string.slice(statement, endPos+1))
-					else
-						skipEnd = endTerm
-						statement = ""
-						break
-					end
-				elseif string.beginsWith(statement, "--") then
-					statement = ""
-					break
-				end
-			end
-			if 0 ~= #statement then
-				res[lineNumber] = {line=line;statement=statement}
-			end
-			lineNumber = lineNumber + 1
-		end
-		return res
-	end]]
+	end;
 }
 
 return {Coverage=Coverage}

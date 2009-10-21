@@ -110,7 +110,7 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core";
-	_version = Version(0, 12, 0, "alpha");
+	_version = Version(9, 10, 0, "alpha");
 	version = property(Version);
 	urlConf = property(UrlConf);
 	wsApi = property(ws.Api);
@@ -334,7 +334,7 @@ local init = function (params)
 	local wsApi = params.wsApi or ws.Cgi(params.tmpDir)
 	local core = Core(wsApi, sessions.Session(wsApi, sessions.SessionFile(params.sessionsDir)))
 	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs))
-	core:dsn(params.dsn)
+	if params.dsn then core:dsn(params.dsn) end
 	core:debugger(params.debugger)
 	if params.cacher then core:cacher(params.cacher) end
 	if params.i18n then core:i18n(params.i18n) end

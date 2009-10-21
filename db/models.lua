@@ -9,7 +9,6 @@ local crypt = require "luv.crypt"
 local TreeNode = require "luv.utils".TreeNode
 local json = require "luv.utils.json"
 local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
-local Redmap = require"luv.db.keyvalue.redmap".Driver
 local checkTypes = require"luv.checktypes".checkTypes
 
 module(...)
@@ -48,7 +47,7 @@ local Model = Struct:extend{
 	__tostring = function (self) return tostring(self.pk) end;
 	modelsList = {};
 	cacher = property;
-	ajaxUrl = property "string";
+	ajaxUrl = property"string";
 	db = property;
 	tableName = property("string", function (self)
 		if (not self._tableName) then
@@ -83,11 +82,11 @@ local Model = Struct:extend{
 						if v:isA(references.OneToMany) then
 							v:relatedName(k)
 						elseif v:isA(references.ManyToOne) then
-							Exception"Use OneToMany field on related model instead of ManyToOne or set relatedName!"
+							Exception"use OneToMany field on related model instead of ManyToOne or set relatedName"
 						elseif v:isA(references.ManyToMany) then
-							v:relatedName(new:labelMany() or Exception"LabelMany required!")
+							v:relatedName(new:labelMany() or Exception"labelMany required")
 						else
-							v:relatedName(new:label() or Exception"Label required!")
+							v:relatedName(new:label() or Exception"label required")
 						end
 					end
 					v:refModel():addField(v:relatedName(), v:createBackLink())
@@ -227,15 +226,6 @@ local Model = Struct:extend{
 					return values
 				end
 			end
-		elseif db:isA(Redmap) then
-			if "table" == type(condition) then
-				local funcSrc = "function (self) local cond = "..string.serialize(condition)
-					..' for f, v in pairs(cond) do if self[f] ~= v then return end end emit("res", self) end'
-				local res = db:mapreduce(tableName..":", funcSrc)
-				return res and res.res[1]
-			else
-				return db:get(tableName..":"..condition)
-			end
 		else
 			Exception"unsupported driver"
 		end
@@ -319,42 +309,6 @@ local Model = Struct:extend{
 					f:insert()
 				end
 			end
-		elseif db:isA(Redmap) then
-			if self:pkField():isA(fields.Id) then
-				local lastInsertId = db:get(tableName..":lastInsertId")
-				if not lastInsertId then
-					lastInsertId = 1
-				else
-					lastInsertId = lastInsertId + 1
-				end
-				db:set(tableName..":lastInsertId", lastInsertId)
-				self.pk = lastInsertId
-			end
-			local pk = self.pk
-			-- For references as primary keys
-			while "table" == type(pk) do
-				pk = pk.pk
-			end
-			local values = {}
-			for name, f in pairs(self:fields()) do
-				local value = f:value()
-				if nil == value then
-					value = f:defaultValue()
-				end
-				if value then
-					if f:isA(references.OneToOne) or f:isA(references.ManyToOne) then
-						values[name] = value.pk
-					elseif f:isA(references.OneToMany) or f:isA(references.ManyToMany) then
-						values[name] = {}
-						for _, v in ipairs(value) do
-							table.insert(values[name], v.pk)
-						end
-					else
-						values[name] = value
-					end
-				end
-			end
-			db:set(tableName..":"..pk, values)
 		elseif db:isA(Redis) then
 			if self:pkField():isA(fields.Id) then
 				self.pk = db:incr(tableName..":lastInsertId")
@@ -491,12 +445,6 @@ local Model = Struct:extend{
 			else
 				return self:update()
 			end
-		elseif db:isA(Redmap) then
-			if not pk:value() or not db:get(tableName..":"..pk:value()) then
-				return self:insert()
-			else
-				return self:update()
-			end
 		elseif db:isA(keyvalue.Driver) then
 			if not pk:value() or not db:get(tableName..":"..pk:value()..":"..pkName) then
 				return self:insert()
@@ -519,11 +467,6 @@ local Model = Struct:extend{
 		self:clearCacheTag()
 		if db:isA(sql.Driver) then
 			return db:DeleteRow():from(tableName):where("?#="..self:fieldPlaceholder(pkF), pkName, pk)()
-		elseif db:isA(Redmap) then
-			local keys = db:keys(tableName..":")
-			if not table.empty(keys) then
-				db:del(keys)
-			end
 		elseif db:isA(Redis) then
 			db:srem(tableName, pk)
 			local keys = db:keys(tableName..":"..pk..":*")
@@ -609,7 +552,7 @@ local Model = Struct:extend{
 			if not c() then
 				return false
 			end
-		elseif db:isA(Redmap) or db:isA(Redis) then
+		elseif db:isA(Redis) then
 		else
 			Exception"unsupported driver"
 		end
@@ -629,11 +572,6 @@ local Model = Struct:extend{
 		self:clearCacheTag()
 		if db:isA(sql.Driver) then
 			return db:DropTable(tableName)()
-		elseif db:isA(Redmap) then
-			local keys = db:keys(tableName..":")
-			if not table.empty(keys) then
-				db:del(keys)
-			end
 		elseif db:isA(Redis) then
 			db:del(tableName)
 			local keys = db:keys(tableName..":*")
@@ -1195,27 +1133,17 @@ local KeyValueQuerySet = QuerySet:extend{
 			end
 			if field:isA(references.Reference) then
 				if field:isA(references.ManyToOne) or field:isA(references.OneToOne) then
-					if db:isA(Redmap) then
-						result = result..' res = db:get("'..curModel:tableName()..':"..res).'..part
-					else
-						result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
-					end
+					result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
 				else
 					if db:isA(Redis) then -- Redis has native arrays
 						result = result..' res = db:smembers("'..curModel:tableName()..':"..res..":'..part..'")'
-					elseif db:isA(Redmap) then
-						result = result..' res = db:get("'..curModel:tableName()..':"..res).'..part
 					else
 						result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
 					end
 				end
 				curModel = field:refModel()
 			else
-				if db:isA(Redmap) then
-					result = result..' res = db:get("'..curModel:tableName()..':"..res).'..part
-				else
-					result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
-				end
+				result = result..' res = db:get("'..curModel:tableName()..':"..res..":'..part..'")'
 				curModel = nil
 			end
 		end
@@ -1331,12 +1259,7 @@ local KeyValueQuerySet = QuerySet:extend{
 			pks = self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))())
 		else
 			local db = model:db()
-			if db:isA(Redis) then
-				pks = db:smembers(model:tableName())
-			elseif db:isA(Redmap) then
-				pks = db:mapreduce(model:tableName(), 'function (self) emit("pks", self.'..model:pkName()..') end')
-				pks = pks and pks.pks or {}
-			end
+			pks = db:smembers(model:tableName())
 		end
 		-- Sort
 		if not table.empty(self._orders) then

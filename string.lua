@@ -130,7 +130,12 @@ string.serialize = function (self, seen)
 					res = res..string.serialize(v, seen)
 					index = index + 1
 				else
-					res = res.."["..string.serialize(k).."]="..string.serialize(v, seen)
+					if "number" == type(k) then
+						res = res.."["..k.."]="
+					else
+						res = res.."["..("%q"):format(k).."]="
+					end
+					res = res..string.serialize(v, seen)
 				end
 			end
 		end
