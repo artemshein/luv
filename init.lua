@@ -59,16 +59,16 @@ local UrlConf = Object:extend{
 		end
 		for _, item in pairs(urls) do
 			if "string" == type(item[1]) then
-				local res = {self._tailUri:find(item[1])}
+				local res = {self:tailUri():find(item[1])}
 				if nil ~= res[1] then
-					local oldTailUri, oldBaseUri, oldCaptures = self:tailUri(), self:baseUri(), self:captures()
 					local tailUriLen = string.utf8len(self:tailUri())
 					self:baseUri(self:baseUri()..self:uri():slice(1, -tailUriLen+res[1]-2))
 					self:tailUri(self:tailUri():sub(res[2]+1))
-					self:captures{}
+					local captures = {}
 					for i = 3, #res do
-						table.insert(self._captures, res[i])
+						table.insert(captures, res[i])
 					end
+					self:captures(captures)
 					if false ~= self:execute(item[2]) then
 						return true
 					end
@@ -108,7 +108,7 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core";
-	_version = Version(0, 12, 0, "alpha");
+	_version = Version(9, 10, 0, "alpha");
 	version = property(Version);
 	urlConf = property(UrlConf);
 	wsApi = property(ws.Api);
@@ -332,7 +332,7 @@ local init = function (params)
 	local wsApi = params.wsApi or ws.Cgi(params.tmpDir)
 	local core = Core(wsApi, sessions.Session(wsApi, sessions.SessionFile(params.sessionsDir)))
 	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs))
-	core:dsn(params.dsn)
+	if params.dsn then core:dsn(params.dsn) end
 	core:debugger(params.debugger)
 	if params.cacher then core:cacher(params.cacher) end
 	if params.i18n then core:i18n(params.i18n) end

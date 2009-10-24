@@ -62,7 +62,7 @@ local Field = Object:extend{
 	end,
 	clone = function (self)
 		local new = Object.clone(self)
-		new:validators(table.map(self:validators(), function (val) return val:clone() end))
+		new:validators(table.map(self:validators(), "clone"))
 		return new
 	end,
 	params = function (self, params)

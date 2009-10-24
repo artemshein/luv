@@ -7,20 +7,21 @@ local Object = require "luv.oop".Object
 module(...)
 
 local function dump (obj, depth, tab, seen)
-	local res, tab = "", tab or ""
+	local tab = tab or ""
 	local depth = depth or 1
 	local seen = seen or {}
-	if type(obj) == "nil" then
-		res = res.."nil"
-	elseif obj == true then
-		res = res.."true"
-	elseif obj == false then
-		res = res.."false"
-	elseif type(obj) == "number" then
-		res = res..obj
-	elseif type(obj) == "string" then
-		res = res..string.format("%q", obj)
-	elseif type(obj) == "table" then
+	if nil == obj then
+		return "nil"
+	elseif true == obj then
+		return "true"
+	elseif false == obj then
+		return "false"
+	elseif "number" == type(obj) then
+		return tostring(obj)
+	elseif "string" == type(obj) then
+		return ("%q"):format(obj)
+	elseif "table" == type(obj) then
+		local res = ""
 		local tag = rawget(obj, "__tag")
 		if tag then
 			res = res..tag
@@ -40,7 +41,7 @@ local function dump (obj, depth, tab, seen)
 			local ntab = tab.."  "
 			for key, val in pairs(obj) do
 				if key ~= "__tag" then
-					res = res..ntab..key.." = "..dump(val, depth-1, ntab, seen)..";\n"
+					res = res..ntab..tostring(key).." = "..dump(val, depth-1, ntab, seen)..";\n"
 				end
 			end
 			if getmetatable(obj) then
@@ -49,13 +50,13 @@ local function dump (obj, depth, tab, seen)
 			res = res..tab.."}"
 			table.iremoveValue(seen, obj)
 		end
-	elseif type(obj) == "function" then
+		return res
+	elseif "function" == type(obj) then
 		local info = debug.getinfo(obj)
-		res = res.."[function "..info.short_src..":"..info.linedefined.."]"
+		return "[function "..info.short_src..":"..info.linedefined.."]"
 	else
-		res = res..type(obj)
+		return type(obj)
 	end
-	return res
 end
 
 local function dprint (...) io.write(dump(...)) end

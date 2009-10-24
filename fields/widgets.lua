@@ -263,7 +263,7 @@ local NestedSetSelect = Select:extend{
 			minLevel = (minLevel and (minLevel < level and minLevel or level)) or level
 			data[v.pk] = {value=v.pk;label=tostring(v);hasChildren=v:hasChildren();left=v.left;right=v.right;level=v.level}
 		end
-		local id = fieldId(form, field)
+		local id = self:_fieldId(field, form)
 		local value = field:value()
 		return
 		"<div id="..("%q"):format(id.."Back").."></div>"

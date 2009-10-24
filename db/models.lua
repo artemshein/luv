@@ -30,7 +30,9 @@ local ModelTag = cache.Tag:extend{
 local ModelCondSlot = cache.Slot:extend{
 	__tag = .....".ModelCondSlot";
 	init = function (self, backend, model, condition)
-		cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5(serialize(condition))):slice(1, 8))
+		-- FIXME: too big serialize value
+		--cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5(serialize(condition))):slice(1, 8))
+		cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5("FIXME")):slice(1, 8))
 		self:addTag(ModelTag(backend, model))
 	end;
 }
@@ -47,7 +49,7 @@ local Model = Struct:extend{
 	__tostring = function (self) return tostring(self.pk) end;
 	modelsList = {};
 	cacher = property;
-	ajaxUrl = property "string";
+	ajaxUrl = property"string";
 	db = property;
 	tableName = property("string", function (self)
 		if (not self._tableName) then
@@ -82,11 +84,11 @@ local Model = Struct:extend{
 						if v:isA(references.OneToMany) then
 							v:relatedName(k)
 						elseif v:isA(references.ManyToOne) then
-							Exception"Use OneToMany field on related model instead of ManyToOne or set relatedName!"
+							Exception"use OneToMany field on related model instead of ManyToOne or set relatedName"
 						elseif v:isA(references.ManyToMany) then
-							v:relatedName(new:labelMany() or Exception"LabelMany required!")
+							v:relatedName(new:labelMany() or Exception"labelMany required")
 						else
-							v:relatedName(new:label() or Exception"Label required!")
+							v:relatedName(new:label() or Exception"label required")
 						end
 					end
 					v:refModel():addField(v:relatedName(), v:createBackLink())
@@ -553,7 +555,6 @@ local Model = Struct:extend{
 				return false
 			end
 		elseif db:isA(Redis) then
-			-- nothing to do?
 		else
 			Exception"unsupported driver"
 		end
@@ -1231,8 +1232,11 @@ local KeyValueQuerySet = QuerySet:extend{
 		local dbKeys = {}
 		for _, v in ipairs(self._orders) do
 			for _, pk in ipairs(pks) do
-				table.insert(dbKeys, tableName..":"..pk..":"..("-" == v:slice(1, 1) and v:slice(2) or v))
+				table.insert(dbKeys, tableName..":"..pk..":"..(v:beginsWith"-" and v:slice(2) or v))
 			end
+		end
+		if table.empty(dbKeys) then
+			return result
 		end
 		local values = model:db():get(dbKeys)
 		local typeFunc
@@ -1252,7 +1256,13 @@ local KeyValueQuerySet = QuerySet:extend{
 		local model, values = self:model(), {}
 		self:evaluated(true)
 		-- Filter
-		local pks = self:q() and self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))()) or model:db():smembers(model:tableName())
+		local pks
+		if self:q() then
+			pks = self:_validateAll(assert(loadstring("return ("..self:_valFuncTextForQ(self:q())..")"))())
+		else
+			local db = model:db()
+			pks = db:smembers(model:tableName())
+		end
 		-- Sort
 		if not table.empty(self._orders) then
 			local sortFunc = assert(loadstring("return "..self:_sortFuncText(pks)))()

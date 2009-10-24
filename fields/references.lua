@@ -17,24 +17,24 @@ local Reference = fields.Field:extend{
 	refModel = property;
 	role = property;
 	init = function (self, params)
-		if self._parent._parent == fields.Field then
-			Exception"Instantiate of abstract class is not allowed!"
+		if self:parent():parent() == fields.Field then
+			Exception"instantiate of abstract class is not allowed"
 		end
-		local Model = require "luv.db.models".Model
+		local Model = require"luv.db.models".Model
 		if ("table" == type(params) and params.isA and params:isA(Model)) or "string" == type(params) then
-			params = {references = params}
+			params = {references=params}
 		end
 		fields.Field.init(self, params)
 	end;
 	params = function (self, params)
 		if "table" == type(params)  then
 			self.toField = params.toField
-			if "table" ~= type(params.references) then Exception "References must be a Model!" end
+			if "table" ~= type(params.references) then Exception"references must be an instance of Model" end
 			self:refModel(params.references)
 			self:relatedName(params.relatedName)
 			fields.Field.params(self, params)
 		else
-			self:refModel(params or Exception "References required!")
+			self:refModel(params or Exception"references required")
 		end
 	end;
 }
@@ -45,32 +45,20 @@ local ManyToMany = Reference:extend{
 		params = params or {}
 		Reference.init(self, params)
 	end;
-	valid = function (self)
-		if self:required() and #self:value() == 0 then
-			return false
-		end
-		return Reference.valid(self)
-	end;
-	value = function (self, ...)
-		if select("#", ...) > 0 then
-			local value = (select(1, ...))
-			if "table" ~= type(value) then
-				value = {}
-			else
-				value = table.copy(value)
-				if #value > 0 and "table" ~= type(value[1]) then
-					value = self:refModel():all():filter{pk__in=value}:value()
-				end
-			end
-			self._value = value
-			return self
+	value = property(nil, function (self)
+		return Reference.value(self)
+	end, function (self, value)
+		if "table" ~= type(value) then
+			value = {}
 		else
-			--[[if not self._value and self:container().pk then
-				self:value(self:all():value())
-			end]]
-			return Reference.value(self)
+			value = table.copy(value)
+			if #value > 0 and "table" ~= type(value[1]) then
+				value = self:refModel():all():filter{pk__in=value}:value()
+			end
 		end
-	end;
+		self._value = value
+		return self
+	end);
 	tableName = function (self)
 		if not self._tableName then
 			local t1, t2 = self:container():labelMany():replace(" ", "_"), self:refModel():labelMany():replace(" ", "_")

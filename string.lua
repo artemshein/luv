@@ -120,7 +120,7 @@ string.serialize = function (self, seen)
 		local index = 1
 		for k, v in pairs(self) do
 			if not table.ifind(seen, v)
-			and "function" ~= type(v) and "nil" ~= type(v) then
+			and nil ~= v and "function" ~= type(v) then
 				if first then
 					first = false
 				else
@@ -130,7 +130,12 @@ string.serialize = function (self, seen)
 					res = res..string.serialize(v, seen)
 					index = index + 1
 				else
-					res = res.."["..string.serialize(k).."]="..string.serialize(v, seen)
+					if "number" == type(k) then
+						res = res.."["..k.."]="
+					else
+						res = res.."["..("%q"):format(k).."]="
+					end
+					res = res..string.serialize(v, seen)
 				end
 			end
 		end
