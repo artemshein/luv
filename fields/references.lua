@@ -1,4 +1,4 @@
-local debug = debug
+local debug, tostring = debug, tostring
 local string = require "luv.string"
 local type, require, pairs, table, select, io, ipairs = type, require, pairs, table, select, io, ipairs
 local fields, Exception = require "luv.fields", require "luv.exceptions".Exception

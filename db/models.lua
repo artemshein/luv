@@ -27,15 +27,15 @@ local ModelTag = cache.Tag:extend{
 }
 
 -- Slot of Model record by condition
-local ModelCondSlot = cache.Slot:extend{
+--[[local ModelCondSlot = cache.Slot:extend{
 	__tag = .....".ModelCondSlot";
 	init = function (self, backend, model, condition)
 		-- FIXME: too big serialize value
 		--cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5(serialize(condition))):slice(1, 8))
-		cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5("FIXME")):slice(1, 8))
+		cache.Slot.init(self, backend, model:tableName().."_"..tostring(crypt.Md5(math.random())):slice(1, 8))
 		self:addTag(ModelTag(backend, model))
 	end;
-}
+}]]
 
 local Model = Struct:extend{
 	__tag = .....".Model";
@@ -233,11 +233,11 @@ local Model = Struct:extend{
 		end
 	end;
 	find = function (self, condition)
-		local cacher, cacheSlot, values = self:cacher()
+		--[[local cacher, cacheSlot, values = self:cacher()
 		if cacher then
 			cacheSlot = ModelCondSlot(cacher, self, condition)
-		end
-		values = cacheSlot and cacheSlot:thru(self):_loadOneByCond(condition) or self:_loadOneByCond(condition)
+		end]]
+		values = --[[cacheSlot and cacheSlot:thru(self):_loadOneByCond(condition) or]] self:_loadOneByCond(condition)
 		if not values then
 			return nil
 		end

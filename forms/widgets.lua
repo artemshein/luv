@@ -105,8 +105,8 @@ local Form = Widget:extend{
 	end;
 }
 
-local FlowForm = Form:extend{
-	__tag = .....".FlowForm";
+local Flow = Form:extend{
+	__tag = .....".Flow";
 	_beforeFields = "";
 	_beforeLabel = " ";
 	_afterLabel = " ";
@@ -116,8 +116,8 @@ local FlowForm = Form:extend{
 	init = function () end;
 }
 
-local HorisontalTableForm = Form:extend{
-	__tag = .....".HorisontalTableForm";
+local HorisontalTable = Form:extend{
+	__tag = .....".HorisontalTable";
 	_beforeFields = "<table><tbody><tr>";
 	_beforeLabel = "<th>";
 	_afterLabel = "</th>";
@@ -127,8 +127,8 @@ local HorisontalTableForm = Form:extend{
 	init = function () end;
 }
 
-local VerticalTableForm = Form:extend{
-	__tag = .....".HorisontalTableForm";
+local VerticalTable = Form:extend{
+	__tag = .....".HorisontalTable";
 	_beforeFields = "<table><tbody>";
 	_beforeLabel = "<tr><th>";
 	_afterLabel = "</th>";
@@ -139,6 +139,6 @@ local VerticalTableForm = Form:extend{
 }
 
 return {
-	Form=Form;FlowForm=FlowForm;HorisontalTableForm=HorisontalTableForm;
-	VerticalTableForm=VerticalTableForm;
+	Widget=Form;Flow=Flow;HorisontalTable=HorisontalTable;
+	VerticalTable=VerticalTable;
 }
