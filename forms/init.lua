@@ -42,7 +42,7 @@ local Form = Struct:extend{
 		end
 		self.Meta = self.Meta or {}
 		if not self:widget() then
-			self:widget(require"luv.forms.widgets".VerticalTableForm())
+			self:widget(require"luv.forms.widgets".VerticalTable())
 		end
 		self:fields(table.map(self:fields(), "clone"))
 		if values then
