@@ -269,7 +269,7 @@ models.Model.ajaxFieldHandler = function (self, data, preCond, postFunc)
 		return true
 	end
 	io.write(json.serialize{status="ok"})
-	postFunc(f, obj)
+	if postFunc then postFunc(f, obj) end
 	return true
 end
 
