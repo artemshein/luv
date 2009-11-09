@@ -958,9 +958,9 @@ local SqlQuerySet = QuerySet:extend{
 				valStr = operators[op]..self:model():fieldPlaceholder(res.field or res[#res])
 			end
 			local f = res.field or self:model():field(res[#res])
-			if f:isA(fields.Datetime) then
+			if f:isA(fields.Datetime) and "number" == type(v) then
 				v = os.date("%Y-%m-%d %H:%M:%S", v)
-			elseif f:isA(fields.Date) then
+			elseif f:isA(fields.Date) and "number" == type(v) then
 				v = os.date("%Y-%m-%d", v)
 			end
 			result.sql = (result.sql and (result.sql.." AND ") or "")..res.sql..valStr
