@@ -1033,7 +1033,11 @@ local SqlQuerySet = QuerySet:extend{
 		local s = db:Select(model:pkName()):from(model:tableName())
 		self:_applyConditions(s)
 		local pkName = model:pkName()
-		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), table.imap(s(), function (a) return a[pkName] end))
+		local pks = table.imap(s(), function (a) return a[pkName] end)
+		if table.empty(pks) then
+			return
+		end
+		local u = db:Update(model:tableName()):where("?# IN (?a)", model:pkName(), pks)
 		local val
 		for k, v in pairs(set) do
 			if type(v) == "table" and v.isA and v:isA(Model) then
