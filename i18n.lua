@@ -50,7 +50,7 @@ local I18n = Object:extend{
 				end
 			end
 		else
-			self:_tryToLoadLang(langOrWsApi)
+			self:_tryToLoadLang(langOrWsApi, globalFlag)
 		end
 	end;
 }
