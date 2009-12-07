@@ -108,7 +108,7 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core";
-	_version = Version(9, 11, 0, "alpha");
+	_version = Version(9, 12, 0, "alpha");
 	version = property(Version);
 	urlConf = property(UrlConf);
 	wsApi = property(ws.Api);
@@ -124,7 +124,7 @@ local Core = Object:extend{
 		return self
 	end);
 	dsn = property("string", nil, function (self, dsn)
-		local drivers = {mysql="sql";redis="keyvalue"}
+		local drivers = {mysql="sql";sqlite3="sql";redis="keyvalue"}
 		self._dsn = dsn
 		local db = require("luv.db."..drivers[dsn:slice(1, dsn:find":"-1):lower()]).Factory(dsn)
 		require"luv.db.models".Model:db(db)
