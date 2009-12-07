@@ -49,7 +49,7 @@ local InsertRow = Driver.InsertRow:extend{
 		return
 			"INSERT INTO "
 			..self._db:processPlaceholder("?#", self._table)
-			..self._db:constructSet(self._sets)
+			..self._db:constructSetValues(self._sets)
 			..";"
 	end;
 } 
@@ -337,6 +337,13 @@ local Sqlite3Driver = Driver:extend{
 		end
 	end;
 	constructSet = function (self, sets)
+		local res = {}
+		for k, v in pairs(sets) do
+			res[k] = self:processPlaceholders(unpack(v))
+		end
+		return " SET "..table.join(res, ", ")
+	end;
+	constructSetValues = function (self, sets)
 		local namesIndex, valuesIndex = 1, 1
 		local names, values, namesVals, valuesVals = {}, {}, {}, {}, {}
 		for _, set in ipairs(sets) do

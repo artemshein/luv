@@ -20,14 +20,12 @@ string.tr = string.tr or function (str) return str end
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
 	request = property(ws.HttpRequest);
-	session = property;
 	uri = property"string";
 	tailUri = property"string";
 	baseUri = property"string";
 	captures = property"table";
-	init = function (self, request, session)
+	init = function (self, request)
 		self:request(request)
-		self:session(session)
 		self:uri(request:header"REQUEST_URI" or "")
 		local queryPos = self:uri():find"?"
 		if queryPos then
@@ -108,12 +106,11 @@ local TemplateSlot = Slot:extend{
 
 local Core = Object:extend{
 	__tag = .....".Core";
-	_version = Version(9, 12, 0, "alpha");
+	_version = Version(9, 12, 1, "alpha");
 	version = property(Version);
 	urlConf = property(UrlConf);
 	wsApi = property(ws.Api);
 	templater = property;
-	session = property;
 	db = property;
 	profiler = property;
 	debugger = property;
@@ -132,13 +129,11 @@ local Core = Object:extend{
 		return self
 	end);
 	-- Init
-	init = function (self, wsApi, session)
+	init = function (self, wsApi)
 		self:profiler(dev.Profiler())
 		self:beginProfiling "Luv"
-		--
 		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self:version())))
-		if session then self:session(session) end
-		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi()), session))
+		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi())))
 		self:cacher(TagEmuWrapper(Memory()))
 	end;
 	-- Database
@@ -330,7 +325,16 @@ local Widget = Object:extend{
 
 local init = function (params)
 	local wsApi = params.wsApi or ws.Cgi(params.tmpDir)
-	local core = Core(wsApi, sessions.Session(wsApi, sessions.SessionFile(params.sessionsDir)))
+	-- Session
+	if params.sessionsDir then
+		local id = wsApi:cookie"LUV_SESS_ID"
+		if not id or string.utf8len(id) ~= 12 then
+			id = tostring(crypt.Md5(math.random(2000000000))):slice(1, 12)
+			wsApi:cookie("LUV_SESS_ID", id)
+		end
+		wsApi:session(sessions.Session(sessions.SessionFile(params.sessionsDir), id))
+	end
+	local core = Core(wsApi)
 	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs))
 	if params.dsn then core:dsn(params.dsn) end
 	core:debugger(params.debugger)

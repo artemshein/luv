@@ -19,14 +19,8 @@ local Session = Object:extend{
 		rawget(self, "_data")[key] = value
 	end;
 	_cookieName = "LUV_SESS_ID";
-	init = function (self, wsApi, storage)
-		rawset(self, "_wsApi", wsApi)
+	init = function (self, storage, id)
 		rawset(self, "_storage", storage)
-		local id = wsApi:cookie(self._cookieName)
-		if not id or string.utf8len(id) ~= 12 then
-			id = tostring(crypt.Md5(math.random(2000000000))):slice(1, 12)
-			wsApi:cookie(self._cookieName, id)
-		end
 		rawset(self, "_id", id)
 		local data = storage:read(id)
 		rawset(self, "_data", data and data:unserialize() or {})

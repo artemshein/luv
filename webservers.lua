@@ -24,7 +24,7 @@ local HttpRequest = Object:extend{
 	headers = function (self) return self:backend():requestHeaders() end;
 	header = function (self, header) return self:backend():requestHeader(header) end;
 	get = function (self, ...)
-		if select("#", ...) > 0 then
+		if select("#", ...) > 1 then
 			self:backend():get(...)
 			return self
 		else
@@ -33,7 +33,7 @@ local HttpRequest = Object:extend{
 	end;
 	getData = function (self) return self:backend():getData() end;
 	post = function (self, ...)
-		if select("#", ...) > 0 then
+		if select("#", ...) > 1 then
 			self:backend():post(...)
 			return self
 		else
@@ -43,6 +43,7 @@ local HttpRequest = Object:extend{
 	postData = function (self) return self:backend():postData() end;
 	cookie = function (self, name) return self:backend():cookie(name) end;
 	cookies = function (self) return self:backend():cookies() end;
+	session = function (self) return self:backend():session() end;
 }
 
 local HttpResponse = Object:extend{
@@ -141,8 +142,10 @@ local Cgi = Api:extend{
 	_get = {};
 	_post = {};
 	tmpDir = property;
-	new = function (self, tmpDir)
+	session = property;
+	new = function (self, tmpDir, session)
 		self:tmpDir(tmpDir)
+		if session then self:session(session) end
 		if not self._write then
 			self._write = io.write
 			io.write = function (...)

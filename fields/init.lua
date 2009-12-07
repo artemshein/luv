@@ -21,6 +21,9 @@ local Field = Object:extend{
 		if self._required then
 			self:validator("filled", validators.Filled())
 			self:addClass"required"
+		else
+			self:validator("filled", nil)
+			self:removeClass"required"
 		end
 		return self
 	end);
@@ -45,6 +48,7 @@ local Field = Object:extend{
 	value = property;
 	choices = property;
 	defaultValue = property;
+	_classes = {};
 	classes = property"table";
 	widget = property(Widget);
 	onClick = property;
@@ -87,9 +91,15 @@ local Field = Object:extend{
 		return self
 	end;
 	addClass = function (self, class)
-		self._classes = self._classes or {}
 		if not table.ifind(self._classes, class) then
 			table.insert(self._classes, class)
+		end
+		return self
+	end;
+	removeClass = function (self, class)
+		local pos = table.ifind(self._classes, class)
+		if pos then
+			table.remove(self._classes, pos)
 		end
 		return self
 	end;
