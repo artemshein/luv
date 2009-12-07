@@ -48,7 +48,6 @@ local Field = Object:extend{
 	value = property;
 	choices = property;
 	defaultValue = property;
-	_classes = {};
 	classes = property"table";
 	widget = property(Widget);
 	onClick = property;
@@ -62,6 +61,7 @@ local Field = Object:extend{
 		end
 		self:validators{}
 		self:errors{}
+		self:classes{}
 		self:params(params)
 	end,
 	clone = function (self)

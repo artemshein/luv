@@ -16,53 +16,53 @@ local Http404 = Http4xx:extend{__tag = .....".Http404"}
 
 local HttpRequest = Object:extend{
 	__tag = .....".HttpRequest";
-	backend = property;
-	init = function (self, backend)
-		self:backend(backend)
+	wsApi = property"table";
+	init = function (self, wsApi)
+		self:wsApi(wsApi)
 	end;
 	method = function (self) return self:header"REQUEST_METHOD" end;
-	headers = function (self) return self:backend():requestHeaders() end;
-	header = function (self, header) return self:backend():requestHeader(header) end;
+	headers = function (self) return self:wsApi():requestHeaders() end;
+	header = function (self, header) return self:wsApi():requestHeader(header) end;
 	get = function (self, ...)
 		if select("#", ...) > 1 then
-			self:backend():get(...)
+			self:wsApi():get(...)
 			return self
 		else
-			return self:backend():get()
+			return self:wsApi():get()
 		end
 	end;
-	getData = function (self) return self:backend():getData() end;
+	getData = function (self) return self:wsApi():getData() end;
 	post = function (self, ...)
 		if select("#", ...) > 1 then
-			self:backend():post(...)
+			self:wsApi():post(...)
 			return self
 		else
-			return self:backend():post(...)
+			return self:wsApi():post(...)
 		end
 	end;
-	postData = function (self) return self:backend():postData() end;
-	cookie = function (self, name) return self:backend():cookie(name) end;
-	cookies = function (self) return self:backend():cookies() end;
-	session = function (self) return self:backend():session() end;
+	postData = function (self) return self:wsApi():postData() end;
+	cookie = function (self, name) return self:wsApi():cookie(name) end;
+	cookies = function (self) return self:wsApi():cookies() end;
+	session = function (self) return self:wsApi():session() end;
 }
 
 local HttpResponse = Object:extend{
 	__tag = .....".HttpResponse";
-	backend = property"table";
+	wsApi = property"table";
 	content = property"string";
-	init = function (self, backend, content)
-		self:backend(backend)
+	init = function (self, wsApi, content)
+		self:wsApi(wsApi)
 		self:content(content)
 	end;
 	header = function (self, header, ...)
 		if select("#", ...) > 0 then
-			self:backend():responseHeader(header, ...)
+			self:wsApi():responseHeader(header, ...)
 			return self
 		else
-			return self:backend():responseHeader(header)
+			return self:wsApi():responseHeader(header)
 		end
 	end;
-	code = function (self, code) self:backend():responseCode(code) return self end;
+	code = function (self, code) self:wsApi():responseCode(code) return self end;
 	contentType = function (self, contentType) self:header("Content-Type", contentType) return self end;
 	appendContent = function (self, content) self:content(self:content()..content) return self end;
 }
