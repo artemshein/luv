@@ -66,7 +66,10 @@
 		else if (this.hasClass("hasDatepicker"))
 			this.change(commitChanges).addClass("ajax");
 		else
-			this.blur(commitChanges).blur();
+			this.blur(commitChanges).keypress(function (e) {
+				if (e.which == 13)
+					commitChanges();
+			}).blur();
 		return this;
 	};
 	jQuery.fn.inlineEditAjaxField = function (url, id, field, callback)
