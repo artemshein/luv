@@ -302,9 +302,6 @@ local Cgi = Api:extend{
 	sendHeaders = function (self)
 		io.write = self._write
 		if not self._responseCode then self._responseCode = 200 end
-		if not self:responseHeader"Location" then
-			io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\n")
-		end
 		if not self:responseHeader("Content-type") then
 			self:responseHeader("Content-type", "text/html")
 		end
