@@ -302,11 +302,12 @@ local Cgi = Api:extend{
 	sendHeaders = function (self)
 		io.write = self._write
 		if not self._responseCode then self._responseCode = 200 end
+		--WTF?? Apache2... io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\nStatus: ", self._responseCode, " ", responseString[self._responseCode], "\n")
 		if not self:responseHeader("Content-type") then
 			self:responseHeader("Content-type", "text/html")
 		end
 		for k, v in pairs(self._responseHeaders) do
-			io.write(k, ":", v, "\n")
+			io.write(k, ": ", v, "\n")
 		end
 		io.write"\n"
 		self._headersAlreadySent = true

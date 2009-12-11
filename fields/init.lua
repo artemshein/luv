@@ -73,7 +73,6 @@ local Field = Object:extend{
 		params = params or {}
 		self:pk(params.pk or false)
 		self:unique(params.unique or false)
-		self:required(params.required or false)
 		if params.label then self:label(params.label) end
 		if params.widget then self:widget(params.widget) end
 		self:onClick(params.onClick)

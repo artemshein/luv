@@ -15,6 +15,13 @@
 			return true;
 		return false;
 	};
+	jQuery.fn.validNonNegative = function ()
+	{
+		this.hideError();
+		if (!this.fieldRawVal() || /^[0-9]+$/.test(this.fieldRawVal()))
+			return true;
+		return false;
+	};
 	jQuery.fn.validLength = function (minLen, maxLen)
 	{
 		this.hideError();
