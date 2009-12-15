@@ -61,7 +61,9 @@ local SessionFile = Object:extend{
 	end;
 	write = function (self, name, value)
 		local d = Dir(self:dir() / name:slice(1, 2))
-		d:create()
+		if not d:exists() then
+			d:create()
+		end
 		local f = File(d / name:slice(3))
 		f:openWriteAndClose(value)
 		return true

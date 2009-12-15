@@ -356,8 +356,8 @@ local Int = Field:extend{
 
 local NonNegativeInt = Int:extend{
 	__tag = .....".NonNegativeInt";
-	init = function (self)
-		Int.init(self)
+	init = function (self, params)
+		Int.init(self, params)
 		self:validator("nonNegative", validators.NonNegative())
 	end;
 }
