@@ -176,6 +176,10 @@ local Dir = Object:extend{
 		end
 		return res
 	end;
+	exists = function (self)
+		local stat = posix.stat(tostring(self))
+		return stat and stat.type == "directory"
+	end;
 	__div = function (self, path)
 		return self:path() / path
 	end;
