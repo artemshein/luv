@@ -50,10 +50,17 @@ local UrlConf = Object:extend{
 			Exception "invalid action"
 		end
 	end;
-	dispatch = function (self, urls)
+	dispatch = function (self, urls, urlPrefix)
 		local action
 		if "string" == type(urls) then
-			return self:dispatch(dofile(urls))
+			return self:dispatch(dofile(urls), urlPrefix)
+		end
+		if urlPrefix then
+			local tailUri = self:tailUri()
+			if not tailUri:beginsWith(urlPrefix) then
+				Exception"invalid URL prefix"
+			end
+			self:tailUri(tailUri:slice(string.utf8len(urlPrefix) + 1))
 		end
 		for _, item in pairs(urls) do
 			if "string" == type(item[1]) then
@@ -158,7 +165,7 @@ local Core = Object:extend{
 	end;
 	cookies = function (self) return self:wsApi():cookies() end;
 	-- URL conf
-	dispatch = function (self, urlconf) return self:urlConf():dispatch(urlconf) end;
+	dispatch = function (self, ...) return self:urlConf():dispatch(...) end;
 	-- Templater
 	addTemplatesDir = function (self, templatesDir)
 		self:templater():addTemplatesDir(templatesDir)
