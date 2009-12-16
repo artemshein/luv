@@ -371,8 +371,8 @@ local Sqlite3Driver = Driver:extend{
 			vals[i] = namesVals[i]
 		end
 		local j = #vals
-		for i = 1, #valuesVals do
-			vals[j+i] = valuesVals[i]
+		for i, val in pairs(valuesVals) do
+			vals[j+i] = val
 		end
 		return self:processPlaceholders(" ("..table.join(names, ", ")..") VALUES ("..table.join(values, ", ")..")", unpack(vals))
 	end;
