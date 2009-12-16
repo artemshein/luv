@@ -3,9 +3,11 @@ local string = require "luv.string"
 local type, require, pairs, table, select, io, ipairs = type, require, pairs, table, select, io, ipairs
 local fields, Exception = require "luv.fields", require "luv.exceptions".Exception
 local widgets = require "luv.fields.widgets"
-local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
+local db, Redis = require"luv.db", require"luv.db.redis".Driver
 
 module(...)
+
+local SqlDriver, KeyValueDriver = db.SqlDriver, db.KeyValueDriver
 
 local MODULE = (...)
 local property = fields.Field.property;
@@ -80,7 +82,7 @@ local ManyToMany = Reference:extend{
 	createTable = function (self)
 		local container = self:container()
 		local db = container:db()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			local refModel = self:refModel()
 			local c = container:db():CreateTable(self:tableName())
 			local containerTableName = container:tableName()
@@ -102,7 +104,7 @@ local ManyToMany = Reference:extend{
 	dropTable = function (self)
 		local db = self:container():db()
 		local tableName = self:tableName()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			return db:DropTable(tableName)()
 		elseif db:isA(Redis) then
 			return
@@ -129,7 +131,7 @@ local ManyToMany = Reference:extend{
 	add = function (self, values)
 		local container, refModel = self:container(), self:refModel()
 		if not container.pk then
-			Exception "primary key value must be set first"
+			Exception"primary key value must be set first"
 		end
 		if "table" ~= type(values) or values.isA then
 			values = {values}
@@ -145,7 +147,7 @@ local ManyToMany = Reference:extend{
 		if self._value then
 			local container, refModel = self:container(), self:refModel()
 			if not container.pk then
-				Exception"Primary key value must be set first!"
+				Exception"primary key value must be set first"
 			end
 			container:db():Delete():from(self:tableName()):where("?#="..container:fieldPlaceholder(container:pkField()), container:tableName(), container.pk)()
 			if "table" == type(self._value) and not table.empty(self._value) then
@@ -339,7 +341,7 @@ local OneToOne = Reference:extend{
 		else
 			local container = self:container()
 			local db = container:db()
-			if db:isA(sql.Driver) then
+			if db:isA(SqlDriver) then
 				if self:backLink() then
 					if not self._value and not self._loaded then
 						self._loaded = true
@@ -356,7 +358,7 @@ local OneToOne = Reference:extend{
 						self._value = self:refModel():find(self._value)
 					end
 				end
-			elseif db:isA(keyvalue.Driver) then
+			elseif db:isA(KeyValueDriver) then
 				local value = Reference.value(self)
 				if value and "table" ~= type(value) then
 					self:value(self:refModel():find(value))

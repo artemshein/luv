@@ -8,12 +8,13 @@ local cache = require "luv.cache.frontend"
 local crypt = require "luv.crypt"
 local TreeNode = require "luv.utils".TreeNode
 local json = require "luv.utils.json"
-local sql, keyvalue, Redis = require"luv.db.sql", require"luv.db.keyvalue", require"luv.db.keyvalue.redis".Driver
+local db, Redis = require"luv.db", require"luv.db.redis".Driver
 local checkTypes = require"luv.checktypes".checkTypes
 
 module(...)
 
 local MODULE = (...)
+local SqlDriver, KeyValueDriver = db.SqlDriver, db.KeyValueDriver
 local serialize = string.serialize
 local abstract = Object.abstractMethod
 local property = Object.property
@@ -187,7 +188,7 @@ local Model = Struct:extend{
 	-- Find and load one record that meets condition
 	_loadOneByCond = function (self, condition)
 		local db, tableName = self:db(), self:tableName()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			local select = db:SelectRow():from(tableName)
 			if "table" == type(condition)  then
 				for name, value in pairs(condition) do
@@ -245,9 +246,9 @@ local Model = Struct:extend{
 	end;
 	all = function (self, limitFrom, limitTo)
 		local db, qs = self:db()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			qs = require "luv.db.models".SqlQuerySet(self)
-		elseif db:isA(keyvalue.Driver) then
+		elseif db:isA(KeyValueDriver) then
 			qs = require "luv.db.models".KeyValueQuerySet(self)
 		else
 			Exception"unsupported driver"
@@ -268,7 +269,7 @@ local Model = Struct:extend{
 		end
 		local db = self:db()
 		local tableName = self:tableName()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			local insert = db:InsertRow():into(tableName)
 			for name, f in pairs(self:fields()) do
 				if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) then
@@ -362,7 +363,7 @@ local Model = Struct:extend{
 		end
 		local db = self:db()
 		local tableName = self:tableName()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			local updateRow = db:UpdateRow(tableName)
 			local pk = self:pkField()
 			local pkName = pk:name()
@@ -441,13 +442,13 @@ local Model = Struct:extend{
 		local tableName = self:tableName()
 		local pk = self:pkField()
 		local pkName = pk:name()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			if not pk:value() or not db:SelectCell(pkName):from(tableName):where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())() then
 				return self:insert()
 			else
 				return self:update()
 			end
-		elseif db:isA(keyvalue.Driver) then
+		elseif db:isA(KeyValueDriver) then
 			if not pk:value() or not db:get(tableName..":"..pk:value()..":"..pkName) then
 				return self:insert()
 			else
@@ -467,7 +468,7 @@ local Model = Struct:extend{
 			pk = pk.pk
 		end
 		self:clearCacheTag()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			return db:DeleteRow():from(tableName):where("?#="..self:fieldPlaceholder(pkF), pkName, pk)()
 		elseif db:isA(Redis) then
 			db:srem(tableName, pk)
@@ -527,7 +528,7 @@ local Model = Struct:extend{
 	end;
 	createTable = function (self)
 		local db = self:db()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			local c = db:CreateTable(self:tableName())
 			-- Fields
 			local hasPk = false
@@ -572,7 +573,7 @@ local Model = Struct:extend{
 		local db = self:db()
 		local tableName = self:tableName()
 		self:clearCacheTag()
-		if db:isA(sql.Driver) then
+		if db:isA(SqlDriver) then
 			return db:DropTable(tableName)()
 		elseif db:isA(Redis) then
 			db:del(tableName)
