@@ -14,7 +14,9 @@ local property = Object.property
 
 local Api = Object:extend{
 	__tag = .....".Api";
-	init = function (self, templatesDirOrDirs)
+	urlPrefix = property;
+	mediaPrefix = property;
+	init = function (self, templatesDirOrDirs, urlPrefix, mediaPrefix)
 		if "string" == type(templatesDirOrDirs)
 		or (templatesDirOrDirs and templatesDirOrDirs.isA and templatesDirOrDirs:isA(fs.Dir)) then
 			self._templatesDirs = {templatesDirOrDirs}
@@ -26,6 +28,8 @@ local Api = Object:extend{
 				end
 			end
 		end
+		self:urlPrefix(urlPrefix)
+		self:mediaPrefix(mediaPrefix)
 	end;
 	addTemplatesDir = function (self, dir)
 		table.insert(self._templatesDirs, dir)
@@ -64,6 +68,23 @@ local Tamplier = Api:extend{
 					return html.escape(str)
 				end
 			end;
+			url = function (url)
+				local urlPrefix = self._internal.urlPrefix
+				if urlPrefix and urlPrefix:utf8len() > 0 then
+					url = urlPrefix..url
+				end
+				return SafeHtml(url)
+			end;
+			media = function (url)
+				local urlPrefix = self._internal.mediaPrefix
+				if not urlPrefix then
+					urlPrefix = self._internal.urlPrefix
+				end
+				if urlPrefix and urlPrefix:utf8len() > 0 then
+					url = urlPrefix..url
+				end
+				return SafeHtml(url)
+			end;
 			safe = function (str) return SafeHtml(str) end;
 			section = function (section)
 				if not self._internal.sections[section] then
@@ -94,6 +115,8 @@ local Tamplier = Api:extend{
 				return params[self._cycleCounters[index] % #params + 1]
 			end;
 		}
+		self:assign{urlPrefix=self:urlPrefix()}
+		self:assign{mediaPrefix=self:mediaPrefix()}
 	end;
 	assign = function (self, var, value)
 		if type(var) == "table" then

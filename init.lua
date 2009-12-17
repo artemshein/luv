@@ -24,14 +24,24 @@ local UrlConf = Object:extend{
 	tailUri = property"string";
 	baseUri = property"string";
 	captures = property"table";
-	init = function (self, request)
+	urlPrefix = property"string";
+	init = function (self, request, urlPrefix)
 		self:request(request)
 		self:uri(request:header"REQUEST_URI" or "")
 		local queryPos = self:uri():find"?"
 		if queryPos then
 			self:uri(self:uri():sub(1, queryPos-1))
 		end
-		self:tailUri(self:uri())
+		if urlPrefix and urlPrefix:utf8len() > 0 then
+			local tailUri = self:uri()
+			if not tailUri:beginsWith(urlPrefix) then
+				Exception"invalid URL prefix"
+			end
+			self:urlPrefix(urlPrefix)
+			self:tailUri(tailUri:slice(urlPrefix:utf8len() + 1))
+		else
+			self:tailUri(self:uri())
+		end
 		self:baseUri""
 		self:captures{}
 	end;
@@ -50,17 +60,10 @@ local UrlConf = Object:extend{
 			Exception "invalid action"
 		end
 	end;
-	dispatch = function (self, urls, urlPrefix)
+	dispatch = function (self, urls)
 		local action
 		if "string" == type(urls) then
-			return self:dispatch(dofile(urls), urlPrefix)
-		end
-		if urlPrefix then
-			local tailUri = self:tailUri()
-			if not tailUri:beginsWith(urlPrefix) then
-				Exception"invalid URL prefix"
-			end
-			self:tailUri(tailUri:slice(string.utf8len(urlPrefix) + 1))
+			return self:dispatch(dofile(urls))
 		end
 		for _, item in pairs(urls) do
 			if "string" == type(item[1]) then
@@ -135,11 +138,11 @@ local Core = Object:extend{
 		return self
 	end);
 	-- Init
-	init = function (self, wsApi)
+	init = function (self, wsApi, urlPrefix, mediaPrefix)
 		self:profiler(dev.Profiler())
 		self:beginProfiling "Luv"
 		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self:version())))
-		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi())))
+		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi()), urlPrefix, mediaPrefix))
 		self:cacher(TagEmuWrapper(Memory()))
 	end;
 	-- Database
@@ -340,8 +343,8 @@ local init = function (params)
 		end
 		wsApi:session(sessions.Session(sessions.SessionFile(params.sessionsDir), id))
 	end
-	local core = Core(wsApi)
-	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs))
+	local core = Core(wsApi, params.urlPrefix)
+	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs, params.urlPrefix, params.mediaPrefix))
 	if params.dsn then core:dsn(params.dsn) end
 	core:debugger(params.debugger)
 	if params.cacher then core:cacher(params.cacher) end
