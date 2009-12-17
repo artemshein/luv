@@ -143,6 +143,10 @@ local Core = Object:extend{
 		self:beginProfiling "Luv"
 		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self:version())))
 		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi()), urlPrefix, mediaPrefix))
+		if urlPrefix then
+			require"luv.db.models".Model:urlPrefix(urlPrefix)
+			require"luv.forms".Form:urlPrefix(urlPrefix)
+		end
 		self:cacher(TagEmuWrapper(Memory()))
 	end;
 	-- Database

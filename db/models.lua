@@ -50,8 +50,14 @@ local Model = Struct:extend{
 	__tostring = function (self) return tostring(self.pk) end;
 	modelsList = {};
 	cacher = property;
-	ajaxUrl = property"string";
+	ajaxUrl = property("string", function (self)
+		if self:urlPrefix() then
+			return self:urlPrefix()..self._ajaxUrl
+		end
+		return self._ajaxUrl
+	end);
 	db = property;
+	urlPrefix = property"string";
 	tableName = property("string", function (self)
 		if (not self._tableName) then
 			self._tableName = self:label():gsub(" ", "_")

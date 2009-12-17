@@ -14,7 +14,13 @@ local property = Struct.property
 local Form = Struct:extend{
 	__tag = .....".Form";
 	__tostring = function (self) return self:asHtml() end;
-	htmlAction = property("string", "self.Meta.action", "self.Meta.action");
+	urlPrefix = property"string";
+	htmlAction = property("string", function (self)
+		if self:urlPrefix() then
+			return self:urlPrefix()..self.Meta.action
+		end
+		return self.Meta.action
+	end, "self.Meta.action");
 	htmlId = property("string", function (self)
 		if not self.Meta.id then
 			self:htmlId("f"..tostring(math.random(2000000000)))
