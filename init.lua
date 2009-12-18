@@ -14,81 +14,18 @@ module(...)
 local MODULE = (...)
 local property = Object.property
 local abstract = Object.abstractMethod
+local singleton = Object.singleton
 
 string.tr = string.tr or function (str) return str end
 
-local UrlConf = Object:extend{
-	__tag = .....".UrlConf";
-	request = property(ws.HttpRequest);
-	uri = property"string";
-	tailUri = property"string";
-	baseUri = property"string";
-	captures = property"table";
-	urlPrefix = property"string";
-	init = function (self, request, urlPrefix)
-		self:request(request)
-		self:uri(request:header"REQUEST_URI" or "")
-		local queryPos = self:uri():find"?"
-		if queryPos then
-			self:uri(self:uri():sub(1, queryPos-1))
-		end
-		if urlPrefix and urlPrefix:utf8len() > 0 then
-			local tailUri = self:uri()
-			if not tailUri:beginsWith(urlPrefix) then
-				Exception"invalid URL prefix"
-			end
-			self:urlPrefix(urlPrefix)
-			self:tailUri(tailUri:slice(urlPrefix:utf8len() + 1))
-		else
-			self:tailUri(self:uri())
-		end
-		self:baseUri""
-		self:captures{}
-	end;
-	capture = function (self, pos)
-		return self:captures()[pos]
-	end;
-	execute = function (self, action)
-		if type(action) == "string" then
-			local result = dofile(action)
-			return result and self:dispatch(result) or true
-		elseif type(action) == "function" then
-			return action(self, unpack(self:captures()))
-		elseif type(action) == "table" then
-			return self:dispatch(action)
-		else
-			Exception "invalid action"
-		end
-	end;
-	dispatch = function (self, urls)
-		local action
-		if "string" == type(urls) then
-			return self:dispatch(dofile(urls))
-		end
-		for _, item in pairs(urls) do
-			if "string" == type(item[1]) then
-				local res = {self:tailUri():find(item[1])}
-				if nil ~= res[1] then
-					local tailUriLen = string.utf8len(self:tailUri())
-					self:baseUri(self:baseUri()..self:uri():slice(1, -tailUriLen+res[1]-2))
-					self:tailUri(self:tailUri():sub(res[2]+1))
-					local captures = {}
-					for i = 3, #res do
-						table.insert(captures, res[i])
-					end
-					self:captures(captures)
-					if false ~= self:execute(item[2]) then
-						return true
-					end
-				end
-			elseif false == item[1] then
-				action = item[2]
-			end
-		end
-		if action then self:execute(action) return true end
-		return false
-	end;
-}
+(function () -- Init random seed
+	local seed, i, str = os.time(), nil, tostring(tostring(MODULE))
+	for i = 1, #str do
+		seed = seed + str:byte(i)
+	end
+	math.randomseed(seed)
+end)() -- Excecute it imediately
+
 
 local TemplateSlot = Slot:extend{
 	__tag = .....".TemplateSlot";
@@ -111,114 +48,6 @@ local TemplateSlot = Slot:extend{
 		self:set(res)
 		io.write(res)
 		return self
-	end;
-}
-
-local Core = Object:extend{
-	__tag = .....".Core";
-	_version = Version(9, 12, 1, "alpha");
-	version = property(Version);
-	urlConf = property(UrlConf);
-	wsApi = property(ws.Api);
-	templater = property;
-	db = property;
-	profiler = property;
-	debugger = property;
-	i18n = property;
-	cacher = property("table", nil, function (self, cacher)
-		self._cacher = cacher
-		require"luv.db.models".Model:cacher(cacher)
-		return self
-	end);
-	dsn = property("string", nil, function (self, dsn)
-		self._dsn = dsn
-		local db = require"luv.db".Factory(dsn)
-		require"luv.db.models".Model:db(db)
-		self:db(db)
-		return self
-	end);
-	-- Init
-	init = function (self, wsApi, urlPrefix, mediaPrefix)
-		self:profiler(dev.Profiler())
-		self:beginProfiling "Luv"
-		self:wsApi(wsApi:responseHeader("X-Powered-By", "Luv/"..tostring(self:version())))
-		self:urlConf(UrlConf(ws.HttpRequest(self:wsApi()), urlPrefix, mediaPrefix))
-		if urlPrefix then
-			require"luv.db.models".Model:urlPrefix(urlPrefix)
-			require"luv.forms".Form:urlPrefix(urlPrefix)
-		end
-		self:cacher(TagEmuWrapper(Memory()))
-	end;
-	-- Database
-	beginTransaction = function (self) return self:db():beginTransaction() end;
-	commit = function (self) return self:db():commit() end;
-	rollback = function (self) return self:db():rollback() end;
-	-- Web-server
-	requestHeader = function (self, ...) return self:wsApi():requestHeader(...) end;
-	responseHeader = function (self, ...) self:wsApi():responseHeader(...) return self end;
-	responseCode = function (self, ...) self:wsApi():responseCode(...) return self end;
-	sendHeaders = function (self, ...) self:wsApi():sendHeaders(...) return self end;
-	get = function (self, ...) return self:wsApi():get(...) end;
-	getData = function (self) return self:wsApi():getData() end;
-	post = function (self, ...) return self:wsApi():post(...) end;
-	postData = function (self) return self:wsApi():postData() end;
-	cookie = function (self, ...)
-		if select("#", ...) > 0 then
-			self:wsApi():cookie(...)
-			return self
-		else
-			return self:wsApi():cookie()
-		end
-	end;
-	cookies = function (self) return self:wsApi():cookies() end;
-	-- URL conf
-	dispatch = function (self, ...) return self:urlConf():dispatch(...) end;
-	-- Templater
-	addTemplatesDir = function (self, templatesDir)
-		self:templater():addTemplatesDir(templatesDir)
-		return self
-	end;
-	assign = function (self, ...)
-		self:templater():assign(...)
-		return self
-	end;
-	fetchString = function (self, template)
-		self:flush()
-		return self:templater():fetchString(template)
-	end;
-	fetch = function (self, template)
-		self:flush()
-		return self:templater():fetch(template)
-	end;
-	displayString = function (self, template)
-		self:flush()
-		return self:templater():displayString(template)
-	end;
-	display = function (self, template)
-		self:flush()
-		return self:templater():display(template)
-	end;
-	flush = function (self)
-		self:endProfiling"Luv"
-		for section, info in pairs(self:profiler():stat()) do
-			self:debug(section.." has been executed "..tostring(info.count).." times and took about "..tostring(info.total).." seconds.", "Profiling of "..self:urlConf():uri())
-		end
-		self:assign{debugger=self:debugger() or ""}
-	end;
-	-- Profiler
-	beginProfiling = function (self, section) self:profiler():beginSection(section) return self end;
-	endProfiling = function (self, section) self:profiler():endSection(section) return self end;
-	-- Debugger
-	debug = function (self, ...) return self._debugger and self._debugger:debug(...) or self end;
-	info = function (self, ...) return self._debugger and self._debugger:info(...) or self end;
-	warn = function (self, ...) return self._debugger and self._debugger:warn(...) or self end;
-	error = function (self, ...) return self._debugger and self._debugger:error(...) or self end;
-	-- Caching
-	createTemplateSlot = function (self, template, params)
-		return TemplateSlot(self, template, params)
-	end;
-	createModelTag = function (self, model)
-		return require"luv.db.models".ModelTag(self:cacher(), model)
 	end;
 }
 
@@ -336,26 +165,6 @@ local Widget = Object:extend{
 	render = abstract;
 }
 
-local init = function (params)
-	local wsApi = params.wsApi or ws.Cgi(params.tmpDir)
-	-- Session
-	if params.sessionsDir then
-		local id = wsApi:cookie"LUV_SESS_ID"
-		if not id or string.utf8len(id) ~= 12 then
-			id = tostring(crypt.Md5(math.random(2000000000))):slice(1, 12)
-			wsApi:cookie("LUV_SESS_ID", id)
-		end
-		wsApi:session(sessions.Session(sessions.SessionFile(params.sessionsDir), id))
-	end
-	local core = Core(wsApi, params.urlPrefix)
-	core:templater(params.templater or require"luv.templaters".Tamplier(params.templatesDirs, params.urlPrefix, params.mediaPrefix))
-	if params.dsn then core:dsn(params.dsn) end
-	core:debugger(params.debugger)
-	if params.cacher then core:cacher(params.cacher) end
-	if params.i18n then core:i18n(params.i18n) end
-	return core
-end
-
 local objectOr404 = function (model, conditions)
 	local obj = model:find(conditions)
 	if not obj then
@@ -364,16 +173,67 @@ local objectOr404 = function (model, conditions)
 	return obj
 end
 
-(function () -- Init random seed
-	local seed, i, str = os.time(), nil, tostring(tostring(MODULE))
-	for i = 1, #str do
-		seed = seed + str:byte(i)
-	end
-	math.randomseed(seed)
-end)() -- Excecute it imediately
+local Luv = Object:extend{
+	__tag = .....".Luv";
+	env = property"table";
+	new = singleton;
+	clone = singleton;
+	init = function (self, env)
+		env = env or {}
+		local ws = require"luv.webservers"
+		wsApi = env.wsApi or ws.Cgi(env.tmpDir)
+		if env.sessionsDir then
+			wsApi:startSession(require"luv.sessions".SessionFile(env.sessionsDir))
+		end
+		if env.templatesDirs then
+			env.templater = require"luv.templaters".Tamplier(env.templatesDirs, env.urlPrefix, env.mediaPrefix)
+		end
+		if env.dsn then
+			env.db = require"luv.db".Factory(env.dsn)
+			require"luv.db.models".Model:db(env.db)
+		end
+		if env.urlPrefix then
+			require"luv.db.models".Model:urlPrefix(env.urlPrefix)
+			require"luv.forms".Form:urlPrefix(env.urlPrefix)
+		end
+		require"luv.i18n".I18n("app/i18n", wsApi:cookie"language" or wsApi)
+		env.urlConf = ws.UrlConf(ws.HttpRequest(wsApi), env.urlPrefix, env.mediaPrefix)
+		if env.debugMode then
+			env.debugger = env.debugMode and require"luv.dev.debuggers".Fire()
+			if env.db then
+				env.db:logger(function (sql, result) env.debugger:debug(sql..", returns "..("table" == type(result) and "table" or tostring(result)), "Database") end)
+			end
+		end
+		local jsScripts = {"jquery-1.3.2.min.js";"jquery.form.js";"data.js";"forms.js";"validators.js";"browsers.js";"jquery-ui-1.7.2.custom.min.js"}
+		env.templater:assign{
+			mediaPrefix=env.mediaPrefix;urlPrefix=env.urlPrefix;debugger=env.debugger;
+			jsScripts = jsScripts;
+			importJsScripts = function ()
+				local res, prefix = "", env.mediaPrefix
+				if not prefix and env.urlPrefix then
+					prefix = env.urlPrefix
+				end
+				for _, script in ipairs(jsScripts) do
+					res = res..'<script type="text/javascript" language="JavaScript" src="'..(prefix or "").."/js/luv/"..script..'"></script>'
+				end
+				return res
+			end;
+		}
+		if env.assign then
+			env.templater:assign(env.assign)
+		end
+		self:env(env)
+		return self
+	end;
+	dispatch = function (self, urls)
+		if not self:env().urlConf:environment(self:env()):dispatch(urls) then
+			require"luv.webservers".Http404()
+		end
+		return self
+	end;
+}
 
 return {
-	oop=oop;exceptions=exceptions;util=util;Core=Core;UrlConf=UrlConf;
-	Struct=Struct;Widget=Widget;init=init;objectOr404=objectOr404;
+	Struct=Struct;Widget=Widget;objectOr404=objectOr404;Luv=Luv;
 }
 	

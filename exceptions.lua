@@ -3,10 +3,12 @@ local Object = require"luv.oop".Object
 
 module(...)
 
+local property = Object.property
+
 local Exception = Object:extend{
 	__tag = .....".Exception";
-	msg = Object.property;
-	trace = Object.property;
+	msg = property;
+	trace = property;
 	init = function (self, msg, nothrow, depth)
 		self:msg(msg)
 		self:trace(debug.traceback("", depth and depth+3 or 3))
@@ -18,8 +20,8 @@ local Exception = Object:extend{
 
 local ExceptionResult = Object:extend{
 	__tag = .....".ExceptionResult";
-	raised = Object.property;
-	exception = Object.property;
+	raised = property;
+	exception = property;
 	init = function (self, res, exc)
 		self:raised(not res)
 		self:exception(exc)

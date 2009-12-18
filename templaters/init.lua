@@ -126,6 +126,7 @@ local Tamplier = Api:extend{
 		else
 			self._internal[var] = value
 		end
+		return self
 	end;
 	compileString = function (self, str)
 		local function createFunction (code)
@@ -221,6 +222,7 @@ local Tamplier = Api:extend{
 	end;
 	display = function (self, template)
 		io.write(self:fetch(template))
+		return self
 	end;
 }
 

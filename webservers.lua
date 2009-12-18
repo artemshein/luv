@@ -1,18 +1,24 @@
-local select = select
+local select, dofile, unpack, setfenv = select, dofile, unpack, setfenv
 local string = require"luv.string"
 local io, os, pairs, ipairs, tonumber = io, os, pairs, ipairs, tonumber
 local type, table, math, tostring, require = type, table, math, tostring, require
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
-local fs = require"luv.fs"
-local crypt = require"luv.crypt"
+local fs, crypt = require"luv.fs", require"luv.crypt"
 
 module(...)
 local property = Object.property;
 
 local Exception = Exception:extend{__tag = .....".Exception"}
 local Http4xx = Exception:extend{__tag = .....".Http4xx"}
-local Http403 = Http4xx:extend{__tag = .....".Http403"}
-local Http404 = Http4xx:extend{__tag = .....".Http404"}
+local Http403 = Http4xx:extend{
+	__tag = .....".Http403";
+	_msg = "403 Forbidden";
+}
+
+local Http404 = Http4xx:extend{
+	__tag = .....".Http404";
+	_msg = "404 Not Found";
+}
 
 local HttpRequest = Object:extend{
 	__tag = .....".HttpRequest";
@@ -69,6 +75,7 @@ local HttpResponse = Object:extend{
 
 local Api = Object:extend{
 	__tag = .....".Api";
+	session = property;
 	parseMultipartFormData = function (self, boundary, stream)
 		postData = stream:explode(boundary)
 		for i = 2, #postData-1 do
@@ -110,6 +117,16 @@ local Api = Object:extend{
 				self:postData()[key] = data
 			end
 		end
+		return self
+	end;
+	startSession = function (self, sessionsStorage)
+		local id = self:cookie"LUV_SESS_ID"
+		if not id or id:utf8len() ~= 12 then
+			id = tostring(require"luv.crypt".Md5(math.random(2000000000))):slice(1, 12)
+			self:cookie("LUV_SESS_ID", id)
+		end
+		self:session(require"luv.sessions".Session(sessionsStorage, id))
+		return self
 	end;
 }
 
@@ -142,7 +159,6 @@ local Cgi = Api:extend{
 	_get = {};
 	_post = {};
 	tmpDir = property;
-	session = property;
 	new = function (self, tmpDir, session)
 		self:tmpDir(tmpDir)
 		if session then self:session(session) end
@@ -421,8 +437,87 @@ local SocketAppServer = Object:extend{
 	end
 }
 
+local UrlConf = Object:extend{
+	__tag = .....".UrlConf";
+	request = property(HttpRequest);
+	uri = property"string";
+	tailUri = property"string";
+	baseUri = property"string";
+	captures = property"table";
+	urlPrefix = property"string";
+	environment = property"table";
+	init = function (self, request, urlPrefix)
+		self:request(request)
+		self:uri(request:header"REQUEST_URI" or "")
+		local queryPos = self:uri():find"?"
+		if queryPos then
+			self:uri(self:uri():sub(1, queryPos-1))
+		end
+		if urlPrefix and urlPrefix:utf8len() > 0 then
+			local tailUri = self:uri()
+			if not tailUri:beginsWith(urlPrefix) then
+				Exception"invalid URL prefix"
+			end
+			self:urlPrefix(urlPrefix)
+			self:tailUri(tailUri:slice(urlPrefix:utf8len() + 1))
+		else
+			self:tailUri(self:uri())
+		end
+		self:baseUri""
+		self:captures{}
+	end;
+	capture = function (self, pos)
+		return self:captures()[pos]
+	end;
+	execute = function (self, action)
+		if type(action) == "string" then
+			local result = dofile(action)
+			return result and self:dispatch(result) or true
+		elseif type(action) == "function" then
+			setfenv(action, self:environment())
+			return action(self, unpack(self:captures()))
+		elseif type(action) == "table" then
+			return self:dispatch(action)
+		else
+			Exception"invalid action"
+		end
+	end;
+	dispatch = function (self, urls, ...)
+		local action
+		if not table.empty{...} then
+			self:environment{...}
+		end
+		if "string" == type(urls) then
+			return self:dispatch(dofile(urls))
+		end
+		for _, item in pairs(urls) do
+			if "string" == type(item[1]) then
+				local res = {self:tailUri():find(item[1])}
+				if nil ~= res[1] then
+					local tailUriLen = self:tailUri():utf8len()
+					self:baseUri(self:baseUri()..self:uri():slice(1, -tailUriLen+res[1]-2))
+					self:tailUri(self:tailUri():sub(res[2]+1))
+					local captures = {}
+					for i = 3, #res do
+						table.insert(captures, res[i])
+					end
+					self:captures(captures)
+					if false ~= self:execute(item[2]) then
+						return true
+					end
+				end
+			elseif false == item[1] then
+				action = item[2]
+			end
+		end
+		if action then self:execute(action) return true end
+		return false
+	end;
+}
+
 return {
 	HttpRequest=HttpRequest;HttpResponse=HttpResponse;
 	Exception=Exception;Api=Api;Cgi=Cgi;Scgi=Scgi;
 	SocketAppServer=SocketAppServer;Http403=Http403;Http404=Http404;
+	UrlConf=UrlConf;
 }
