@@ -1,5 +1,5 @@
 local string = require "luv.string"
-local type, table, ipairs, pairs, io = type, table, ipairs, pairs, io
+local type, table, ipairs, pairs, io, require = type, table, ipairs, pairs, io, require
 local loadstring, setfenv, tostring = loadstring, setfenv, tostring
 local Object = require"luv.oop".Object
 local fs = require "luv.fs"

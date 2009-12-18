@@ -206,7 +206,7 @@ local Luv = Object:extend{
 		end
 		local jsScripts = {"jquery-1.3.2.min.js";"jquery.form.js";"data.js";"forms.js";"validators.js";"browsers.js";"jquery-ui-1.7.2.custom.min.js"}
 		env.templater:assign{
-			mediaPrefix=env.mediaPrefix;urlPrefix=env.urlPrefix;debugger=env.debugger;
+			mediaPrefix=env.mediaPrefix;urlPrefix=env.urlPrefix;debugger=env.debugger or "";
 			jsScripts = jsScripts;
 			importJsScripts = function ()
 				local res, prefix = "", env.mediaPrefix
