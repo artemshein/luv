@@ -1,4 +1,4 @@
-local require = require
+local require, setfenv, getfenv = require, setfenv, getfenv
 local Object = require"luv.oop".Object
 
 module(...)
@@ -8,7 +8,9 @@ local Decorator = Object:extend{
 	__tag = .....".Decorator";
 	__call = function (self, func)
 		return function (...)
-			return self:func()(func, ...)
+			local f = self:func()
+			setfenv(f, getfenv(1))
+			return f(func, ...)
 		end
 	end;
 	__add = function (self, func, ...)

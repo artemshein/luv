@@ -185,6 +185,7 @@ local Luv = Object:extend{
 		if env.sessionsDir then
 			wsApi:startSession(require"luv.sessions".SessionFile(env.sessionsDir))
 		end
+		env.i18n = require"luv.i18n".I18n("app/i18n", wsApi:cookie"language" or wsApi)
 		if env.templatesDirs then
 			env.templater = require"luv.templaters".Tamplier(env.templatesDirs, env.urlPrefix, env.mediaPrefix)
 		end
@@ -196,7 +197,6 @@ local Luv = Object:extend{
 			require"luv.db.models".Model:urlPrefix(env.urlPrefix)
 			require"luv.forms".Form:urlPrefix(env.urlPrefix)
 		end
-		require"luv.i18n".I18n("app/i18n", wsApi:cookie"language" or wsApi)
 		env.urlConf = ws.UrlConf(ws.HttpRequest(wsApi), env.urlPrefix, env.mediaPrefix)
 		if env.debugMode then
 			env.debugger = env.debugMode and require"luv.dev.debuggers".Fire()
@@ -204,10 +204,14 @@ local Luv = Object:extend{
 				env.db:logger(function (sql, result) env.debugger:debug(sql..", returns "..("table" == type(result) and "table" or tostring(result)), "Database") end)
 			end
 		end
+		if env.secretSalt then
+			require"luv.contrib.auth".models.User:secretSalt(env.secretSalt)
+		end
 		local jsScripts = {"jquery-1.3.2.min.js";"jquery.form.js";"data.js";"forms.js";"validators.js";"browsers.js";"jquery-ui-1.7.2.custom.min.js"}
 		env.templater:assign{
 			mediaPrefix=env.mediaPrefix;urlPrefix=env.urlPrefix;debugger=env.debugger or "";
 			jsScripts = jsScripts;
+			i18n = env.i18n;
 			importJsScripts = function ()
 				local res, prefix = "", env.mediaPrefix
 				if not prefix and env.urlPrefix then
