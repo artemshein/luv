@@ -58,7 +58,7 @@ local HttpResponse = Object:extend{
 	content = property"string";
 	init = function (self, wsApi, content)
 		self:wsApi(wsApi)
-		self:content(content)
+		self:content(content or "")
 	end;
 	header = function (self, header, ...)
 		if select("#", ...) > 0 then
@@ -71,6 +71,7 @@ local HttpResponse = Object:extend{
 	code = function (self, code) self:wsApi():responseCode(code) return self end;
 	contentType = function (self, contentType) self:header("Content-Type", contentType) return self end;
 	appendContent = function (self, content) self:content(self:content()..content) return self end;
+	send = function (self) self:wsApi():sendHeaders() return self end;
 }
 
 local Api = Object:extend{
@@ -318,9 +319,11 @@ local Cgi = Api:extend{
 	sendHeaders = function (self)
 		io.write = self._write
 		if not self._responseCode then self._responseCode = 200 end
-		--WTF?? Apache2... io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\nStatus: ", self._responseCode, " ", responseString[self._responseCode], "\n")
 		if not self:responseHeader("Content-type") then
 			self:responseHeader("Content-type", "text/html")
+		end
+		if self._responseCode ~= 200 then
+			self:responseHeader("Status", self._responseCode.." "..responseString[self._responseCode])
 		end
 		for k, v in pairs(self._responseHeaders) do
 			io.write(k, ": ", v, "\n")
@@ -384,9 +387,11 @@ local Scgi = Object:extend{
 		if not self._responseCode then
 			self._responseCode = 200
 		end
-		io.write("HTTP/1.1 ", self._responseCode, " ", responseString[self._responseCode], "\n")
 		if not self:getResponseHeader("Content-type") then
 			self:setResponseHeader("Content-type", "text/html")
+		end
+		if self._responseCode ~= 200 then
+			self:responseHeader("Status", self._responseCode.." "..responseString[self._responseCode])
 		end
 		for k, v in pairs(self._responseHeaders) do
 			io.write(k, ":", v, "\n")

@@ -176,6 +176,7 @@ end
 local Luv = Object:extend{
 	__tag = .....".Luv";
 	env = property"table";
+	response = property;
 	new = singleton;
 	clone = singleton;
 	init = function (self, env)
@@ -185,6 +186,7 @@ local Luv = Object:extend{
 		if env.sessionsDir then
 			wsApi:startSession(require"luv.sessions".SessionFile(env.sessionsDir))
 		end
+		self:response(ws.HttpResponse(wsApi))
 		env.i18n = require"luv.i18n".I18n("app/i18n", wsApi:cookie"language" or wsApi)
 		if env.templatesDirs then
 			env.templater = require"luv.templaters".Tamplier(env.templatesDirs, env.urlPrefix, env.mediaPrefix)
