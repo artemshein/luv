@@ -284,7 +284,7 @@ local Model = Struct:extend{
 						if val then
 							val = val:field(f:toField() or val:pkName()):value()
 						end
-						insert:set("?#="..self:fieldPlaceholder(f), name, val)
+						insert:set(name, self:fieldPlaceholder(f), val)
 					else
 						local val = f:value()
 						if "nil" == type(val) then
@@ -299,7 +299,7 @@ local Model = Struct:extend{
 								val = tostring(math.floor(val/60/60))..":"..tostring(math.floor(val/60)%60)..":"..tostring(val%60)
 							end
 						end
-						insert:set("?#="..self:fieldPlaceholder(f), name, val)
+						insert:set(name, self:fieldPlaceholder(f), val)
 					end
 				end
 			end
@@ -373,7 +373,7 @@ local Model = Struct:extend{
 			local updateRow = db:UpdateRow(tableName)
 			local pk = self:pkField()
 			local pkName = pk:name()
-			updateRow:where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())
+			updateRow:where(pkName, self:fieldPlaceholder(pk), pk:value())
 			for name, f in pairs(self:fields()) do
 				if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) and not f:pk() then
 					if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
@@ -381,7 +381,7 @@ local Model = Struct:extend{
 						if val then
 							val = val:field(f:toField() or val:pkName()):value()
 						end
-						updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
+						updateRow:set(name, self:fieldPlaceholder(f), val)
 					else
 						local val = f:value()
 						if nil == val then
@@ -396,7 +396,7 @@ local Model = Struct:extend{
 								val = tostring(math.floor(val/60/60))..":"..tostring(math.floor(val/60)%60)..":"..tostring(val%60)
 							end
 						end
-						updateRow:set("?#="..self:fieldPlaceholder(f), name, val)
+						updateRow:set(name, self:fieldPlaceholder(f), val)
 					end
 				end
 			end
@@ -642,8 +642,8 @@ local NestedSet = Tree:extend{
 			:where("?#>?d", "left", self.left)
 			:andWhere("?#<?d", "right", self.right)()
 		db:Update(self:tableName())
-			:set("?#=?#-?d", "left", "left", self.right-self.left-1)
-			:set("?#=?#-?d", "right", "right", self.right-self.left-1)
+			:set("left", "?#-?d", "left", self.right-self.left-1)
+			:set("right", "?#-?d", "right", self.right-self.left-1)
 			:where("?#>?d", "left", self.right)()
 		self.right = self.left+1
 		if not self:update() then
@@ -661,10 +661,10 @@ local NestedSet = Tree:extend{
 		local db = self:db()
 		db:beginTransaction()
 		db:Update(self:tableName())
-			:set("?#=?#+2", "left", "left")
+			:set("left", "?#+2", "left")
 			:where("?#>?d", "left", self.left)()
 		db:Update(self:tableName())
-			:set("?#=?#+2", "right", "right")
+			:set("right", "?#+2", "right")
 			:where("?#>?d", "right", self.left)()
 		if not child:insert() then
 			db:rollback()
@@ -683,10 +683,10 @@ local NestedSet = Tree:extend{
 			:where("?#<?d", "right", self.right)()
 		Tree.delete(self)
 		db:Update(self:tableName())
-			:set("?#=?#-?d", "left", "left", self.right-self.left+1)
+			:set("left", "?#-?d", "left", self.right-self.left+1)
 			:where("?#>?d", "left", self.right)()
 		db:Update(self:tableName())
-			:set("?#=?#-?d", "right", "right", self.right-self.left+1)
+			:set("right", "?#-?d", "right", self.right-self.left+1)
 			:where("?#>?d", "right", self.right)()
 		db:commit()
 	end;
@@ -1052,7 +1052,7 @@ local SqlQuerySet = QuerySet:extend{
 			else
 				val = v
 			end
-			u:set("?#="..model:fieldPlaceholder(model:field(k)), k, val)
+			u:set(k, model:fieldPlaceholder(model:field(k)), val)
 		end
 		return u()
 	end;

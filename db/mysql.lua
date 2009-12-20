@@ -338,11 +338,12 @@ local Driver = SqlDriver:extend{
 		end
 	end;
 	constructSet = function (self, sets)
-		local res = {}
-		for k, v in pairs(sets) do
-			res[k] = self:processPlaceholders(unpack(v))
+		local exprs = {}
+		for _, set in pairs(sets) do
+			local field = table.remove(set, 1)
+			table.insert(exprs, self:processPlaceholder("?#", field).."="..self:processPlaceholders(unpack(set)))
 		end
-		return " SET "..table.join(res, ", ")
+		return " SET "..table.join(exprs, ", ")
 	end;
 	constructValues = function (self, placeholders, values)
 		local res = {}

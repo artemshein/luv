@@ -339,44 +339,20 @@ local Driver = SqlDriver:extend{
 		end
 	end;
 	constructSet = function (self, sets)
-		local res = {}
-		for k, v in pairs(sets) do
-			res[k] = self:processPlaceholders(unpack(v))
+		local exprs = {}
+		for _, set in pairs(sets) do
+			local field = table.remove(set, 1)
+			table.insert(exprs, self:processPlaceholder("?#", field).."="..self:processPlaceholders(unpack(set)))
 		end
-		return " SET "..table.join(res, ", ")
+		return " SET "..table.join(exprs, ", ")
 	end;
 	constructSetValues = function (self, sets)
-		local namesIndex, valuesIndex = 1, 1
-		local names, values, namesVals, valuesVals = {}, {}, {}, {}, {}
+		local fields, values = {}, {}
 		for _, set in ipairs(sets) do
-			local exprs = set[1]:explode","
-			for _, expr in ipairs(exprs) do
-				local name, value = expr:split"="
-				table.insert(names, name)
-				table.insert(values, value)
-			end
-			for i = 2, #set do
-				if i == 2 then
-					namesVals[namesIndex] = set[i]
-					namesIndex = namesIndex + 1
-				else
-					valuesVals[valuesIndex] = set[i]
-					valuesIndex = valuesIndex + 1
-				end
-			end
-			if namesIndex > valuesIndex then
-				valuesIndex = valuesIndex + 1
-			end
+			table.insert(fields, self:processPlaceholder("?#", table.remove(set, 1)))
+			table.insert(values, self:processPlaceholders(unpack(set)))
 		end
-		local vals = {}
-		for i = 1, #namesVals do
-			vals[i] = namesVals[i]
-		end
-		local j = #vals
-		for i, val in pairs(valuesVals) do
-			vals[j+i] = val
-		end
-		return self:processPlaceholders(" ("..table.join(names, ", ")..") VALUES ("..table.join(values, ", ")..")", unpack(vals))
+		return " ("..table.join(fields, ", ")..") VALUES ("..table.join(values, ", ")..")"
 	end;
 	constructValues = function (self, placeholders, values)
 		local res = {}
