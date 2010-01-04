@@ -492,6 +492,9 @@ local UrlConf = Object:extend{
 		if not table.empty{...} then
 			self:environment{...}
 		end
+		if not urls then
+			return false
+		end
 		if "string" == type(urls) then
 			return self:dispatch(dofile(urls))
 		end

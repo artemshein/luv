@@ -28,6 +28,11 @@
 			return true;
 		return false;
 	};
+	jQuery.fn.validIntValueRange = function (minVal, maxVal)
+	{
+		// TODO
+		return true;
+	};
 	jQuery.fn.validRegexp = function (regexp)
 	{
 		// TODO

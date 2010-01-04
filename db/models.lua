@@ -60,7 +60,7 @@ local Model = Struct:extend{
 	urlPrefix = property"string";
 	tableName = property("string", function (self)
 		if (not self._tableName) then
-			self._tableName = self:label():gsub(" ", "_")
+			self._tableName = self:label():gsub(" ", "_"):lower()
 		end
 		return self._tableName
 	end, nil);

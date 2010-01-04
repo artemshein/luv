@@ -63,7 +63,7 @@ local User = models.Model:extend{
 		method = method or "sha1"
 		if not salt then
 			salt = tostring(crypt.hash(method, math.random(2000000000)))
-			salt = salt:slice(math.random(10), math.random(5, string.utf8len(salt)-10))
+			salt = salt:slice(math.random(10), math.random(5, salt:utf8len()-10))
 		end
 		return method.."$"..salt.."$"..tostring(crypt.hash(method, password..salt..(self:secretSalt() or "")))
 	end;

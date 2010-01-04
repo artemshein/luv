@@ -26,7 +26,7 @@ local Validator = Object:extend{
 
 local Filled = Validator:extend{
 	__tag = .....".Filled";
-	_errorMsg = ('Field "%s" must be filled.'):tr();
+	_errorMsg = ('Field "%(field)s" must be filled.'):tr();
 	_js = "validFilled()";
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -44,7 +44,7 @@ local Filled = Validator:extend{
 
 local Int = Validator:extend{
 	__tag = .....".Int";
-	_errorMsg = ('Field "%s" must be valid number.'):tr();
+	_errorMsg = ('Field "%(field)s" must be valid number.'):tr();
 	_js = "validInt()";
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -65,7 +65,7 @@ local Int = Validator:extend{
 
 local NonNegative = Validator:extend{
 	__tag = .....".NonNegative";
-	_errorMsg = ('Field "%s" must be bigger or equal to 0.'):tr();
+	_errorMsg = ('Field "%(field)s" must be bigger or equal to 0.'):tr();
 	_js = "validNonNegative()";
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -77,14 +77,44 @@ local NonNegative = Validator:extend{
 				return true
 			end
 		end
-		self:addError(self:errrorMsg())
+		self:addError(self:errorMsg())
+		return false
+	end;
+}
+
+local IntValueRange = Validator:extend{
+	__tag = .....".IntValueRange";
+	_errorMsg = ('Field "%(field)s" must be at least %(min)s and at most %(max)s.'):tr();
+	minValue = property"number";
+	maxValue = property"number";
+	init = function (self, minValue, maxValue)
+		Validator.init(self)
+		if minValue then self:minValue(minValue) end
+		if maxValue then self:maxValue(maxValue) end
+	end;
+	js =  function (self)
+		return "validIntValueRange(%(min)s, %(max)s)" % {min=tonumber(self:minValue()) or "null";max=tonumber(self:maxValue()) or "null"}
+	end;
+	valid = function (self, value)
+		Validator.valid(self, value)
+		if value == nil then
+			return true
+		end
+		if type(value) == "number" or type(value) == "string" then
+			local intVal = tonumber(value)
+			if (not self:minValue() or intVal >= self:minValue())
+			and (not self:maxValue() or intVal <= self:maxValue()) then
+				return true
+			end
+		end
+		self:addError(self:errorMsg() % {min=self:minValue();max=self:maxValue()})
 		return false
 	end;
 }
 
 local Length = Validator:extend{
 	__tag = .....".Length";
-	_errorMsg = ('Field "%s" has incorrect length.'):tr();
+	_errorMsg = ('Field "%(field)s" has incorrect length.'):tr();
 	minLength = property"number";
 	maxLength = property"number";
 	init = function (self, minLength, maxLength)
@@ -114,7 +144,7 @@ local Length = Validator:extend{
 
 local Regexp = Validator:extend{
 	__tag = .....".Regexp";
-	_errorMsg = ('Field "%s" has not valid value.'):tr();
+	_errorMsg = ('Field "%(field)s" has not valid value.'):tr();
 	regexp = property"string";
 	init = function (self, regexp)
 		Validator.init(self)
@@ -136,7 +166,7 @@ local Regexp = Validator:extend{
 
 local Value = Validator:extend{
 	__tag = .....".Value";
-	_errorMsg = ('Field "%s" has invalid value.'):tr();
+	_errorMsg = ('Field "%(field)s" has invalid value.'):tr();
 	value = property;
 	init = function (self, value)
 		Validator.init(self)
@@ -160,7 +190,7 @@ local Value = Validator:extend{
 
 local Float = Validator:extend{
 	__tag = .....".Float";
-	_errorMsg = ('Field "%s" must be float.'):tr();
+	_errorMsg = ('Field "%(field)s" must be float.'):tr();
 	_js = "validFloat()";
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -174,4 +204,5 @@ local Float = Validator:extend{
 return {
 	Validator=Validator;Filled=Filled;Int=Int;Length=Length;
 	Regexp=Regexp;Value=Value;NonNegative=NonNegative;Float=Float;
+	IntValueRange=IntValueRange;
 }

@@ -232,10 +232,10 @@ local Text = Field:extend{
 		self:validator("length", validators.Length(params.minLength or 0, params.maxLength or 255))
 	end,
 	minLength = function (self)
-		return self:validator "length":minLength()
+		return self:validator"length":minLength()
 	end,
 	maxLength = function (self)
-		return self:validator "length":maxLength()
+		return self:validator"length":maxLength()
 	end
 }
 
@@ -243,8 +243,8 @@ local Password = Text:extend{
 	__tag = .....".Password";
 	init = function (self, params)
 		params = params or {}
-		params.minLength = 6
-		params.widget = widgets.PasswordInput()
+		params.minLength = params.minLength or 6
+		params.widget = params.widget or widgets.PasswordInput()
 		Text.init(self, params)
 	end;
 }
@@ -253,8 +253,8 @@ local Email = Text:extend{
 	__tag = .....".Email";
 	init = function (self, params)
 		params = params or {}
-		params.maxLength = 255
-		params.regexp = "^%a[%w%-%.]*@[%w%-%.]+%.%w+$"
+		params.maxLength = params.maxLength or 255
+		params.regexp = params.regexp or "^%a[%w%-%.]*@[%w%-%.]+%.%w+$"
 		Text.init(self, params)
 	end;
 }
@@ -263,7 +263,7 @@ local Url = Text:extend{
 	__tag = .....".Url";
 	init = function (self, params)
 		params = params or {}
-		params.maxLength = 255;
+		params.maxLength = params.maxLength or 255;
 		Text.init(self, params)
 	end;
 }
@@ -272,8 +272,8 @@ local File = Text:extend{
 	__tag = .....".File";
 	init = function (self, params)
 		params = params or {}
-		params.maxLength = 255
-		params.widget = widgets.FileInput()
+		params.maxLength = params.maxLength or 255
+		params.widget = params.widget or widgets.FileInput()
 		Text.init(self, params)
 	end;
 	value = function (self, ...)
@@ -323,10 +323,10 @@ local Phone = Text:extend{
 	__tag = .....".Phone";
 	init = function (self, params)
 		params = params or {}
-		params.minLength = 11
-		params.maxLength = 11
+		params.minLength = params.minLength or 11
+		params.maxLength = params.maxLength or 11
 		params.widget = params.widget or widgets.PhoneInput()
-		params.regexp = "^[0-9]+$"
+		params.regexp = params.regexp or "^[0-9]+$"
 		Text.init(self, params)
 	end;
 }
@@ -340,6 +340,9 @@ local Int = Field:extend{
 		end
 		Field.init(self, params)
 		self:validator("int", validators.Int())
+		if params.min or params.max then
+			self:validator("intValueRange", validators.IntValueRange(params.min, params.max))
+		end
 	end,
 	value = function (self, ...)
 		if select("#", ...) > 0 then
@@ -350,15 +353,54 @@ local Int = Field:extend{
 			return Field.value(self)
 		end
 	end;
-	minLength = function (self) return self:required() and 1 or 0 end;
-	maxLength = function (self) return 12 end;
+	numLength = function (num)
+		if 0 == num then
+			return 1
+		end
+		local len = 1
+		if num < 0 then
+			len = len + 1
+		end
+		while num ~= 0 do
+			num = num / 10
+		end
+		return len
+	end;
+	minLength = function (self)
+		local intValueRange = self:validator"intValueRange"
+		if intValueRange then
+			local minVal = intValueRange:minValue()
+			if minVal then
+				return self.numLength(minVal)
+			end
+		end
+		return 1
+	end;
+	maxLength = function (self)
+		local intValueRange = self:validator"intValueRange"
+		if intValueRange then
+			local maxVal = intValueRange:maxValue()
+			if maxVal then
+				return self.numLength(maxVal)
+			end
+		end
+	end;
 }
 
 local NonNegativeInt = Int:extend{
 	__tag = .....".NonNegativeInt";
 	init = function (self, params)
+		params.min = params.min or 0
 		Int.init(self, params)
-		self:validator("nonNegative", validators.NonNegative())
+	end;
+}
+
+local Port = NonNegativeInt:extend{
+	__tag = .....".Port";
+	init = function (self, params)
+		params.min = params.min or 0
+		params.max = params.max or 65535
+		NonNegativeInt.init(self, params)
 	end;
 }
 
@@ -424,11 +466,11 @@ local Login = Text:extend{
 	__tag = .....".Login",
 	init = function (self, params)
 		params = params or {}
-		params.minLength = 1
-		params.maxLength = 32
+		params.minLength = params.minLength or 1
+		params.maxLength = params.maxLength or 32
 		params.required = true
 		params.unique = true
-		params.regexp = "^[a-zA-Z0-9_%.%-]+$"
+		params.regexp = params.regexp or "^[a-zA-Z0-9_%.%-]+$"
 		Text.init(self, params)
 	end
 }
@@ -436,8 +478,8 @@ local Login = Text:extend{
 local Ip = Text:extend{
 	__tag = function (self, params)
 		params = params or {}
-		params.minLength = 7
-		params.maxLength = 39
+		params.minLength = params.minLength or 7
+		params.maxLength = params.maxLength or 39
 		Text.init(self, params)
 	end;
 }

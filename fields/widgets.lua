@@ -131,7 +131,7 @@ local TextInput = Input:extend{
 	__tag = .....".TextInput";
 	_type = "text";
 	render = function (self, field, form, tail)
-		return Input.render(self, field, form, (tail or "").." maxlength="..("%q"):format(field:maxLength()))
+		return Input.render(self, field, form, (tail or "")..(field:maxLength() and " maxlength="..("%q"):format(field:maxLength()) or ""))
 	end
 }
 

@@ -214,7 +214,8 @@ local Luv = Object:extend{
 			mediaPrefix=env.mediaPrefix;urlPrefix=env.urlPrefix;debugger=env.debugger or "";
 			jsScripts = jsScripts;
 			i18n = env.i18n;
-			luvVersion = require"luv.utils".Version(9, 12, 3, alpha);
+			urlConf = env.urlConf;
+			luvVersion = require"luv.utils".Version(10, 1, 0, alpha);
 			importJsScripts = function ()
 				local res, prefix = "", env.mediaPrefix
 				if not prefix and env.urlPrefix then

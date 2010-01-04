@@ -5,7 +5,7 @@ local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
 local references = require"luv.fields.references"
 local forms, fields, html = require"luv.forms", require"luv.fields", require"luv.utils.html"
 local Exception = require"luv.exceptions".Exception
-local json = require"luv.utils.json"
+local json, html = require"luv.utils.json", require"luv.utils.html"
 
 module(...)
 
@@ -91,7 +91,7 @@ local Form = Widget:extend{
 		for name, f in pairs(form:fields()) do
 			for _, v in pairs(f:validators()) do
 				local id = self:_fieldId(f, form)
-				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:js().."){$('#"..id.."').showError("..("%q"):format(v:errorMsg():format(f:label():tr():capitalize()))..");return false;}"
+				validationFunc = validationFunc.."if(!$('#"..id.."')."..v:js().."){$('#"..id.."').showError("..("%q"):format(v:errorMsg() % {field=f:label():tr():capitalize()})..");return false;}"
 			end
 		end
 		validationFunc = validationFunc.."return true;}"

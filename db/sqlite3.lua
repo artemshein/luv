@@ -411,7 +411,7 @@ local Driver = SqlDriver:extend{
 		local res, ref = {}
 		if not refs then return "" end
 		for _, v in pairs(refs) do
-			ref = self:processPlaceholders(", CONSTRAINT FOREIGN KEY (?#) REFERENCES ?# (?#)", v[1], v[2], v[3])
+			ref = self:processPlaceholders(", CONSTRAINT ?# FOREIGN KEY (?#) REFERENCES ?# (?#)", v[2], v[1], v[2], v[3])
 			if v[4] then ref = ref.." ON UPDATE "..v[4] end
 			if v[5] then ref = ref.." ON DELETE "..v[5] end
 			table.insert(res, ref)
