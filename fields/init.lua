@@ -67,6 +67,7 @@ local Field = Object:extend{
 	clone = function (self)
 		local new = Object.clone(self)
 		new:validators(table.map(self:validators(), "clone"))
+		new:classes(table.copy(self:classes()))
 		return new
 	end,
 	params = function (self, params)
@@ -126,7 +127,9 @@ local Field = Object:extend{
 		end
 		for _, val in pairs(self:validators()) do
 			if not val:valid(value) then
-				self:addErrors(val:errors())
+				for _, error in ipairs(val:errors()) do
+					self:addError(error % {field = self:label():tr():capitalize()})
+				end
 				return false
 			end
 		end

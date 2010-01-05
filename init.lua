@@ -8,6 +8,7 @@ local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Versi
 local crypt, backend = require "luv.crypt", require "luv.cache.backend"
 local Memory, NamespaceWrapper, TagEmuWrapper = backend.Memory, backend.NamespaceWrapper, backend.TagEmuWrapper
 local Slot = require "luv.cache.frontend".Slot
+local checkTypes = require"luv.checktypes".checkTypes
 
 module(...)
 
@@ -145,19 +146,19 @@ local Struct = Object:extend{
 		end
 		return table.empty(self:errors())
 	end;
-	addError = function (self, error) table.insert(self._errors, error) return self end;
-	addErrors = function (self, errors)
+	addError = checkTypes(nil, "string", function (self, error) table.insert(self._errors, error) return self end);
+	addErrors = checkTypes(nil, "table", function (self, errors)
 		for _, error in ipairs(errors) do
 			self:addError(error)
 		end
-	end;
-	addMsg = function (self, msg) table.insert(self._msgs, msg) return self end;
-	addMsgs = function (self, msgs)
+	end);
+	addMsg = checkTypes(nil, "string", function (self, msg) table.insert(self._msgs, msg) return self end);
+	addMsgs = checkTypes(nil, "table", function (self, msgs)
 		for _, msg in ipairs(msgs) do
 			self:addMsg(msg)
 		end
 		return self
-	end;
+	end);
 }
 
 local Widget = Object:extend{
@@ -215,7 +216,7 @@ local Luv = Object:extend{
 			jsScripts = jsScripts;
 			i18n = env.i18n;
 			urlConf = env.urlConf;
-			luvVersion = require"luv.utils".Version(10, 1, 0, alpha);
+			luvVersion = require"luv.utils".Version(10, 1, 1, alpha);
 			importJsScripts = function ()
 				local res, prefix = "", env.mediaPrefix
 				if not prefix and env.urlPrefix then

@@ -315,9 +315,9 @@ local Driver = SqlDriver:extend{
 			if v == "*" then
 				table.insert(res, "RAND()")
 			elseif string.beginsWith(v, "-") then
-				table.insert(res, self:processPlaceholder("?#", string.slice(v, 2)).." DESC")
+				table.insert(res, table.ijoin(table.imap(v:slice(2):explode".", function (f) return self:processPlaceholder("?#", f) end), ".").." DESC")
 			else
-				table.insert(res, self:processPlaceholder("?#", v).." ASC")
+				table.insert(res, table.ijoin(table.imap(v:explode".", function (f) return self:processPlaceholder("?#", f) end), ".").." ASC")
 			end
 		end
 		res = table.join(res, ", ")

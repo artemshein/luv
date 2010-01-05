@@ -449,6 +449,7 @@ local UrlConf = Object:extend{
 	tailUri = property"string";
 	baseUri = property"string";
 	captures = property"table";
+	_urlPrefix = "";
 	urlPrefix = property"string";
 	environment = property"table";
 	init = function (self, request, urlPrefix)

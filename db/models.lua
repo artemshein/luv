@@ -373,7 +373,7 @@ local Model = Struct:extend{
 			local updateRow = db:UpdateRow(tableName)
 			local pk = self:pkField()
 			local pkName = pk:name()
-			updateRow:where(pkName, self:fieldPlaceholder(pk), pk:value())
+			updateRow:where("?#="..self:fieldPlaceholder(pk), pkName, pk:value())
 			for name, f in pairs(self:fields()) do
 				if not f:isA(references.ManyToMany) and not (f:isA(references.OneToOne) and f:backLink()) and not f:isA(references.OneToMany) and not f:pk() then
 					if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
@@ -489,7 +489,7 @@ local Model = Struct:extend{
 	create = function (self, ...)
 		local obj = self(...)
 		if not obj:insert() then
-			return nil
+			return nil, obj:errors()
 		end
 		self:clearCacheTag()
 		return obj
@@ -834,6 +834,83 @@ local SqlQuerySet = QuerySet:extend{
 		end
 		return self
 	end;
+	_applyOrders = function (self, s, orders)
+		for _, v in ipairs(orders) do
+			if v:find"." then
+				if v:beginsWith"-" then
+					v = v:slice(2)
+				end
+				local parts = v:explode"."
+				local curModel = self._model
+				local field
+				for i, part in ipairs(parts) do
+					field = curModel:field(part)
+					if not field then
+						Exception("field "..("%q"):format(part).." not founded")
+					end
+					if field:isA(references.Reference) then
+						if field:isA(references.OneToOne) then
+							if field:backLink() then
+								s:join(
+									field:refModel():tableName(),
+									{
+										"?#.?#=?#.?#";
+										curModel:tableName();curModel:pkName();
+										field:refModel():tableName();field:backRefFieldName()
+									}
+								)
+							else
+								s:join(
+									field:refModel():tableName(),
+									{
+										"?#.?#=?#.?#";
+										curModel:tableName();part;
+										field:refModel():tableName();field:refModel():pkName()
+									}
+								)
+							end
+						elseif field:isA(references.OneToMany) then
+							s:join(
+								field:refModel():tableName(),
+								{
+									"?#.?#=?#.?#";
+									curModel:tableName();curModel:pkName();
+									field:refModel():tableName();field:relatedName()
+								}
+							)
+						elseif field:isA(references.ManyToOne) then
+							s:join(
+								field:refModel():tableName(),
+								{"?#.?#=?#.?#";curModel:tableName();part;field:refModel():tableName();field:refModel():pkName()}
+							)
+						elseif field:isA(references.ManyToMany) then
+							s:join(
+								field:tableName(),
+								{
+									"?#.?#=?#.?#";
+									curModel:tableName();curModel:pkName();
+									field:tableName();curModel:tableName()
+								}
+							)
+							s:join(
+								field:refModel():tableName(),
+								{
+									"?#.?#=?#.?#";
+									field:tableName();field:refModel():tableName();
+									field:refModel():tableName();field:refModel():pkName()
+								}
+							)
+						end
+						curModel = field:refModel()
+					else
+						curModel = nil
+						field = field
+					end
+				end
+			end
+		end
+		return self
+	end;
 	limit = function (self, limitFrom, limitTo)
 		local obj = self:clone()
 		obj:limits{from=limitFrom;to=limitTo}
@@ -848,9 +925,6 @@ local SqlQuerySet = QuerySet:extend{
 				part = curModel:pkName()
 			end
 			field = curModel:field(part)
-			if not curModel then
-				Exception"invalid field"
-			end
 			if not field then
 				Exception("field "..("%q"):format(part).." not founded")
 			end
@@ -1006,6 +1080,7 @@ local SqlQuerySet = QuerySet:extend{
 			s:limit(self._limits.from, self._limits.to)
 		end
 		if not table.empty(self._orders) then
+			self:_applyOrders(s, self._orders)
 			s:order(unpack(self._orders))
 		end
 	end;

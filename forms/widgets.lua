@@ -1,5 +1,5 @@
 local string = require"luv.string"
-local tr, type, require, debug = tr, type, require, debug
+local tr, type, require, debug, table = tr, type, require, debug, table
 local pairs, ipairs, io = pairs, ipairs, io
 local Widget, widgets = require"luv".Widget, require"luv.fields.widgets"
 local references = require"luv.fields.references"
@@ -41,9 +41,9 @@ local Form = Widget:extend{
 		end
 		local id = self:_fieldId(field, form)
 		if not id then
-			return field:label()..":"
+			return '<div class="fieldLabel">'..field:label()..":</div>"
 		end
-		return "<label for="..("%q"):format(html.escape(id))..">"..field:label():tr():capitalize().."</label>:"
+		return '<div class="fieldLabel"><label for='..("%q"):format(html.escape(id))..">"..field:label():tr():capitalize().."</label>:</div>"
 	end;
 	renderLabelCheckbox = function (self, form, field)
 		if not field:label() then
@@ -51,12 +51,20 @@ local Form = Widget:extend{
 		end
 		local id = self:_fieldId(field, form)
 		if not id then
-			return field:label()
+			return '<span class="fieldLabel">'..field:label().."</span"
 		end
-		return "<label for="..("%q"):format(html.escape(id))..">"..field:label():tr().."</label>"
+		return '<span class="fieldLabel"><label for='..("%q"):format(html.escape(id))..">"..field:label():tr().."</label></span>"
 	end;
 	renderField = function (self, form, field)
 		local html, js = field:asHtml(form)
+		local errors = field:errors()
+		if errors and not table.empty(errors) then
+			html = html..'<ul class="fieldErrors">'
+			for _, error in ipairs(errors) do
+				html = html.."<li>"..error.."</li>"
+			end
+			html = html.."</ul>"
+		end
 		return html, (js or field:onLoad() and ((js or "")..(field:onLoad() or "")))
 	end;
 	renderFields = function (self, form)
@@ -66,22 +74,42 @@ local Form = Widget:extend{
 			html = html..self:renderField(form, v)
 		end
 		html = html..self._beforeFields
-		-- Then visible fields
-		for _, v in ipairs(form:visibleFields()) do
-			local fieldHtml, fieldJs = self:renderField(form, v)
-			if fieldJs then js = (js or "")..fieldJs end
-			if v:widget():isA(widgets.Checkbox) then
-				html = html..self._beforeLabel..self._afterLabel..self._beforeField..fieldHtml.." "..self:renderLabelCheckbox(form, v)..self._afterField
-			else
-				html = html..self._beforeLabel..self:renderLabel(form, v)..self._afterLabel..self._beforeField..fieldHtml..self._afterField
+		if "table" == type(form:fieldsList()[1]) then
+			for _, fieldset in ipairs(form:fieldsList()) do
+				html = html.."<fieldset title="..("%q"):format(fieldset.title:tr():capitalize()).."><legend>"..fieldset.title:tr():capitalize().."</legend>"
+				for _, field in ipairs(fieldset.fields) do
+					local v = form:field(field)
+					local widget = v:widget()
+					if widget and not widget:isA(widgets.HiddenInput) and not widget:isA(widgets.Button) then
+						local fieldHtml, fieldJs = self:renderField(form, v)
+						if fieldJs then js = (js or "")..fieldJs end
+						if v:widget():isA(widgets.Checkbox) then
+							html = html..self._beforeLabel..self._afterLabel..self._beforeField..fieldHtml.." "..self:renderLabelCheckbox(form, v)..self._afterField
+						else
+							html = html..self._beforeLabel..self:renderLabel(form, v)..self._afterLabel..self._beforeField..fieldHtml..self._afterField
+						end
+					end
+				end
+				html = html.."</fieldset>"
+			end
+		else
+			-- Then visible fields
+			for _, v in ipairs(form:visibleFields()) do
+				local fieldHtml, fieldJs = self:renderField(form, v)
+				if fieldJs then js = (js or "")..fieldJs end
+				if v:widget():isA(widgets.Checkbox) then
+					html = html..self._beforeLabel..self._afterLabel..self._beforeField..fieldHtml.." "..self:renderLabelCheckbox(form, v)..self._afterField
+				else
+					html = html..self._beforeLabel..self:renderLabel(form, v)..self._afterLabel..self._beforeField..fieldHtml..self._afterField
+				end
 			end
 		end
 		-- Buttons
-		html = html..self._beforeLabel..self._afterLabel..self._beforeField
+		html = html..self._beforeButtons..self._beforeLabel..self._afterLabel..self._beforeField
 		for _, v in ipairs(form:buttonFields()) do
 			html = html..self:renderField(form, v)
 		end
-		return html..self._afterField..self._afterFields..(js and '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..js.."\n//]]></script>" or "")
+		return html..self._afterField..self._afterButtons..self._afterFields..(js and '<script type="text/javascript" language="JavaScript">//<![CDATA[\n'..js.."\n//]]></script>" or "")
 	end;
 	renderFormEnd = function (self, form)
 		return "</form>"
@@ -112,6 +140,8 @@ local Flow = Form:extend{
 	_afterLabel = " ";
 	_beforeField = " ";
 	_afterField = " ";
+	_beforeButtons = '<div class="buttons">';
+	_afterButtons = "</div>";
 	_afterFields = "";
 	init = function () end;
 }
@@ -123,6 +153,8 @@ local HorisontalTable = Form:extend{
 	_afterLabel = "</th>";
 	_beforeField = "<td>";
 	_afterField = "</td>";
+	_beforeButtons = "";
+	_afterButtons = "";
 	_afterFields = "</tr></tbody></table>";
 	init = function () end;
 }
@@ -134,6 +166,8 @@ local VerticalTable = Form:extend{
 	_afterLabel = "</th>";
 	_beforeField = "<td>";
 	_afterField = "</td></tr>";
+	_beforeButtons = "";
+	_afterButtons = "";
 	_afterFields = "</tbody></table>";
 	init = function () end;
 }

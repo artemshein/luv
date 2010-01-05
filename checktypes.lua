@@ -1,5 +1,4 @@
-local type, table, unpack, error, ipairs, select, io = type, table, unpack, error, ipairs, select, io
-local debug = debug
+local select, type, table, ipairs, unpack, error, debug = select, type, table, ipairs, unpack, error, debug
 
 module(...)
 
@@ -8,10 +7,8 @@ local function expect (valType, value)
 		if "table" ~= type(value) or not value.isA or not value:isA(valType) then
 			error("not a valid object given "..debug.traceback("", 3))
 		end
-	else
-		if type(value) ~= valType then
-			error("expected "..valType..", "..type(value).." given "..debug.traceback("", 3))
-		end
+	elseif type(value) ~= valType then
+		error("expected "..valType..", "..type(value).." given "..debug.traceback("", 3))
 	end
 end
 
@@ -46,4 +43,4 @@ local function checkTypes (...)
 	end
 end
 
-return {expect=expect;checkTypes=checkTypes}
+return {expect = expect; checkTypes = checkTypes}

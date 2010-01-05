@@ -106,9 +106,22 @@ local Form = Struct:extend{
 		end
 		return res
 	end;
+	activeFields = function (self)
+		local res = {}
+		for _, fieldOrSet in ipairs(self:fieldsList()) do
+			if "table" == type(fieldOrSet) then
+				for _, field in ipairs(fieldOrSet.fields) do
+					table.insert(res, field)
+				end
+			else
+				table.insert(res, fieldOrSet)
+			end
+		end
+		return res
+	end;
 	hiddenFields = function (self)
 		local res = {}
-		for _, field in ipairs(self:fieldsList()) do
+		for _, field in ipairs(self:activeFields()) do
 			field = self:field(field) or Exception("field "..("%q"):format(field).." not founded")
 			local widget = field:widget()
 			if widget and widget:isA(widgets.HiddenInput) then
@@ -119,7 +132,7 @@ local Form = Struct:extend{
 	end;
 	visibleFields = function (self)
 		local res = {}
-		for _, field in ipairs(self:fieldsList()) do
+		for _, field in ipairs(self:activeFields()) do
 			field = self:field(field)
 			local widget = field:widget()
 			if widget and not widget:isA(widgets.HiddenInput) and not widget:isA(widgets.Button) then

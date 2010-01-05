@@ -30,8 +30,14 @@ local Field = Widget:extend{
 		return ""
 	end;
 	_renderClasses = function (self, f)
-		if f:classes() and not table.empty(f:classes()) then
-			return " class="..("%q"):format(table.join(f:classes(), " "))
+		local classes, errors = f:classes(), f:errors()
+		if classes and not table.empty(classes) then
+			if errors and not table.empty(errors) then
+				table.insert(classes, "error")
+			end
+			return " class="..("%q"):format(table.join(classes, " "))
+		elseif errors and not table.empty(errors) then
+			return ' class="error"'
 		end
 		return ""
 	end;
@@ -45,7 +51,7 @@ local Field = Widget:extend{
 		return " value="..("%q"):format(html.escape(tostring(f:value() or f:defaultValue() or "")))
 	end;
 	_renderHint = function (self, f)
-		return (f:hint() and (" "..f:hint():tr()) or "")
+		return (f:hint() and ('<span class="fieldHint">'..f:hint():tr().."</span>") or "")
 	end;
 }
 
@@ -196,9 +202,12 @@ local Select = Field:extend{
 			if v.isA and v:isA(models.Model) then
 				key = v.pk
 				value = v
-			else
+			elseif "table" == type(v) then
 				key = tostring(v[1])
 				value = v[2]
+			else
+				key = v
+				value = tostring(v):tr()
 			end
 			local selected
 			if "table" ~= type(fieldValue) then
@@ -206,7 +215,7 @@ local Select = Field:extend{
 			else
 				selected = fieldValue == value
 			end
-			values = values.."<option value="..("%q"):format(key)..(selected and ' selected="selected"' or "")..">"..html.escape(tostring(value)).."</option>"
+			values = values.."<option value="..("%q"):format(key)..(selected and ' selected="selected"' or "")..">"..html.escape(tostring(value):tr()).."</option>"
 		end
 		return "<select"
 		..self:_renderId(field, form)
@@ -237,7 +246,7 @@ local MultipleSelect = Select:extend{
 					break
 				end
 			end
-			values = values.."<option value="..("%q"):format(tostring(v.pk))..(founded and ' selected="selected"' or "")..">"..tostring(v).."</option>"
+			values = values.."<option value="..("%q"):format(tostring(v.pk))..(founded and ' selected="selected"' or "")..">"..tostring(v):tr().."</option>"
 		end
 		return '<select multiple="multiple"'
 		..self:_renderId(field, form)

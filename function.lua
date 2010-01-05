@@ -2,6 +2,7 @@ local require, setfenv, getfenv = require, setfenv, getfenv
 local Object = require"luv.oop".Object
 
 module(...)
+
 local property = Object.property
 
 local Decorator = Object:extend{
@@ -37,4 +38,4 @@ local Decorator = Object:extend{
 	end;
 }
 
-return {Decorator=Decorator}
+return {checkTypes = checkTypes; Decorator = Decorator}
