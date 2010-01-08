@@ -88,7 +88,7 @@ local Form = Struct:extend{
 				return f:value()
 			elseif f:isA(fields.Submit) then
 				local fVal = f:value()
-				if ((value and (value == name)) or not value) and fVal == f:defaultValue() then
+				if ((value and (value == name)) or not value) and fVal == f:default() then
 					return fVal
 				end
 			end
@@ -179,6 +179,26 @@ local Form = Struct:extend{
 			return values
 		end
 	end;
+	fieldMaxLen = function (self, field)
+		local numLen = function (num)
+			if 0 == num then
+				return 1
+			end
+			local len = 1
+			if num < 0 then
+				len = len + 1
+			end
+			while num ~= 0 do
+				num = num / 10
+			end
+			return len
+		end;
+		if field:isA(fields.Int) then
+			return field:max() and numLen(field:max()) or nil
+		else
+			return field:max()
+		end
+	end;
 	-- Experimental
 	processAjaxForm = function (self, action)
 		if self:submitted() then
@@ -258,7 +278,7 @@ models.Model.ajaxFieldForm = function (self, data)
 		id = self:pkField():clone();
 		field = fields.Text{required=true};
 		value = self:field(data.field):clone();
-		set = fields.Submit{defaultValue="Set"};
+		set = fields.Submit"Set";
 		initModel = function (self, model)
 			model[self.field] = self.value
 		end;
@@ -293,4 +313,4 @@ models.Model.ajaxFieldHandler = function (self, data, preCond, postFunc)
 end
 
 
-return {Form=Form;ModelForm=ModelForm}
+return {Form = Form; ModelForm = ModelForm}

@@ -45,9 +45,10 @@ local Field = Object:extend{
 	unique = property"boolean";
 	pk = property"boolean";
 	name = property"string";
+	index = property"boolean";
 	value = property;
 	choices = property;
-	defaultValue = property;
+	default = property;
 	classes = property"table";
 	widget = property(Widget);
 	onClick = property;
@@ -55,6 +56,28 @@ local Field = Object:extend{
 	onLoad = property;
 	hint = property"string";
 	ajaxWidget = property(Widget);
+	_paramsDefaults = function (params, defaults)
+		for key, val in pairs(defaults) do
+			if nil == params[key] then
+				params[key] = val
+			end
+		end
+	end;
+	_preprocessParams = function (params)
+		params = params or {}
+		if "table" ~= type(params) then
+			params = {params}
+		end
+		for _, param in ipairs(params) do
+			local t = type(param)
+			if "boolean" == t then
+				params.required = param
+			elseif "string" == t then
+				params.label = param
+			end
+		end
+		return params
+	end;
 	init = function (self, params)
 		if self:parent():parent() == Object then
 			Exception"can't instantiate abstract class"
@@ -71,9 +94,10 @@ local Field = Object:extend{
 		return new
 	end,
 	params = function (self, params)
-		params = params or {}
-		self:pk(params.pk or false)
-		self:unique(params.unique or false)
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {pk = false; unique = false; required = false; index = false})
+		self:pk(params.pk)
+		self:unique(params.unique)
 		if params.label then self:label(params.label) end
 		if params.widget then self:widget(params.widget) end
 		self:onClick(params.onClick)
@@ -81,8 +105,9 @@ local Field = Object:extend{
 		if params.hint then self:hint(params.hint) end
 		if params.choices then self:choices(params.choices) end
 		if params.classes then self:classes(params.classes) end
-		self:required(params.required or false)
-		self:defaultValue(params.defaultValue)
+		self:required(params.required)
+		self:default(params.default)
+		self:index(params.index)
 		return self
 	end;
 	addError = function (self, error) table.insert(self._errors, error) return self end;
@@ -120,7 +145,7 @@ local Field = Object:extend{
 	end;
 	valid = function (self, value)
 		local value = value or self:value()
-		if nil == value then value = self:defaultValue() end
+		if nil == value then value = self:default() end
 		self:errors{}
 		if not self:validators() then
 			return true
@@ -215,14 +240,31 @@ local MultipleValues = Field:extend{
 }
 
 local Text = Field:extend{
-	__tag = .....".Text",
-	params = function (self, params)
+	__tag = .....".Text";
+	_preprocessParams = function (params, defaults)
 		params = params or {}
-		if false == params.maxLength then params.maxLength = 0 end
+		if "table" ~= type(params) then
+			params = {params}
+		end
+		for _, param in ipairs(params) do
+			local t = type(param)
+			if "boolean" == t then
+				params.required = param
+			elseif "string" == t then
+				params.label = param
+			elseif "number" == t then
+				params.max = param
+			end
+		end
+		return params
+	end;
+	params = function (self, params)
+		params = self._preprocessParams(params)
+		if false == params.max then params.max = 0 end
 		if not params.widget then
 			if params.choices then
 				params.widget = widgets.Select()
-			elseif "number" == type(params.maxLength) and (params.maxLength == 0 or params.maxLength > 65535) then
+			elseif "number" == type(params.max) and (params.max == 0 or params.max > 65535) then
 				params.widget = widgets.TextArea()
 			else
 				params.widget = widgets.TextInput()
@@ -232,22 +274,21 @@ local Text = Field:extend{
 		if params.regexp then
 			self:validator("regexp", validators.Regexp(params.regexp))
 		end
-		self:validator("length", validators.Length(params.minLength or 0, params.maxLength or 255))
-	end,
-	minLength = function (self)
-		return self:validator"length":minLength()
-	end,
-	maxLength = function (self)
-		return self:validator"length":maxLength()
-	end
+		self:validator("length", validators.Length(params.min or 0, params.max or 255))
+	end;
+	min = function (self)
+		return self:validator"length":min()
+	end;
+	max = function (self)
+		return self:validator"length":max()
+	end;
 }
 
 local Password = Text:extend{
 	__tag = .....".Password";
 	init = function (self, params)
-		params = params or {}
-		params.minLength = params.minLength or 6
-		params.widget = params.widget or widgets.PasswordInput()
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {min = 6; widget = widgets.PasswordInput()})
 		Text.init(self, params)
 	end;
 }
@@ -255,9 +296,8 @@ local Password = Text:extend{
 local Email = Text:extend{
 	__tag = .....".Email";
 	init = function (self, params)
-		params = params or {}
-		params.maxLength = params.maxLength or 255
-		params.regexp = params.regexp or "^%a[%w%-%.]*@[%w%-%.]+%.%w+$"
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {max = 255; regexp = "^%a[%w%-%.]*@[%w%-%.]+%.%w+$"})
 		Text.init(self, params)
 	end;
 }
@@ -265,8 +305,8 @@ local Email = Text:extend{
 local Url = Text:extend{
 	__tag = .....".Url";
 	init = function (self, params)
-		params = params or {}
-		params.maxLength = params.maxLength or 255;
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {max = 255})
 		Text.init(self, params)
 	end;
 }
@@ -274,9 +314,8 @@ local Url = Text:extend{
 local File = Text:extend{
 	__tag = .....".File";
 	init = function (self, params)
-		params = params or {}
-		params.maxLength = params.maxLength or 255
-		params.widget = params.widget or widgets.FileInput()
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {max = 255; widget = widgets.FileInput()})
 		Text.init(self, params)
 	end;
 	value = function (self, ...)
@@ -325,11 +364,8 @@ local Image = File:extend{
 local Phone = Text:extend{
 	__tag = .....".Phone";
 	init = function (self, params)
-		params = params or {}
-		params.minLength = params.minLength or 11
-		params.maxLength = params.maxLength or 11
-		params.widget = params.widget or widgets.PhoneInput()
-		params.regexp = params.regexp or "^[0-9]+$"
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {min = 11; max = 11; widgets = widgets.PhoneInput(); regexp = "^[0-9]+$"})
 		Text.init(self, params)
 	end;
 }
@@ -337,7 +373,7 @@ local Phone = Text:extend{
 local Int = Field:extend{
 	__tag = .....".Int",
 	init = function (self, params)
-		params = params or {}
+		params = self._preprocessParams(params)
 		if not params.widget then
 			params.widget = params.choices and widgets.Select() or widgets.TextInput()
 		end
@@ -356,44 +392,21 @@ local Int = Field:extend{
 			return Field.value(self)
 		end
 	end;
-	numLength = function (num)
-		if 0 == num then
-			return 1
-		end
-		local len = 1
-		if num < 0 then
-			len = len + 1
-		end
-		while num ~= 0 do
-			num = num / 10
-		end
-		return len
-	end;
-	minLength = function (self)
+	min = function (self)
 		local intValueRange = self:validator"intValueRange"
-		if intValueRange then
-			local minVal = intValueRange:minValue()
-			if minVal then
-				return self.numLength(minVal)
-			end
-		end
-		return 1
+		return intValueRange and intValueRange:min()
 	end;
-	maxLength = function (self)
+	max = function (self)
 		local intValueRange = self:validator"intValueRange"
-		if intValueRange then
-			local maxVal = intValueRange:maxValue()
-			if maxVal then
-				return self.numLength(maxVal)
-			end
-		end
+		return intValueRange and intValueRange:max()
 	end;
 }
 
 local NonNegativeInt = Int:extend{
 	__tag = .....".NonNegativeInt";
 	init = function (self, params)
-		params.min = params.min or 0
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {min = 0})
 		Int.init(self, params)
 	end;
 }
@@ -401,8 +414,8 @@ local NonNegativeInt = Int:extend{
 local Port = NonNegativeInt:extend{
 	__tag = .....".Port";
 	init = function (self, params)
-		params.min = params.min or 0
-		params.max = params.max or 65535
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {min = 0; max = 65535})
 		NonNegativeInt.init(self, params)
 	end;
 }
@@ -410,7 +423,7 @@ local Port = NonNegativeInt:extend{
 local Float = Field:extend{
 	__tag = .....".Float",
 	init = function (self, params)
-		params = params or {}
+		params = self._preprocessParams(params)
 		if not params.widget then
 			params.widget = params.choices and widgets.Select() or widgets.TextInput()
 		end
@@ -426,15 +439,13 @@ local Float = Field:extend{
 			return Field.value(self)
 		end
 	end;
-	minLength = function (self) return self:required() and 1 or 0 end;
-	maxLength = function (self) return 20 end;
 }
 
 local Boolean = Int:extend{
 	__tag = .....".Boolean";
 	init = function (self, params)
-		params = params or {}
-		params.widget = params.widget or widgets.Checkbox()
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.Checkbox()})
 		Int.init(self, params)
 	end;
 	value = function (self, ...)
@@ -452,15 +463,15 @@ local Boolean = Int:extend{
 			return Int.value(self)
 		end
 	end;
-	defaultValue = function (self, ...)
+	default = function (self, ...)
 		if select("#", ...) > 0 then
-			return Int.defaultValue(self, ...)
+			return Int.default(self, ...)
 		else
-			local defaultValue = Int.defaultValue(self)
-			if nil == defaultValue then
+			local default = Int.default(self)
+			if nil == default then
 				return nil
 			end
-			return defaultValue and 1 or 0
+			return default and 1 or 0
 		end
 	end;
 }
@@ -468,21 +479,16 @@ local Boolean = Int:extend{
 local Login = Text:extend{
 	__tag = .....".Login",
 	init = function (self, params)
-		params = params or {}
-		params.minLength = params.minLength or 1
-		params.maxLength = params.maxLength or 32
-		params.required = true
-		params.unique = true
-		params.regexp = params.regexp or "^[a-zA-Z0-9_%.%-]+$"
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {min = 1; max = 32; required = true; unique = true; regexp = "^[a-zA-Z0-9_%.%-]+$"})
 		Text.init(self, params)
 	end
 }
 
 local Ip = Text:extend{
 	__tag = function (self, params)
-		params = params or {}
-		params.minLength = params.minLength or 7
-		params.maxLength = params.maxLength or 39
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {min = 7; max = 39})
 		Text.init(self, params)
 	end;
 }
@@ -490,9 +496,8 @@ local Ip = Text:extend{
 local Id = Int:extend{
 	__tag = .....".Id",
 	init = function (self, params)
-		params = params or {}
-		params.widget = params.widget or widgets.HiddenInput()
-		params.pk = true
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.HiddenInput(); pk = true})
 		Int.init(self, params)
 	end
 }
@@ -500,38 +505,62 @@ local Id = Int:extend{
 local Button = Text:extend{
 	__tag = .....".Button",
 	init = function (self, params)
-		params = params or {}
-		if "table" ~= type(params) then
-			params = {defaultValue=params}
-		end
-		params.defaultValue = params.defaultValue or 1
-		params.widget = params.widget or widgets.Button()
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {default = 1; widget = widgets.Button()})
 		Text.init(self, params)
 	end;
 }
 
 local Submit = Button:extend{
-	__tag = .....".Submit",
-	init = function (self, params)
+	__tag = .....".Submit";
+	_preprocessParams = function (params, defaults)
 		params = params or {}
 		if "table" ~= type(params) then
-			params = {defaultValue=params}
+			params = {params}
 		end
-		params.widget = params.widget or widgets.SubmitButton()
+		for _, param in ipairs(params) do
+			local t = type(param)
+			if "boolean" == t then
+				params.required = param
+			elseif "string" == t then
+				params.default = param
+			elseif "number" == t then
+				params.max = param
+			end
+		end
+		return params
+	end;
+	init = function (self, params)
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.SubmitButton()})
 		Button.init(self, params)
 	end
 }
 
 local ImageButton = Button:extend{
 	__tag = .....".Image";
-	src = property "string";
-	init = function (self, params)
+	src = property"string";
+	_preprocessParams = function (params, defaults)
 		params = params or {}
 		if "table" ~= type(params) then
-			params = {src=params}
+			params = {params}
 		end
-		self:src(params.src)
-		params.widget = params.widget or widgets.ImageButton()
+		for _, param in ipairs(params) do
+			local t = type(param)
+			if "boolean" == t then
+				params.required = param
+			elseif "string" == t then
+				params.src = param
+			elseif "number" == t then
+				params.max = param
+			end
+		end
+		return params
+	end;
+	init = function (self, params)
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.ImageButton()})
+		self:src(params.src or Exception"src required")
 		Button.init(self, params)
 	end;
 }
@@ -539,23 +568,23 @@ local ImageButton = Button:extend{
 local Date = Field:extend{
 	__tag = .....".Date";
 	_defaultFormat = "%d.%m.%Y";
-	autoNow = property "boolean";
+	autoNow = property"boolean";
 	init = function (self, params)
-		params = params or {}
-		params.widget = params.widget or widgets.DateInput()
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.DateInput(); autoNow = false})
 		if params.regional then
 			params.widget:regional(params.regional)
 		end
-		self:autoNow(params.autoNow or false)
+		self:autoNow(params.autoNow)
 		Field.init(self, params)
 		self:addClass "date"
 	end;
-	defaultValue = function (self, ...)
+	default = function (self, ...)
 		if select("#", ...) > 0 then
-			return Field.defaultValue(self, ...)
+			return Field.default(self, ...)
 		else
-			if self._defaultValue then
-				return self._defaultValue
+			if self._default then
+				return self._default
 			end
 			if self:autoNow() then
 				return os.time()
@@ -569,21 +598,21 @@ local Date = Field:extend{
 			if "string" == type(value) then
 				if value:match"^%d%d%d%d[^%d]%d%d[^%d]%d%d" then
 					self._value = os.time{
-						year=tonumber(value:slice(1, 4));
-						month=tonumber(value:slice(6, 7));
-						day=tonumber(value:slice(9, 10));
-						hour=0;
-						min=0;
-						sec=0;
+						year = tonumber(value:slice(1, 4));
+						month = tonumber(value:slice(6, 7));
+						day = tonumber(value:slice(9, 10));
+						hour = 0;
+						min = 0;
+						sec = 0;
 					}
 				elseif value:match"^%d%d[^%d]%d%d[^%d]%d%d%d%d" then
 					self._value = os.time{
-						year=tonumber(value:slice(7, 10));
-						month=tonumber(value:slice(4, 5));
-						day=tonumber(value:slice(1, 2));
-						hour=0;
-						min=0;
-						sec=0;
+						year = tonumber(value:slice(7, 10));
+						month = tonumber(value:slice(4, 5));
+						day = tonumber(value:slice(1, 2));
+						hour = 0;
+						min = 0;
+						sec = 0;
 					}
 				else
 					self._value = nil
@@ -601,8 +630,8 @@ local Date = Field:extend{
 		end
 		return ""
 	end;
-	minLength = function (self) return 19 end;
-	maxLength = function (self) return 19 end;
+	min = function (self) return 19 end;
+	max = function (self) return 19 end;
 }
 
 local Datetime = Field:extend{
@@ -610,18 +639,18 @@ local Datetime = Field:extend{
 	_defaultFormat = "%Y-%m-%d %H:%M:%S";
 	autoNow = property"boolean";
 	init = function (self, params)
-		params = params or {}
-		params.widget = params.widget or widgets.Datetime()
-		self:autoNow(params.autoNow or false)
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.Datetime(); autoNow = false})
+		self:autoNow(params.autoNow)
 		Field.init(self, params)
 		self:addClass"datetime"
 	end;
-	defaultValue = function (self, ...)
+	default = function (self, ...)
 		if select("#", ...) > 0 then
-			return Field.defaultValue(self, ...)
+			return Field.default(self, ...)
 		else
-			if self._defaultValue then
-				return self._defaultValue
+			if self._default then
+				return self._default
 			end
 			if self:autoNow() then
 				return os.time()
@@ -635,12 +664,12 @@ local Datetime = Field:extend{
 			if "string" == type(value) then
 				try(function()
 					self._value = os.time{
-						year=tonumber(value:slice(1, 4));
-						month=tonumber(value:slice(6, 7));
-						day=tonumber(value:slice(9, 10));
-						hour=tonumber(value:slice(12, 13));
-						min=tonumber(value:slice(15, 16));
-						sec=tonumber(value:slice(18, 19));
+						year = tonumber(value:slice(1, 4));
+						month = tonumber(value:slice(6, 7));
+						day = tonumber(value:slice(9, 10));
+						hour = tonumber(value:slice(12, 13));
+						min = tonumber(value:slice(15, 16));
+						sec = tonumber(value:slice(18, 19));
 					}
 				end):catch(function() -- Invalid date format
 					self._value = nil
@@ -658,8 +687,8 @@ local Datetime = Field:extend{
 		end
 		return ""
 	end;
-	minLength = function (self) return 19 end;
-	maxLength = function (self) return 19 end;
+	min = function (self) return 19 end;
+	max = function (self) return 19 end;
 }
 
 local Time = Field:extend{
@@ -687,22 +716,22 @@ local Time = Field:extend{
 		end
 	end;
 	init = function (self, params)
-		params = params or {}
-		params.widget = params.widget or widgets.Time()
-		self:autoNow(params.autoNow or false)
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.Time(); autoNow = false})
+		self:autoNow(params.autoNow)
 		Field.init(self, params)
 		self:addClass"time"
 	end;
-	defaultValue = function (self, ...)
+	default = function (self, ...)
 		if select("#", ...) > 0 then
 			local value = (select(1, ...))
 			if "string" == type(value) then
 				value = self._strToSeconds(value)
 			end
-			return Field.defaultValue(self, value)
+			return Field.default(self, value)
 		else
-			if self._defaultValue then
-				return self._defaultValue
+			if self._default then
+				return self._default
 			end
 			if self:autoNow() then
 				return self._strToSeconds(os.date(self:defaultFormat()))
@@ -721,20 +750,32 @@ local Time = Field:extend{
 			return Field.value(self)
 		end
 	end;
-	minLength = function (self) return 1 end;
-	maxLength = function (self) return 8 end;
+	min = function (self) return 1 end;
+	max = function (self) return 8 end;
 }
 
 local ModelSelect = Field:extend{
 	__tag = .....".ModelSelect";
+	_preprocessParams = function (params)
+		params = params or {}
+		if "table" ~= type(params) then
+			params = {params}
+		end
+		for _, param in ipairs(params) do
+			local t = type(param)
+			if "boolean" == t then
+				param.required = param
+			elseif "string" == t then
+				param.label = param
+			elseif "table" == t then
+				param.choices = param
+			end
+		end
+		return params
+	end;
 	init = function (self, params)
-		if not params then
-			Exception"Values required!"
-		end
-		if not params.choices then
-			params = {choices=params}
-		end
-		params.widget = params.widget or widgets.Select
+		self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.Select()})
 		Field.init(self, params)
 	end;
 	value = function (self, ...)
@@ -753,13 +794,8 @@ local ModelSelect = Field:extend{
 local ModelMultipleSelect = MultipleValues:extend{
 	__tag = .....".ModelMultipleSelect";
 	init = function (self, params)
-		if not params then
-			Exception"choices required"
-		end
-		if not params.choices then
-			params = {choices=params}
-		end
-		params.widget = params.widget or widgets.MultipleSelect
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.MultipleSelect()})
 		MultipleValues.init(self, params)
 	end;
 }
@@ -767,14 +803,8 @@ local ModelMultipleSelect = MultipleValues:extend{
 local NestedSetSelect = Field:extend{
 	__tag = .....".NestedSetSelect";
 	init = function (self, params)
-		if not params then
-			Exception"values required"
-		end
-		if not params.choices then
-			params = {choices=params}
-		end
-		params.widget = params.widget or widgets.NestedSetSelect
-		params.onChange = "luv.nestedSetSelect(this.id, luv.getFieldRawValue(this.id));"
+		params = self._preprocessParams(params)
+		self._paramsDefaults(params, {widget = widgets.NestedSetSelect(); onChange = "luv.nestedSetSelect(this.id, luv.getFieldRawValue(this.id));"})
 		Field.init(self, params)
 	end;
 	value = function (self, ...)

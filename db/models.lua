@@ -135,6 +135,26 @@ local Model = Struct:extend{
 		new:fields(table.map(self:fields(), "clone"))
 		return new
 	end;
+	fieldMaxLen = function (self, field)
+		local numLen = function (num)
+			if 0 == num then
+				return 1
+			end
+			local len = 1
+			if num < 0 then
+				len = len + 1
+			end
+			while num ~= 0 do
+				num = num / 10
+			end
+			return len
+		end;
+		if field:isA(fields.Int) then
+			return field:max() and numLen(field:max()) or nil
+		else
+			return field:max()
+		end
+	end;
 	pkName = function (self)
 		local pk = self:pkField()
 		if not pk then
@@ -288,7 +308,7 @@ local Model = Struct:extend{
 					else
 						local val = f:value()
 						if "nil" == type(val) then
-							val = f:defaultValue()
+							val = f:default()
 						end
 						if val then
 							if f:isA(fields.Datetime) then
@@ -331,7 +351,7 @@ local Model = Struct:extend{
 			for name, f in pairs(self:fields()) do
 				local value = f:value()
 				if nil == value then
-					value = f:defaultValue()
+					value = f:default()
 				end
 				if value then
 					if f:isA(references.OneToOne) then
@@ -385,7 +405,7 @@ local Model = Struct:extend{
 					else
 						local val = f:value()
 						if nil == val then
-							val = f:defaultValue()
+							val = f:default()
 						end
 						if val then
 							if f:isA(fields.Datetime) then
@@ -509,8 +529,8 @@ local Model = Struct:extend{
 	end,
 	fieldTypeSql = function (self, field)
 		if field:isA(fields.Text) then
-			if field:maxLength() ~= 0 and field:maxLength() < 65535 then
-				return "VARCHAR("..field:maxLength()..")"
+			if field:max() ~= 0 and field:max() < 65535 then
+				return "VARCHAR("..field:max()..")"
 			else
 				return "TEXT"
 			end
@@ -544,8 +564,9 @@ local Model = Struct:extend{
 					c:field(name, self:fieldTypeSql(f), {
 						primaryKey = f:pk();
 						unique = f:unique();
-						null = not f:required(),
+						null = not f:required();
 						serial = f:isA(fields.Id);
+						index = f:index();
 					})
 					if f:isA(references.ManyToOne) or f:isA(references.OneToOne) then
 						local onDelete
@@ -999,12 +1020,13 @@ local SqlQuerySet = QuerySet:extend{
 	end;
 	_processFilter = function (self, s, filter)
 		local operators = {
-			eq="=";isnull=" IS NULL";exact="=";lt="<";gt=">";lte="<=";gte=">=";
-			["in"]=" IN (?a)";beginswith=" LIKE ?";endswith=" LIKE ?";contains=" LIKE ?"
+			eq = "="; isnull = " IS NULL"; exact = "="; lt = "<"; gt = ">";
+			lte = "<="; gte = ">="; ["in"] = " IN (?a)"; beginswith = " LIKE ?";
+			endswith = " LIKE ?"; contains = " LIKE ?";
 		}
 		local result = {}
 		if "string" == type(filter) then
-			filter = {pk=filter}
+			filter = {pk = filter}
 		end
 		for k, v in pairs(filter) do
 			local parts

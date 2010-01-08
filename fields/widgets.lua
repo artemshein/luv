@@ -48,7 +48,7 @@ local Field = Widget:extend{
 		return " id="..("%q"):format(html.escape(self:_fieldId(f, form)))
 	end;
 	_renderValue = function (self, f)
-		return " value="..("%q"):format(html.escape(tostring(f:value() or f:defaultValue() or "")))
+		return " value="..("%q"):format(html.escape(tostring(f:value() or f:default() or "")))
 	end;
 	_renderHint = function (self, f)
 		return (f:hint() and ('<span class="fieldHint">'..f:hint():tr().."</span>") or "")
@@ -79,7 +79,7 @@ local TextArea = Field:extend{
 	__tag = .....".TextArea";
 	init = function () end;
 	_renderValue = function (self, f)
-		return html.escape(tostring(f:value() or f:defaultValue() or ""))
+		return html.escape(tostring(f:value() or f:default() or ""))
 	end;
 	render = function (self, field, form)
 		return "<textarea"
@@ -137,7 +137,8 @@ local TextInput = Input:extend{
 	__tag = .....".TextInput";
 	_type = "text";
 	render = function (self, field, form, tail)
-		return Input.render(self, field, form, (tail or "")..(field:maxLength() and " maxlength="..("%q"):format(field:maxLength()) or ""))
+		local maxLen = form:fieldMaxLen(field)
+		return Input.render(self, field, form, (tail or "")..(maxLen and " maxlength="..("%q"):format(maxLen) or ""))
 	end
 }
 
@@ -292,7 +293,7 @@ local DateInput = TextInput:extend{
 	_regional = "ru";
 	regional = property"string";
 	_renderValue = function (self, f)
-		local value = f:value() or f:defaultValue()
+		local value = f:value() or f:default()
 		if value then
 			value = os.date(self:format(), value)
 		end
@@ -322,7 +323,7 @@ local Time = TextInput:extend{
 	_regional = "ru";
 	regional = property"string";
 	_renderValue = function (self, f)
-		local value = f:value() or f:defaultValue()
+		local value = f:value() or f:default()
 		if value then
 			local time = os.date"*t"
 			time.hour = math.floor(value/60/60)
@@ -354,7 +355,7 @@ local Datetime = TextInput:extend{
 	format = TextInput.property;
 	init = function () end;
 	_renderValue = function (self, f)
-		local value = field:value() or field:defaultValue()
+		local value = field:value() or field:default()
 		if value then
 			value = os.date(self:format(), value)
 		end

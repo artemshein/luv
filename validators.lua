@@ -85,15 +85,15 @@ local NonNegative = Validator:extend{
 local IntValueRange = Validator:extend{
 	__tag = .....".IntValueRange";
 	_errorMsg = ('Field "%(field)s" must be at least %(min)s and at most %(max)s.'):tr();
-	minValue = property"number";
-	maxValue = property"number";
-	init = function (self, minValue, maxValue)
+	min = property"number";
+	max = property"number";
+	init = function (self, min, max)
 		Validator.init(self)
-		if minValue then self:minValue(minValue) end
-		if maxValue then self:maxValue(maxValue) end
+		if min then self:min(min) end
+		if max then self:max(max) end
 	end;
 	js =  function (self)
-		return "validIntValueRange(%(min)s, %(max)s)" % {min=tonumber(self:minValue()) or "null";max=tonumber(self:maxValue()) or "null"}
+		return "validIntValueRange(%(min)s, %(max)s)" % {min = tonumber(self:min()) or "null"; max = tonumber(self:max()) or "null"}
 	end;
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -102,12 +102,12 @@ local IntValueRange = Validator:extend{
 		end
 		if type(value) == "number" or type(value) == "string" then
 			local intVal = tonumber(value)
-			if (not self:minValue() or intVal >= self:minValue())
-			and (not self:maxValue() or intVal <= self:maxValue()) then
+			if (not self:min() or intVal >= self:min())
+			and (not self:max() or intVal <= self:max()) then
 				return true
 			end
 		end
-		self:addError(self:errorMsg() % {min=self:minValue();max=self:maxValue()})
+		self:addError(self:errorMsg() % {min = self:min(); max = self:max()})
 		return false
 	end;
 }
@@ -115,12 +115,12 @@ local IntValueRange = Validator:extend{
 local Length = Validator:extend{
 	__tag = .....".Length";
 	_errorMsg = ('Field "%(field)s" has incorrect length.'):tr();
-	minLength = property"number";
-	maxLength = property"number";
-	init = function (self, minLength, maxLength)
+	min = property"number";
+	max = property"number";
+	init = function (self, min, max)
 		Validator.init(self)
-		self:minLength(minLength)
-		self:maxLength(maxLength)
+		self:min(min)
+		self:max(max)
 	end;
 	valid = function (self, value)
 		Validator.valid(self, value)
@@ -132,14 +132,14 @@ local Length = Validator:extend{
 		elseif type(value) ~= "string" then
 			value = ""
 		end
-		if (self:maxLength() ~= 0 and string.utf8len(value) > self:maxLength())
-		or (self:minLength() and string.utf8len(value) < self:minLength()) then
+		if (self:max() ~= 0 and string.utf8len(value) > self:max())
+		or (self:min() and string.utf8len(value) < self:min()) then
 			self:addError(self:errorMsg())
 			return false
 		end
 		return true
 	end;
-	js = function (self) return "validLength("..(self:minLength() or "null")..", "..(self:maxLength() or "null")..")" end;
+	js = function (self) return "validLength("..(self:min() or "null")..", "..(self:max() or "null")..")" end;
 }
 
 local Regexp = Validator:extend{

@@ -23,21 +23,34 @@ local Reference = fields.Field:extend{
 			Exception"instantiate of abstract class is not allowed"
 		end
 		local Model = require"luv.db.models".Model
-		if ("table" == type(params) and params.isA and params:isA(Model)) or "string" == type(params) then
-			params = {references=params}
-		end
 		fields.Field.init(self, params)
 	end;
-	params = function (self, params)
-		if "table" == type(params)  then
-			self.toField = params.toField
-			if "table" ~= type(params.references) then Exception"references must be an instance of Model" end
-			self:refModel(params.references)
-			self:relatedName(params.relatedName)
-			fields.Field.params(self, params)
-		else
-			self:refModel(params or Exception"references required")
+	_preprocessParams = function (params)
+		params = params or {}
+		if "table" ~= type(params) then
+			params = {params}
 		end
+		for _, param in ipairs(params) do
+			local t = type(param)
+			if "table" == t then
+				params.references = param
+			elseif "boolean" == t then
+				params.required = param
+			end
+		end
+		return params
+	end;
+	params = function (self, params)
+		params = self._preprocessParams(params)
+		self:toField(params.toField)
+		if "table" ~= type(params.references or Exception"references required")
+		or not params.references.isA
+		or not params.references:isA(require"luv.db.models".Model) then
+			Exception"references must be an instance of Model"
+		end
+		self:refModel(params.references)
+		self:relatedName(params.relatedName)
+		fields.Field.params(self, params)
 	end;
 }
 
@@ -194,11 +207,7 @@ local ManyToMany = Reference:extend{
 }
 
 local ManyToOne = Reference:extend{
-	__tag = .....".ManyToOne",
-	init = function (self, params)
-		params = params or {}
-		Reference.init(self, params)
-	end;
+	__tag = .....".ManyToOne";
 	value = function (self, ...)
 		if select("#", ...) > 0 then
 			local value = (select(1, ...))
@@ -250,10 +259,6 @@ end
 
 local OneToMany = Reference:extend{
 	__tag = .....".OneToMany";
-	init = function (self, params)
-		params = params or {}
-		Reference.init(self, params)
-	end;
 	tableName = function (self)
 		return self:refModel():tableName()
 	end;
@@ -328,7 +333,6 @@ local OneToOne = Reference:extend{
 	__tag = .....".OneToOne";
 	backLink = property;
 	init = function (self, params)
-		params = params or {}
 		Reference.init(self, params)
 		self:backLink(params.backLink or false)
 	end;
@@ -373,7 +377,7 @@ local OneToOne = Reference:extend{
 		return self:refModel():referenceField(self:container(), require(MODULE).OneToOne)
 	end;
 	createBackLink = function (self)
-		return require(MODULE).OneToOne{references=self:container();backLink=not self:backLink();relatedName=self:name();label=self:container():label()}
+		return require(MODULE).OneToOne{self:container(); backLink = not self:backLink(); relatedName = self:name(); label = self:container():label()}
 	end;
 	relatedName = function (self, ...)
 		if select("#", ...) > 0 then
@@ -388,6 +392,6 @@ local OneToOne = Reference:extend{
 }
 
 return {
-	Reference=Reference;ManyToMany=ManyToMany;ManyToOne=ManyToOne;
-	OneToMany=OneToMany;OneToOne=OneToOne;
+	Reference = Reference; ManyToMany = ManyToMany; ManyToOne = ManyToOne;
+	OneToMany = OneToMany; OneToOne = OneToOne;
 }
