@@ -101,16 +101,18 @@ local Struct = Object:extend{
 	end;
 	-- Fields
 	addField = function (self, name, field)
-		if not self:fields() then
-			Exception"fields required"
-		end
-		if not field:isA(require "luv.fields".Field) then
+		local fields = self:fields() or Exception"fields required"
+		if not field:isA(require"luv.fields".Field) then
 			Exception"instance of Field expected"
 		end
 		field:container(self)
 		field:name(name)
-		self:fields()[name] = field
+		fields[name] = field
 		return self
+	end;
+	removeField = function (self, name)
+		local fields = self:fields() or Exception"fields required"
+		fields[name] = nil
 	end;
 	field = function (self, field) return self:fields()[field] end;
 	values = function (self, ...)
