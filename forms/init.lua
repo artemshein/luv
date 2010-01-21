@@ -6,6 +6,7 @@ local references = require "luv.fields.references"
 local Struct, Exception, Model = luv.Struct, exceptions.Exception, models.Model
 local widgets = require "luv.fields.widgets"
 local json = require "luv.utils.json"
+local Object = require"luv.oop".Object
 
 module(...)
 
@@ -29,6 +30,24 @@ local Form = Struct:extend{
 	end, "self.Meta.id");
 	ajax = property("string", "self.Meta.ajax", "self.Meta.ajax");
 	widget = property(Widget, "self.Meta.widget", "self.Meta.widget");
+	_cloneMeta = function (self, meta)
+		if not meta then
+			self.Meta = {}
+			return
+		end
+		self.Meta = {}
+		for k, v in pairs(meta) do
+			if "table" == type(v) then
+				if v.isA and v:isA(Object) then
+					self.Meta[k] = v
+				else
+					self.Meta[k] = table.copy(v)
+				end
+			else
+				self.Meta[k] = v
+			end
+		end
+	end;
 	extend = function (self, new)
 		local new = Struct.extend(self, new)
 		new:fields(table.map(self:fields() or {}, "clone"))
@@ -40,24 +59,18 @@ local Form = Struct:extend{
 			end
 		end
 		return new
-	end,
+	end;
 	init = function (self, values)
 		Struct.init(self, values)
 		if not self:fields() then
 			Exception"abstract Form can't be created"
 		end
-		self.Meta = self.Meta or {}
+		self:_cloneMeta(self.Meta)
 		if not self:widget() then
 			self:widget(require"luv.forms.widgets".VerticalTable())
 		end
 		self:fields(table.map(self:fields(), "clone"))
-		if values then
-			if "table" == type(values) and values.isA and values:isA(Model) then
-				self:values(values:values())
-			else
-				self:values(values)
-			end
-		end
+		self:values(values)
 	end;
 	addField = function (self, name, f)
 		if f:isA(references.OneToOne) or f:isA(references.ManyToOne) then
@@ -150,35 +163,38 @@ local Form = Struct:extend{
 		end
 		return res
 	end;
-	values = function (self, ...)
-		if select("#", ...) > 0 then
-			local values = (select(1, ...))
-			for name, f in pairs(self:fields()) do
-				if f:isA(fields.ImageButton) then
-					f:value{x=values[name..".x"];y=values[name..".y"]}
-				else
-					f:value(values[name])
-				end
-			end
-			return self
-		else
-			local values = {}
-			for name, f in pairs(self:fields()) do
-				local value = f:value()
-				if f:isA(fields.ModelMultipleSelect) then
-					if "table" ~= type(value) then
-						if value then
-							value = {value}
-						else
-							value = {}
-						end
+	values = property(nil, function (self)
+		local values = {}
+		for name, f in pairs(self:fields()) do
+			local value = f:value()
+			if f:isA(fields.ModelMultipleSelect) then
+				if "table" ~= type(value) then
+					if value then
+						value = {value}
+					else
+						value = {}
 					end
 				end
-				values[name] = value
 			end
-			return values
+			values[name] = value
 		end
-	end;
+		return values
+	end, function (self, values)
+		if not values then
+			return self
+		end
+		if "table" == type(values) and values.isA and values:isA(Model) then
+			values = values:values()
+		end
+		for name, f in pairs(self:fields()) do
+			if f:isA(fields.ImageButton) then
+				f:value{x = values[name..".x"]; y = values[name..".y"]}
+			else
+				f:value(values[name])
+			end
+		end
+		return self
+	end);
 	fieldMaxLen = function (self, field)
 		local numLen = function (num)
 			if 0 == num then
@@ -203,9 +219,9 @@ local Form = Struct:extend{
 	processAjaxForm = function (self, action)
 		if self:submitted() then
 			if self:valid() and false ~= action(self) then
-				io.write(json.serialize{result="ok";msgs=self:msgs()})
+				io.write(json.serialize{result = "ok"; msgs = self:msgs()})
 			else
-				io.write(json.serialize{result="error";errors=self:errors()})
+				io.write(json.serialize{result = "error"; errors = self:errors()})
 			end
 			return true
 		else
@@ -237,18 +253,19 @@ local ModelForm = Form:extend{
 	end;
 	pkField = function (self) return self:formModel():pkField() end;
 	pkName = function (self) return self:formModel():pkName() end;
-	initModel = function (self, model)
+	initModel = function (self, model, fieldsOnly)
 		if not model or not model:isA(self:formModel()) then
 			Exception"instance of Meta.model expected"
 		end
 		for name, f in pairs(model:fields()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, name))
-			and (not self.Meta.exclude or not table.find(self.Meta.exclude, name)) then
+			and (not self.Meta.exclude or not table.find(self.Meta.exclude, name))
+			and (fieldsOnly and table.ifind(fieldsOnly, name) or not fieldsOnly) then
 				model[name] = self[name]
 			end
 		end
 	end;
-	initForm = function (self, model)
+	initForm = function (self, model, fieldsOnly)
 		if "table" ~= type(model) or not model.isA or not model:isA(models.Model) then
 			Exception"instance of Model expected"
 		end
@@ -257,7 +274,8 @@ local ModelForm = Form:extend{
 		end
 		for name, f in pairs(model:fields()) do
 			if (not self.Meta.fields or table.find(self.Meta.fields, name))
-			and (not self.Meta.exclude or not table.find(self.Meta.exclude, name)) then
+			and (not self.Meta.exclude or not table.find(self.Meta.exclude, name))
+			and (fieldsOnly and table.ifind(fieldsOnly, name) or not fieldsOnly) then
 				if f:isA(references.ManyToMany) or f:isA(references.OneToMany) then
 					self[name] = model[name]:all():value()
 				else

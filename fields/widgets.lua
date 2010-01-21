@@ -58,6 +58,10 @@ local Field = Widget:extend{
 local Input = Field:extend{
 	__tag = .....".Input";
 	type = Field.property;
+	disabled = Field.property"boolean";
+	_renderDisabled = function (self, f)
+		return (self:disabled() and ' disabled="disabled"' or "")
+	end;
 	init = function () end;
 	render = function (self, field, form, tail)
 		tail = tail or ""
@@ -70,6 +74,7 @@ local Input = Field:extend{
 		..self:_renderClasses(field)
 		..self:_renderOnClick(field)
 		..self:_renderOnChange(field)
+		..self:_renderDisabled()
 		..tail.." />"
 		..self:_renderHint(field)
 	end;
