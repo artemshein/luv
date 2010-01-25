@@ -20,8 +20,8 @@ local Http404 = Http4xx:extend{
 	_msg = "404 Not Found";
 }
 
-local HttpRequest = Object:extend{
-	__tag = .....".HttpRequest";
+local Request = Object:extend{
+	__tag = .....".Request";
 	wsApi = property"table";
 	init = function (self, wsApi)
 		self:wsApi(wsApi)
@@ -52,8 +52,8 @@ local HttpRequest = Object:extend{
 	session = function (self) return self:wsApi():session() end;
 }
 
-local HttpResponse = Object:extend{
-	__tag = .....".HttpResponse";
+local Response = Object:extend{
+	__tag = .....".Response";
 	wsApi = property"table";
 	content = property"string";
 	init = function (self, wsApi, content)
@@ -74,7 +74,7 @@ local HttpResponse = Object:extend{
 	send = function (self) self:wsApi():sendHeaders() return self end;
 }
 
-local Api = Object:extend{
+local WsApi = Object:extend{
 	__tag = .....".Api";
 	session = property;
 	parseMultipartFormData = function (self, boundary, stream)
@@ -152,7 +152,7 @@ local responseString = {
 	[500]="Internal Server Error";[501]="Not Implemented";[502]="Bad Gateway";[503]="Service Unavailable";[504]="Gateway Timeout";[505]="HTTP Version Not Supported";[506]="Variant Also Negotiates";[507]="Insufficient Storage";[509]="Bandwidth Limit Exceeded";[510]="Not Extended"
 }
 
-local Cgi = Api:extend{
+local Cgi = WsApi:extend{
 	__tag = .....".Cgi";
 	_responseHeaders = {};
 	_headersAlreadySent = false;
@@ -444,7 +444,7 @@ local SocketAppServer = Object:extend{
 
 local UrlConf = Object:extend{
 	__tag = .....".UrlConf";
-	request = property(HttpRequest);
+	request = property(Request);
 	uri = property"string";
 	tailUri = property"string";
 	baseUri = property"string";
@@ -525,8 +525,7 @@ local UrlConf = Object:extend{
 }
 
 return {
-	HttpRequest=HttpRequest;HttpResponse=HttpResponse;
-	Exception=Exception;Api=Api;Cgi=Cgi;Scgi=Scgi;
-	SocketAppServer=SocketAppServer;Http403=Http403;Http404=Http404;
-	UrlConf=UrlConf;
+	Request=Request;Response=Response;Exception=Exception;
+	WsApi=WsApi;Cgi=Cgi;Scgi=Scgi;SocketAppServer=SocketAppServer;Http403=Http403;
+	Http404=Http404;UrlConf=UrlConf;
 }

@@ -3,7 +3,7 @@ local string = require"luv.string"
 local dev = require"luv.dev"
 local pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile = pairs, require, select, unpack, type, rawget, rawset, math, os, tostring, io, ipairs, dofile
 local error, debug = error, debug
-local oop, exceptions, sessions, fs, ws, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require "luv.webservers", require "luv.sessions", require "luv.utils"
+local oop, exceptions, sessions, fs, http, sessions, utils = require"luv.oop", require"luv.exceptions", require "luv.sessions", require "luv.fs", require"luv.http", require "luv.sessions", require "luv.utils"
 local Object, Exception, Version = oop.Object, exceptions.Exception, utils.Version
 local crypt, backend = require "luv.crypt", require "luv.cache.backend"
 local Memory, NamespaceWrapper, TagEmuWrapper = backend.Memory, backend.NamespaceWrapper, backend.TagEmuWrapper
@@ -171,7 +171,7 @@ local Widget = Object:extend{
 local objectOr404 = function (model, conditions)
 	local obj = model:find(conditions)
 	if not obj then
-		ws.Http404()
+		http.Http404()
 	end
 	return obj
 end
@@ -184,12 +184,12 @@ local Luv = Object:extend{
 	clone = singleton;
 	init = function (self, env)
 		env = env or {}
-		local ws = require"luv.webservers"
-		wsApi = env.wsApi or ws.Cgi(env.tmpDir)
+		local http = require"luv.http"
+		wsApi = env.wsApi or http.Cgi(env.tmpDir)
 		if env.sessionsDir then
 			wsApi:startSession(require"luv.sessions".SessionFile(env.sessionsDir))
 		end
-		self:response(ws.HttpResponse(wsApi))
+		self:response(http.Response(wsApi))
 		env.i18n = require"luv.i18n".I18n("app/i18n", wsApi:cookie"language" or wsApi)
 		if env.templatesDirs then
 			env.templater = require"luv.templaters".Tamplier(env.templatesDirs, env.urlPrefix, env.mediaPrefix)
@@ -202,7 +202,7 @@ local Luv = Object:extend{
 			require"luv.db.models".Model:urlPrefix(env.urlPrefix)
 			require"luv.forms".Form:urlPrefix(env.urlPrefix)
 		end
-		env.urlConf = ws.UrlConf(ws.HttpRequest(wsApi), env.urlPrefix, env.mediaPrefix)
+		env.urlConf = http.UrlConf(http.Request(wsApi), env.urlPrefix, env.mediaPrefix)
 		if env.debugMode then
 			env.debugger = env.debugMode and require"luv.dev.debuggers".Fire()
 			if env.db then
