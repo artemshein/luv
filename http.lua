@@ -1,9 +1,11 @@
-local select, dofile, unpack, setfenv = select, dofile, unpack, setfenv
+local select, dofile, unpack, setfenv, _G = select, dofile, unpack, setfenv, _G
+local coroutine = coroutine
 local string = require"luv.string"
 local io, os, pairs, ipairs, tonumber = io, os, pairs, ipairs, tonumber
 local type, table, math, tostring, require = type, table, math, tostring, require
 local Object, Exception = require"luv.oop".Object, require"luv.exceptions".Exception
 local fs, crypt = require"luv.fs", require"luv.crypt"
+local Socket = require"socket.core"
 
 module(...)
 local property = Object.property;
@@ -211,12 +213,14 @@ local Cgi = WsApi:extend{
 		return self:requestHeader"REQUEST_METHOD"
 	end;
 	-- Get
-	get = function (self, key, ...)
-		if select("#", ...) > 0 then
-			self._get[key] = (select(1, ...))
+	get = function (self, ...)
+		if select("#", ...) > 1 then
+			local key, val = select(1, ...)
+			self._get[key] = val
 			return self
 		else
-			return self._get[key] 
+			local key = select(1, ...)
+			return self[key]
 		end
 	end;
 	getData = function (self) return self._get end;
@@ -232,12 +236,14 @@ local Cgi = WsApi:extend{
 		end
 	end;
 	-- Post
-	post = function (self, key, ...)
-		if select("#", ...) > 0 then
-			self._post[key] = (select(1, ...))
+	post = function (self, ...)
+		if select("#", ...) > 1 then
+			local key, val = select(1, ...)
+			self._post[key] = val
 			return self
 		else
-			return self._post[key]
+			local key = select(1, ...)
+			return self[key]
 		end
 	end;
 	postData = function (self) return self._post end;
@@ -334,7 +340,7 @@ local Cgi = WsApi:extend{
 }
 
 local Scgi = Object:extend{
-	__tag = .....".Scgi",
+	__tag = .....".Scgi";
 	init = function (self, client)
 		local ch = client:receive(1)
 		local request = ""
@@ -353,7 +359,7 @@ local Scgi = Object:extend{
 				client:send(tostring(params[i]))
 			end
 		end
-		local keysAndValues = request:slice(request:find(":", 1, true)+1, -3):explode"\0"
+		local keysAndValues = request:slice(request:find(":", 1, true) + 1, -3):explode"\0"
 		local i
 		self._requestHeaders = {}
 		for i = 1, #keysAndValues/2 do
@@ -397,14 +403,14 @@ local Scgi = Object:extend{
 			io.write(k, ":", v, "\n")
 		end
 		io.write"\n"
-	end,
+	end;
 	close = function (self)
 		self._client:close()
-	end
+	end;
 }
 
 local SocketAppServer = Object:extend{
-	__tag = .....".SocketAppSever",
+	__tag = .....".SocketAppSever";
 	init = function (self, wsApi, host, port)
 		self._wsApi = wsApi
 		self._host, self._port = host, port
@@ -421,7 +427,7 @@ local SocketAppServer = Object:extend{
 		if not self._server:listen(10) then
 			Exception"can't listen"
 		end
-	end,
+	end;
 	run = function (self, application)
 		local client
 		while true do
@@ -439,7 +445,127 @@ local SocketAppServer = Object:extend{
 				io.write(fail)
 			end
 		end
-	end
+	end;
+}
+
+local Connection = WsApi:extend{
+	__tag = .....".Connection";
+	server = property;
+	client = property;
+	_headersSent = false;
+	headersSent = property"boolean";
+	_get = {};
+	get = property"table";
+	_post = {};
+	post = property"table";
+	_requestHeader = {};
+	_answer = "";
+	_write = function (self, ...)
+		local args, data = {select(1, ...)}, ""
+		for i = 1, select("#", ...) do
+			self._answer = self._answer..tostring(args[i])
+		end
+	end;
+	_processGet = function (self)
+		-- Read headers
+		local client, header, key, val = self:client()
+		while true do
+			header = client:receive"*l"
+			if "" == header then
+				break
+			end
+			key, val = header:split":"
+			key = key:trim():lower()
+			val = val:trim()
+			self._requestHeader[key] = val
+		end
+	end;
+	init = function (self, server, client)
+		self:server(server)
+		self:client(client)
+	end;
+	run = function (self)
+		local client = self:client()
+		io.write"Connection:init"
+		io.flush()
+		--[[local env = table.deepCopy(_G)
+		env.io.write = function (...)
+			return self:_write(...)
+		end]]
+		local method, uri, protocol = client:receive"*l":split(" ", " ")
+		if "HTTP/1.1" ~= protocol then
+			return nil, ("Unsupported protocol "..protocol)
+		end
+		if "GET" == method then
+			self:_processGet()
+		else
+			-- FIXME: there should be a 501 answer
+			return nil, ("Unsupported method "..method)
+		end
+		io.write(data)
+		io.flush()
+		io.write"HTTP/1.1 200 OK\nContent-length: 8\nConnection: close\nContent-type: text/html\n\nOK, LOL!"
+		io.flush()
+		client:send"HTTP/1.1 200 OK\nContent-length: 8\nConnection: close\nContent-type: text/html\n\nOK, LOL!"
+		--[[
+		local co = coroutine.create(setfenv(function ()
+			
+			
+			return
+			app(self)
+		end, env))
+		local res, fail = coroutine.resume(co)
+		if not res then
+			io.write(fail)
+		end]]
+	end;
+	close = function (self)
+		local client = self:client
+		self:sendHeaders()
+		client:send(self._answer)
+		clinet:close()
+	end;
+}
+
+local AppServer = Object:extend{
+	__tag = .....".AppServer";
+	host = property"string";
+	port = property"number";
+	app = property;
+	server = property;
+	init = function (self, host, port, tmpDir, session, app)
+		-- Init
+		io.write"AppServer:init"
+		io.flush()
+		port = port or 80
+		self:host(host or Exception"host required")
+		self:port(port or Exception"port required")
+		self:app(app or Exception"app required")
+		local server = Socket.tcp()
+		if not server:bind(host, port) then
+			Exception("can't bind "..host..":"..port.." to server")
+		end
+		if not server:listen(10) then
+			Exception"can't listen"
+		end
+		self:server(server)
+		-- Run
+		local client
+		while true do
+			io.write"server:accept"
+			client = server:accept()
+			if not client then
+				Exception"can't accept connection"
+			end
+			local conn = Connection(self, client)
+			local res, err = conn:run()
+			if not res then
+				io.write(err)
+			else
+				conn:close()
+			end
+		end
+	end;
 }
 
 local UrlConf = Object:extend{
@@ -527,5 +653,5 @@ local UrlConf = Object:extend{
 return {
 	Request=Request;Response=Response;Exception=Exception;
 	WsApi=WsApi;Cgi=Cgi;Scgi=Scgi;SocketAppServer=SocketAppServer;Http403=Http403;
-	Http404=Http404;UrlConf=UrlConf;
+	Http404=Http404; AppServer = AppServer; UrlConf=UrlConf;
 }
