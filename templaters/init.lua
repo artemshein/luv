@@ -215,7 +215,11 @@ local Tamplier = Api:extend{
 				return tpl:openReadAndClose"*a"
 			end
 		end
-		Exception("template "..template.." not found")
+		local dirs = ""
+		for _, dir in ipairs(self._templatesDirs) do
+			dirs = dirs.." "..tostring(dir)
+		end
+		Exception("template "..template.." not found "..dirs)
 	end;
 	fetch = function (self, template)
 		return self:compileString(self:templateContents(template))()

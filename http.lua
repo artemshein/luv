@@ -458,8 +458,14 @@ local Connection = WsApi:extend{
 	get = property"table";
 	_post = {};
 	post = property"table";
-	_requestHeader = {};
+	_requestHeaders = {};
+	requestHeaders = property"table";
 	_answer = "";
+	_responseCode = 200;
+	responseCode = property"number";
+	_responseHeaders = {};
+	responseHeaders = property"table";
+	_cookies = {};
 	_write = function (self, ...)
 		local args, data = {select(1, ...)}, ""
 		for i = 1, select("#", ...) do
@@ -475,9 +481,9 @@ local Connection = WsApi:extend{
 				break
 			end
 			key, val = header:split":"
-			key = key:trim():lower()
+			key = key:trim()
 			val = val:trim()
-			self._requestHeader[key] = val
+			self._requestHeaders[key] = val
 		end
 	end;
 	init = function (self, server, client)
@@ -486,12 +492,10 @@ local Connection = WsApi:extend{
 	end;
 	run = function (self)
 		local client = self:client()
-		io.write"Connection:init"
-		io.flush()
-		--[[local env = table.deepCopy(_G)
+		local env = table.deepCopy(_G)
 		env.io.write = function (...)
 			return self:_write(...)
-		end]]
+		end
 		local method, uri, protocol = client:receive"*l":split(" ", " ")
 		if "HTTP/1.1" ~= protocol then
 			return nil, ("Unsupported protocol "..protocol)
@@ -502,29 +506,102 @@ local Connection = WsApi:extend{
 			-- FIXME: there should be a 501 answer
 			return nil, ("Unsupported method "..method)
 		end
-		io.write(data)
-		io.flush()
-		io.write"HTTP/1.1 200 OK\nContent-length: 8\nConnection: close\nContent-type: text/html\n\nOK, LOL!"
-		io.flush()
-		client:send"HTTP/1.1 200 OK\nContent-length: 8\nConnection: close\nContent-type: text/html\n\nOK, LOL!"
-		--[[
-		local co = coroutine.create(setfenv(function ()
-			
-			
-			return
-			app(self)
-		end, env))
+		self:parseCookies()
+		local handler = self:server():app()
+		setfenv(handler, env)
+		local co = coroutine.create(function ()
+			handler(self)
+			return true
+		end)
 		local res, fail = coroutine.resume(co)
 		if not res then
 			io.write(fail)
-		end]]
-	end;
-	close = function (self)
-		local client = self:client
+			return nil, fail
+		end
 		self:sendHeaders()
 		client:send(self._answer)
-		clinet:close()
+		--if "keep-alive" ~= self:requestHeader"Connection" then
+			client:close()
+		--end
+		return true
 	end;
+	requestHeader = function (self, ...)
+		if select("#", ...) > 1 then
+			local key, val = select(1, ...)
+			self:requestHeaders()[key] = val
+			return self
+		else
+			return self:requestHeaders()[(select(1, ...))]
+		end
+	end;
+	responseHeader = function (self, ...)
+		if select("#", ...) > 1 then
+			local key, val = select(1, ...)
+			self:responseHeaders()[key] = val
+			return self
+		else
+			return self:responseHeaders()[(select(1, ...))]
+		end
+	end;
+	sendHeaders = function (self)
+		local client = self:client()
+		local data = "HTTP/1.1 "..self._responseCode.." "..responseString[self._responseCode].."\r\n"
+		--self:responseHeader("Connection", "close")
+		--self:responseHeader("Content-Length", self._answer:len())
+		--self:responseHeader("Status", self._responseCode.." "..responseString[self._responseCode])
+		if not self:responseHeader"Content-Type" then
+			self:responseHeader("Content-Type", "text/html; charset=utf-8")
+		end
+		for key, val in pairs(self:responseHeaders()) do
+			data = data..key..": "..val.."\r\n"
+		end
+		data = data.."\r\n"
+		client:send(data)
+	end;
+	-- Cookies
+	parseCookies = function (self)
+		local cookieString = self:requestHeader"HTTP_COOKIE"
+		if not cookieString then
+			return nil
+		end
+		local cookies
+		if cookieString:find("&", 1, true) then
+			cookies = cookieString:explode"&"
+		elseif cookieString:find(";", 1, true) then
+			cookies = cookieString:explode";"
+		else
+			cookies = {cookieString}
+		end
+		for _, v in ipairs(cookies) do
+			local name, value = v:split"="
+			self._cookies[name:trim()] = value:trim()
+		end
+	end;
+	cookie = function (self, name, ...)
+		if select("#", ...) > 0 then
+			local value, expires, domain, path = ...
+			if not name then
+				Exception"name required"
+			end
+			local cookie = name.."="
+			self._cookies[name] = value
+			if value then cookie = cookie..value end
+			if expires then
+				cookie = cookie..";expires="..expires
+			end
+			if domain then
+				cookie = cookie..";domain="..domain
+			end
+			if path then
+				cookie = cookie..";path="..path
+			end
+			self:responseHeader("Set-Cookie", cookie)
+			return self
+		else
+			return self._cookies[name]
+		end
+	end;
+	cookies = function (self) return self._cookies end;
 }
 
 local AppServer = Object:extend{
@@ -535,11 +612,9 @@ local AppServer = Object:extend{
 	server = property;
 	init = function (self, host, port, tmpDir, session, app)
 		-- Init
-		io.write"AppServer:init"
-		io.flush()
 		port = port or 80
 		self:host(host or Exception"host required")
-		self:port(port or Exception"port required")
+		self:port(tonumber(port) or Exception"port required")
 		self:app(app or Exception"app required")
 		local server = Socket.tcp()
 		if not server:bind(host, port) then
@@ -552,7 +627,6 @@ local AppServer = Object:extend{
 		-- Run
 		local client
 		while true do
-			io.write"server:accept"
 			client = server:accept()
 			if not client then
 				Exception"can't accept connection"
@@ -561,8 +635,8 @@ local AppServer = Object:extend{
 			local res, err = conn:run()
 			if not res then
 				io.write(err)
-			else
-				conn:close()
+				client:send("HTTP/1.1 500 "..responseString[500].."\r\nStatus: 500 "..responseString[500].."\r\n\r\n")
+				client:close()
 			end
 		end
 	end;
