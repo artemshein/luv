@@ -79,6 +79,19 @@ local Response = Object:extend{
 local WsApi = Object:extend{
 	__tag = .....".Api";
 	session = property;
+	headersSent = property"boolean";
+	requestHeaders = property"table";
+	responseCode = property"number";
+	responseHeaders = property"table";
+	init = function (self)
+		self._post = {}
+		self._get = {}
+		self._cookies = {}
+		self._headersSent = false
+		self._requestHeaders = {}
+		self._responseCode = 200
+		self._responseHeaders = {}
+	end;
 	parseMultipartFormData = function (self, boundary, stream)
 		postData = stream:explode(boundary)
 		for i = 2, #postData-1 do
@@ -131,6 +144,30 @@ local WsApi = Object:extend{
 		self:session(require"luv.sessions".Session(sessionsStorage, id))
 		return self
 	end;
+	-- Get
+	get = function (self, ...)
+		if select("#", ...) > 1 then
+			local key, val = select(1, ...)
+			self._get[key] = val
+			return self
+		else
+			local key = select(1, ...)
+			return self._get[key]
+		end
+	end;
+	getData = function (self) return self._get end;
+	-- Post
+	post = function (self, ...)
+		if select("#", ...) > 1 then
+			local key, val = select(1, ...)
+			self._post[key] = val
+			return self
+		else
+			local key = select(1, ...)
+			return self._post[key]
+		end
+	end;
+	postData = function (self) return self._post end;
 }
 
 local urlDecodeArr = {["+"]=" "}
@@ -212,18 +249,6 @@ local Cgi = WsApi:extend{
 	requestMethod = function (self)
 		return self:requestHeader"REQUEST_METHOD"
 	end;
-	-- Get
-	get = function (self, ...)
-		if select("#", ...) > 1 then
-			local key, val = select(1, ...)
-			self._get[key] = val
-			return self
-		else
-			local key = select(1, ...)
-			return self[key]
-		end
-	end;
-	getData = function (self) return self._get end;
 	parseGetData = function (self)
 		local _, data = (self:requestHeader"REQUEST_URI" or ""):split"?"
 		if data then
@@ -235,18 +260,6 @@ local Cgi = WsApi:extend{
 			end
 		end
 	end;
-	-- Post
-	post = function (self, ...)
-		if select("#", ...) > 1 then
-			local key, val = select(1, ...)
-			self._post[key] = val
-			return self
-		else
-			local key = select(1, ...)
-			return self[key]
-		end
-	end;
-	postData = function (self) return self._post end;
 	parsePostData = function (self)
 		if "POST" ~= self:requestHeader"REQUEST_METHOD" then
 			return
@@ -452,26 +465,17 @@ local Connection = WsApi:extend{
 	__tag = .....".Connection";
 	server = property;
 	client = property;
-	_headersSent = false;
-	headersSent = property"boolean";
-	_get = {};
-	get = property"table";
-	_post = {};
-	post = property"table";
-	_requestHeaders = {};
-	requestHeaders = property"table";
-	_answer = "";
-	_responseCode = 200;
-	responseCode = property"number";
-	_responseHeaders = {};
-	responseHeaders = property"table";
-	_cookies = {};
 	_write = function (self, ...)
 		local args, data = {select(1, ...)}, ""
 		for i = 1, select("#", ...) do
 			self._answer = self._answer..tostring(args[i])
 		end
 	end;
+	--[[_transformHeader = function (header)
+		header = header:upper()
+		header:replace{["-"] = "_"}
+		return header
+	end;]]
 	_processGet = function (self)
 		-- Read headers
 		local client, header, key, val = self:client()
@@ -486,29 +490,67 @@ local Connection = WsApi:extend{
 			self._requestHeaders[key] = val
 		end
 	end;
+	_processPost = function (self)
+		local contentType = self:requestHeader"Content-Type"
+		if contentType:beginsWith"application/x-www-form-urlencoded" then
+			local data = self:client():receive(tonumber(self:requestHeader"Content-Length"))
+			if data then
+				data = data:explode"&"
+				for _, v in ipairs(data) do
+					local key, val = v:split"="
+					val = urlDecode(val)
+					if not self._post[key] then
+						self._post[key] = val
+					else
+						if "table" == type(self._post[key]) then
+							table.insert(self._post[key], val)
+						else
+							self._post[key] = {self._post[key];val}
+						end
+					end
+				end
+			end
+		elseif contentType:beginsWith"multipart/form-data" then
+			local _, boundaryStr = contentType:split";"
+			local _, boundary = boundaryStr:split"="
+			self:parseMultipartFormData("--"..boundary, self:client():receive"*a")
+		else
+			Exception("not implemented for content-type: "..contentType)
+		end
+	end;
 	init = function (self, server, client)
+		WsApi.init(self)
 		self:server(server)
 		self:client(client)
+		self._answer = "";
 	end;
 	run = function (self)
 		local client = self:client()
-		local env = table.deepCopy(_G)
+		--[[local env = table.deepCopy(_G)
 		env.io.write = function (...)
+			return self:_write(...)
+		end]]
+		self._pureWrite = _G.io.write
+		_G.io.write = function (...)
 			return self:_write(...)
 		end
 		local method, uri, protocol = client:receive"*l":split(" ", " ")
 		if "HTTP/1.1" ~= protocol then
 			return nil, ("Unsupported protocol "..protocol)
 		end
+		self:requestHeader("REQUEST_METHOD", method)
+		self:requestHeader("REQUEST_URI", uri)
 		if "GET" == method then
 			self:_processGet()
+		elseif "POST" == method then
+			self:_processPost()
 		else
 			-- FIXME: there should be a 501 answer
 			return nil, ("Unsupported method "..method)
 		end
 		self:parseCookies()
 		local handler = self:server():app()
-		setfenv(handler, env)
+		--setfenv(handler, env)
 		local co = coroutine.create(function ()
 			handler(self)
 			return true
@@ -560,7 +602,7 @@ local Connection = WsApi:extend{
 	end;
 	-- Cookies
 	parseCookies = function (self)
-		local cookieString = self:requestHeader"HTTP_COOKIE"
+		local cookieString = self:requestHeader"Cookie"
 		if not cookieString then
 			return nil
 		end
@@ -724,8 +766,28 @@ local UrlConf = Object:extend{
 	end;
 }
 
+local function serveDir (dir)
+	return function (urlConf, file)
+		local f = fs.File(fs.Dir(dir) / file)
+		if not f:exists() then
+			Http404()
+		else
+			if file:endsWith".jpg" or file:endsWith".jpeg" then
+				wsApi:responseHeader("Content-Type", "image/jpeg")
+			elseif file:endsWith".gif" then
+				wsApi:responseHeader("Content-Type", "image/gif")
+			elseif file:endsWith".css" then
+				wsApi:responseHeader("Content-Type", "text/css")
+			elseif file:endsWith".js" then
+				wsApi:responseHeader("Content-Type", "text/javascript")
+			end
+			io.write(f:openReadAndClose"*a")
+		end
+	end
+end
+
 return {
 	Request=Request;Response=Response;Exception=Exception;
 	WsApi=WsApi;Cgi=Cgi;Scgi=Scgi;SocketAppServer=SocketAppServer;Http403=Http403;
-	Http404=Http404; AppServer = AppServer; UrlConf=UrlConf;
+	Http404=Http404; AppServer = AppServer; UrlConf=UrlConf; serveDir = serveDir;
 }
