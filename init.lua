@@ -212,7 +212,7 @@ local Luv = Object:extend{
 		if env.secretSalt then
 			require"luv.contrib.auth".models.User:secretSalt(env.secretSalt)
 		end
-		local jsScripts = {"jquery-1.3.2.min.js";"jquery.form.js";"data.js";"forms.js";"validators.js";"browsers.js";"jquery-ui-1.7.2.custom.min.js"}
+		local jsScripts = {"jquery-1.4.2.min.js";"jquery.form.js";"data.js";"forms.js";"validators.js";"browsers.js";"jquery-ui-1.8.2.custom.min.js"}
 		env.templater:assign{
 			mediaPrefix=env.mediaPrefix;urlPrefix=env.urlPrefix;debugger=env.debugger or "";
 			jsScripts = jsScripts;

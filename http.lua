@@ -766,28 +766,8 @@ local UrlConf = Object:extend{
 	end;
 }
 
-local function serveDir (dir)
-	return function (urlConf, file)
-		local f = fs.File(fs.Dir(dir) / file)
-		if not f:exists() then
-			Http404()
-		else
-			if file:endsWith".jpg" or file:endsWith".jpeg" then
-				wsApi:responseHeader("Content-Type", "image/jpeg")
-			elseif file:endsWith".gif" then
-				wsApi:responseHeader("Content-Type", "image/gif")
-			elseif file:endsWith".css" then
-				wsApi:responseHeader("Content-Type", "text/css")
-			elseif file:endsWith".js" then
-				wsApi:responseHeader("Content-Type", "text/javascript")
-			end
-			io.write(f:openReadAndClose"*a")
-		end
-	end
-end
-
 return {
 	Request=Request;Response=Response;Exception=Exception;
 	WsApi=WsApi;Cgi=Cgi;Scgi=Scgi;SocketAppServer=SocketAppServer;Http403=Http403;
-	Http404=Http404; AppServer = AppServer; UrlConf=UrlConf; serveDir = serveDir;
+	Http404=Http404; AppServer = AppServer; UrlConf=UrlConf;
 }

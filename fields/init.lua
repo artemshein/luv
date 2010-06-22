@@ -264,7 +264,7 @@ local Text = Field:extend{
 		if not params.widget then
 			if params.choices then
 				params.widget = widgets.Select()
-			elseif "number" == type(params.max) and (params.max == 0 or params.max > 65535) then
+			elseif "number" == type(params.max) and (params.max == 0 or params.max >= 65535) then
 				params.widget = widgets.TextArea()
 			else
 				params.widget = widgets.TextInput()
