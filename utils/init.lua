@@ -8,6 +8,12 @@ local property = Object.property
 
 local Version = Object:extend{
 	__tag = .....".Version";
+	full = Object.abstractMethod;
+	__tostring = function (self) return self:full() end;
+}
+
+local MajorVersion = Version:extend{
+	__tag = .....".MajorVersion";
 	_state = "stable";
 	major = property;
 	minor = property"number";
@@ -39,7 +45,33 @@ local Version = Object:extend{
 		end
 		return res
 	end;
-	__tostring = function (self) return self:full() end;
+}
+
+local StatusVersion = Version:extend{
+	__tag = .....".StatusVersion";
+	major = property;
+	minor = property;
+	revOrDate = property"number";
+	codename = property"string";
+	init = function (self, major, minor, revOrDate, codename)
+		self:major(major)
+		self:minor(minor)
+		if revOrDate then self:revOrDate(revOrDate) end
+		if codename then self:codename(codename) end
+	end;
+	full = function (self)
+		local res = self:major()
+		if self:minor() or self:revOrDate() then
+			res = res.."."..(self:minor() or "0")
+			if self:revOrDate() then
+				res = res.."."..self:revOrDate()
+			end
+		end;
+		if self:codename() then
+			res = res.." "..self:codename()
+		end
+		return res
+	end;
 }
 
 local sendEmail = function (from, to, subject, body, server)
@@ -102,7 +134,7 @@ local function lazyRequire (module)
 end
 
 return {
-	Version=Version;
+	Version = Version; MajorVersion = MajorVersion; StatusVersion = StatusVersion;
 	sendEmail=sendEmail;
 	TreeNode=TreeNode;
 	lazyRequire=lazyRequire;

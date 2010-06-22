@@ -16,9 +16,9 @@ local GroupRight = models.Model:extend{
 	__tag = .....".GroupRight";
 	__tostring = function (self) return tostring(self.model)..": "..tostring(self.action) end;
 	Meta = {labels={"group right";"group rights"}};
-	model = fields.Text{required=true;minLength=1};
-	action = fields.Text{required=true;minLength=1};
-	description = fields.Text{maxLength=false};
+	model = fields.Text{true; min=1};
+	action = fields.Text{true; min=1};
+	description = fields.Text{max=false};
 	superuserRight = function (self) return self._superuserRight end;
 }
 
@@ -28,9 +28,9 @@ local UserGroup = models.Model:extend{
 	__tag = .....".UserGroup";
 	__tostring = function (self) return tostring(self.title) end;
 	Meta = {labels={"user group";"user groups"}};
-	title = fields.Text{required=true;unique=true};
-	description = fields.Text{maxLength=false};
-	rights = references.ManyToMany{references=GroupRight;relatedName="groups"};
+	title = fields.Text{true; unique=true};
+	description = fields.Text{max=false};
+	rights = references.ManyToMany{GroupRight; relatedName="groups"};
 	hasRight = function (self, model, action)
 		local superuserRight = GroupRight:superuserRight()
 		for _, v in self.rights:all()() do
@@ -51,12 +51,12 @@ local User = models.Model:extend{
 	secretSalt = property"string";
 	Meta = {labels={"user";"users"}};
 	-- Fields
-	active = fields.Boolean{defaultValue=true;label="active user"};
+	active = fields.Boolean{default=true; "active user"};
 	login = fields.Login();
 	name = fields.Text();
 	email = fields.Email();
-	passwordHash = fields.Text{required=true};
-	group = references.ManyToOne{references=UserGroup;relatedName="users"};
+	passwordHash = fields.Text{true};
+	group = references.ManyToOne{UserGroup; relatedName="users"};
 	-- Methods
 	encodePassword = function (self, password, method, salt)
 		if not password then Exception"empty password is restricted" end

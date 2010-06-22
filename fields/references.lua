@@ -36,6 +36,8 @@ local Reference = fields.Field:extend{
 				params.references = param
 			elseif "boolean" == t then
 				params.required = param
+			elseif "string" == t then
+				params.label = param
 			end
 		end
 		return params
