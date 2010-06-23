@@ -764,11 +764,11 @@ local ModelSelect = Field:extend{
 		for _, param in ipairs(params) do
 			local t = type(param)
 			if "boolean" == t then
-				param.required = param
+				params.required = param
 			elseif "string" == t then
-				param.label = param
+				params.label = param
 			elseif "table" == t then
-				param.choices = param
+				params.choices = param
 			end
 		end
 		return params

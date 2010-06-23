@@ -942,9 +942,11 @@ local SqlQuerySet = QuerySet:extend{
 		local result = {}
 		local field
 		for i, part in ipairs(parts) do
+			-- Resolve "pk" to primary key field name
 			if "pk" == part then
 				part = curModel:pkName()
 			end
+			-- Try to find field
 			field = curModel:field(part)
 			if not field then
 				Exception("field "..("%q"):format(part).." not founded")
@@ -1009,11 +1011,16 @@ local SqlQuerySet = QuerySet:extend{
 					)
 				end
 				curModel = field:refModel()
-			else
-				curModel = nil
+			else -- Field is not a reference
 				result.field = field
-				result.sql = result.sql and (result.sql..".?#") or "?#"
+				if result.sql then
+					result.sql = result.sql..".?#"
+				else
+					result.sql = "?#.?#"
+					table.insert(result, curModel:tableName())
+				end
 				table.insert(result, part)
+				curModel = nil
 			end
 		end
 		return result
